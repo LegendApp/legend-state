@@ -131,6 +131,46 @@ describe('observable', () => {
         type ObservableFn2 = ReturnType<typeof withTypedComputed2>;
         expectTypeOf<ObservableFn2['bool']['get']>().returns.toEqualTypeOf<number>();
     });
+
+    it('issue #631: function child preserves argument signature', () => {
+        type AppState = {
+            // A function returning a non-void value previously had its argument signature
+            // stripped down to `() => boolean`, so calling it errored with
+            // `Expected 0 arguments, but got 1`.
+            centerMap: (coords: unknown) => boolean;
+        };
+
+        function withFunctionChild() {
+            return observable<AppState>({
+                centerMap: (coords) => !!coords,
+            });
+        }
+
+        type ObservableFn = ReturnType<typeof withFunctionChild>;
+
+        // The function's argument signature must be preserved.
+        expectTypeOf<ObservableFn['centerMap']>().toBeCallableWith('some-coords');
+        expectTypeOf<ObservableFn['centerMap']>().parameters.toEqualTypeOf<[coords: unknown]>();
+    });
+
+    it('issue #521: async function child without args keeps its Promise return type', () => {
+        type Example = {
+            // Without arguments the Promise return was wrongly unwrapped to `number`.
+            asyncNoArgs(): Promise<number>;
+        };
+
+        function withAsyncChildren() {
+            return observable<Example>({
+                async asyncNoArgs() {
+                    return 1;
+                },
+            });
+        }
+
+        type ObservableFn = ReturnType<typeof withAsyncChildren>;
+
+        expectTypeOf<ObservableFn['asyncNoArgs']>().returns.toEqualTypeOf<Promise<number>>();
+    });
 });
 
 describe('Observable', () => {
