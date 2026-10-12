@@ -1,5 +1,40 @@
 import type { NodeInfo, NodeListener } from './observableInterfaces';
 
+// Global observable creation tracking
+type ObservableCreatedHandler = (node: NodeInfo) => void;
+const creationHandlers = new Set<ObservableCreatedHandler>();
+
+/**
+ * Register a global handler that fires whenever an observable is created.
+ * Useful for devtools that need to auto-discover every observable.
+ * Returns an unsubscribe function.
+ *
+ */
+export function onObservableCreated(handler: ObservableCreatedHandler): () => void {
+    creationHandlers.add(handler);
+    return () => {
+        creationHandlers.delete(handler);
+    };
+}
+
+/**
+ * Notify all registered creation handlers about a new observable.
+ * Called internally from createObservable. Skipped when no handlers exist.
+ * @internal
+ */
+export function notifyObservableCreated(node: NodeInfo): void {
+    if (creationHandlers.size === 0) {
+        return;
+    }
+    for (const handler of creationHandlers) {
+        try {
+            handler(node);
+        } catch (error) {
+            console.error('Error in onObservableCreated handler:', error);
+        }
+    }
+}
+
 // Types for middleware events and handlers
 export type MiddlewareEventType = 'listener-added' | 'listener-removed' | 'listeners-cleared';
 

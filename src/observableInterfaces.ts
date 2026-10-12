@@ -68,6 +68,10 @@ export interface TrackingState {
     traceUpdates?: (fn: Function) => Function;
 }
 
+export interface ObservableOptions {
+    name?: string;
+}
+
 interface BaseNodeInfo {
     children?: Map<string, ChildNodeInfo>;
     proxy?: object;
@@ -75,6 +79,7 @@ interface BaseNodeInfo {
     listeners?: Set<NodeListener>;
     listenersImmediate?: Set<NodeListener>;
     isEvent?: boolean;
+    _name?: string;
     linkedToNode?: NodeInfo;
     linkedToNodeDispose?: () => void;
     activatedObserveDispose?: () => void;
