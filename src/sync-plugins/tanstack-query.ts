@@ -9,6 +9,7 @@ import {
     QueryKey,
     QueryObserver,
     QueryObserverOptions,
+    QueryObserverResult,
     notifyManager,
 } from '@tanstack/query-core';
 
@@ -19,11 +20,20 @@ export interface ObservableQueryOptions<TQueryFnData, TError, TData, TQueryKey e
     queryKey?: TQueryKey | (() => TQueryKey);
 }
 
+export interface QueryState<TError = DefaultError> {
+    isLoading: boolean;
+    isFetching: boolean;
+    error: TError | null;
+    status: 'pending' | 'error' | 'success';
+    fetchStatus: 'fetching' | 'paused' | 'idle';
+}
+
 export interface SyncedQueryParams<TQueryFnData, TError, TData, TQueryKey extends QueryKey>
     extends Omit<SyncedOptions<TData>, 'get' | 'set' | 'retry'> {
     queryClient: QueryClient;
     query: ObservableQueryOptions<TQueryFnData, TError, TData, TQueryKey>;
     mutation?: MutationObserverOptions<TQueryFnData, TError, TData>;
+    onQueryStateChange?: (state: QueryState<TError>) => void;
 }
 
 export function syncedQuery<
@@ -32,7 +42,14 @@ export function syncedQuery<
     TData = TQueryFnData,
     TQueryKey extends QueryKey = QueryKey,
 >(params: SyncedQueryParams<TQueryFnData, TError, TData, TQueryKey>): Synced<TData> {
-    const { query: options, mutation: mutationOptions, queryClient, initial: initialParam, ...rest } = params;
+    const {
+        query: options,
+        mutation: mutationOptions,
+        queryClient,
+        initial: initialParam,
+        onQueryStateChange,
+        ...rest
+    } = params;
 
     if (initialParam !== undefined) {
         const initialValue = isFunction(initialParam) ? initialParam() : initialParam;
@@ -84,7 +101,16 @@ export function syncedQuery<
     observer = new Observer!<TQueryFnData, TError, TData, TQueryKey>(queryClient!, latestOptions);
 
     let isFirstRun = true;
+    let rejectInitialPromise: undefined | ((error: Error) => void) = undefined;
+    // Track whether subscribe was just called in this sync cycle.
+    // The sync infrastructure calls subscribe() before get() on (re-)observation,
+    // but skips subscribe() on explicit sync() when already subscribed.
+    let subscribedInThisCycle = false;
+
     const get = (async () => {
+        const wasJustSubscribed = subscribedInThisCycle;
+        subscribedInThisCycle = false;
+
         if (isFirstRun) {
             isFirstRun = false;
 
@@ -92,27 +118,62 @@ export function syncedQuery<
             const result = observer!.getOptimisticResult(latestOptions);
 
             if (result.isLoading) {
-                await new Promise((resolve) => {
+                return await new Promise<TData>((resolve, reject) => {
                     resolveInitialPromise = resolve;
+                    rejectInitialPromise = reject;
                 });
             }
 
             return result.data!;
+        } else if (wasJustSubscribed) {
+            // Re-observation (remount): return cached data, let TQ observer
+            // handle refetch decisions via subscription (refetchOnMount, staleTime, etc.)
+            return observer!.getCurrentResult().data!;
         } else {
+            // Explicit sync(): always force refetch from the server
             return Promise.resolve(observer!.refetch()).then((res) => (res as any).data as TData);
         }
     }) as () => Promise<TData>;
 
-    const subscribe = ({ update }: SyncedSubscribeParams<TData>) => {
+    const emitQueryState = (result: QueryObserverResult<TData, TError>) => {
+        if (onQueryStateChange) {
+            onQueryStateChange({
+                isLoading: result.isLoading,
+                isFetching: result.isFetching,
+                error: result.error,
+                status: result.status,
+                fetchStatus: result.fetchStatus,
+            });
+        }
+    };
+
+    const subscribe = ({ update, onError, node }: SyncedSubscribeParams<TData>) => {
+        subscribedInThisCycle = true;
+
         // Subscribe to Query's observer and update the observable
         const unsubscribe = observer!.subscribe(
-            notifyManager.batchCalls((result) => {
+            notifyManager.batchCalls((result: QueryObserverResult<TData, TError>) => {
+                emitQueryState(result);
+
                 if (result.status === 'success') {
+                    // Clear error on success
+                    if (node.state && node.state.error.peek()) {
+                        node.state.error.set(undefined);
+                    }
                     if (resolveInitialPromise) {
                         resolveInitialPromise(result.data);
                         resolveInitialPromise = undefined;
+                        rejectInitialPromise = undefined;
                     }
                     update({ value: result.data });
+                } else if (result.status === 'error') {
+                    // Propagate error to syncState via onError
+                    if (rejectInitialPromise) {
+                        rejectInitialPromise(result.error as Error);
+                        rejectInitialPromise = undefined;
+                        resolveInitialPromise = undefined;
+                    }
+                    onError(result.error as Error);
                 }
             }),
         );
