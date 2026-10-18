@@ -405,6 +405,7 @@ export function syncedSupabase<
                               old[symbolDelete as any] = true;
                               update({
                                   value: [old as TRemote],
+                                  mode: 'merge',
                               });
                           }
                       },
