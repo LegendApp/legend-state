@@ -3128,264 +3128,292 @@ async function loadLocal<T>(
     const prevResetPersistence = nodeValue.resetPersistence;
 
     if (persist?.name) {
-        const PersistPlugin: ClassConstructor<ObservablePersistPlugin> | ObservablePersistPlugin =
-            persist.plugin! || observableSyncConfiguration.persist?.plugin;
-        const { table, config } = parseLocalConfig(persist);
+        return loadPersistedLocal(
+            value$,
+            syncOptions,
+            syncState$,
+            localState,
+            persist,
+            node,
+            nodeValue,
+            syncStateValue,
+            prevResetPersistence,
+        );
+    }
 
-        syncStateValue.numPendingLocalLoads = (syncStateValue.numPendingLocalLoads || 0) + 1;
+    // Console.warn if no persist name is provided. It's ok if name is undefined as that can be the user manually disabling it,
+    // but if not provided at all it's likely user error.
+    if (
+        (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') &&
+        persist &&
+        persist.plugin &&
+        !Object.hasOwn(persist, 'name')
+    ) {
+        console.warn(
+            '[legend-state] Trying to syncObservable without `name` defined. Please include a `name` property in the `persist` configuration.',
+        );
+    }
+    nodeValue.resetPersistence = () => prevResetPersistence?.();
+    // TODOV3 Remove
+    nodeValue.clearPersist = nodeValue.resetPersistence;
 
-        if (!PersistPlugin) {
-            throw new Error('Local persist is not configured');
-        }
-        // Ensure there's only one instance of the cache plugin
-        if (!mapSyncPlugins.has(PersistPlugin)) {
-            const persistPlugin = isFunction(PersistPlugin) ? new PersistPlugin() : PersistPlugin;
-            const mapValue = { plugin: persistPlugin, initialized: observable(false) };
-            mapSyncPlugins.set(PersistPlugin, mapValue);
-            if (persistPlugin.initialize) {
-                const initializePromise = persistPlugin.initialize?.(observableSyncConfiguration?.persist || {});
-                if (isPromise(initializePromise)) {
-                    await initializePromise;
-                }
+    syncState$.isPersistLoaded.set(!(syncStateValue.numPendingLocalLoads! > 0));
+}
+
+async function loadPersistedLocal<T>(
+    value$: ObservableParam<T>,
+    syncOptions: SyncedOptions<any>,
+    syncState$: ObservableObject<ObservableSyncState>,
+    localState: LocalState,
+    persist: PersistOptions<any>,
+    node: NodeInfo,
+    nodeValue: ObservableSyncState,
+    syncStateValue: ObservableSyncState,
+    prevResetPersistence: ObservableSyncState['resetPersistence'],
+) {
+    const PersistPlugin: ClassConstructor<ObservablePersistPlugin> | ObservablePersistPlugin =
+        persist.plugin! || observableSyncConfiguration.persist?.plugin;
+    const { table, config } = parseLocalConfig(persist);
+
+    syncStateValue.numPendingLocalLoads = (syncStateValue.numPendingLocalLoads || 0) + 1;
+
+    if (!PersistPlugin) {
+        throw new Error('Local persist is not configured');
+    }
+    // Ensure there's only one instance of the cache plugin
+    if (!mapSyncPlugins.has(PersistPlugin)) {
+        const persistPlugin = isFunction(PersistPlugin) ? new PersistPlugin() : PersistPlugin;
+        const mapValue = { plugin: persistPlugin, initialized: observable(false) };
+        mapSyncPlugins.set(PersistPlugin, mapValue);
+        if (persistPlugin.initialize) {
+            const initializePromise = persistPlugin.initialize?.(observableSyncConfiguration?.persist || {});
+            if (isPromise(initializePromise)) {
+                await initializePromise;
             }
-            mapValue.initialized.set(true);
         }
+        mapValue.initialized.set(true);
+    }
 
-        const { plugin, initialized: initialized$ } = mapSyncPlugins.get(PersistPlugin)!;
-        const persistPlugin = plugin as ObservablePersistPlugin;
+    const { plugin, initialized: initialized$ } = mapSyncPlugins.get(PersistPlugin)!;
+    const persistPlugin = plugin as ObservablePersistPlugin;
 
-        localState.pluginPersist = persistPlugin as ObservablePersistPlugin;
+    localState.pluginPersist = persistPlugin as ObservablePersistPlugin;
 
-        if (!initialized$.peek()) {
-            await when(initialized$);
-        }
+    if (!initialized$.peek()) {
+        await when(initialized$);
+    }
 
-        // If cache has an asynchronous load, wait for it
-        if (persistPlugin.loadTable) {
-            try {
-                const promise = persistPlugin.loadTable(table, config);
-                if (promise) {
-                    await promise;
-                }
-            } catch (err) {
-                if (process.env.NODE_ENV === 'development') {
-                    console.error(
-                        '[legend-state] Error loading local cache. This would be a crashing error in production.',
-                        err,
-                    );
-                } else {
-                    throw err;
-                }
+    // If cache has an asynchronous load, wait for it
+    if (persistPlugin.loadTable) {
+        try {
+            const promise = persistPlugin.loadTable(table, config);
+            if (promise) {
+                await promise;
             }
-        }
-
-        // Get current value for init
-        const prevValue = getNodeValue(node) as object;
-
-        // Get the value from state
-        let value = persistPlugin.getTable(table, prevValue, config);
-        localState.persistedRootType = internal.getPathType(value);
-        const metadata = persistPlugin.getMetadata(table, config);
-
-        if (metadata) {
-            metadatas.set(value$, metadata);
-            localState.pendingChanges = metadata.pending;
-            syncState$.assign({
-                lastSync: metadata.lastSync,
-            });
-        }
-
-        // Merge the data from local cache into the default state
-        if (value !== undefined) {
-            const { transform } = config;
-
-            value = transformLoadData(value, { transform }, true, 'get');
-
-            if (isPromise(value)) {
-                value = await value;
-            }
-
-            // isLoadingLocal prevents saving remotely when two different caches
-            // are set on the same observable
-            node.root.isLoadingLocal = true;
-            internal.globalState.isLoadingLocal = true;
-
-            // We want to merge the local data on top of any initial state the object is created with
-            if (value === null && (!prevValue || (prevValue as any)[symbolLinked])) {
-                value$.set(value);
+        } catch (err) {
+            if (process.env.NODE_ENV === 'development') {
+                console.error(
+                    '[legend-state] Error loading local cache. This would be a crashing error in production.',
+                    err,
+                );
             } else {
-                mergeIntoObservable(value$, value);
+                throw err;
             }
-            node.root.isLoadingLocal = false;
+        }
+    }
 
-            internal.globalState.isLoadingLocal = false;
+    // Get current value for init
+    const prevValue = getNodeValue(node) as object;
+
+    // Get the value from state
+    let value = persistPlugin.getTable(table, prevValue, config);
+    localState.persistedRootType = internal.getPathType(value);
+    const metadata = persistPlugin.getMetadata(table, config);
+
+    if (metadata) {
+        metadatas.set(value$, metadata);
+        localState.pendingChanges = metadata.pending;
+        syncState$.assign({
+            lastSync: metadata.lastSync,
+        });
+    }
+
+    // Merge the data from local cache into the default state
+    if (value !== undefined) {
+        const { transform } = config;
+
+        value = transformLoadData(value, { transform }, true, 'get');
+
+        if (isPromise(value)) {
+            value = await value;
         }
 
-        const pending = localState.pendingChanges;
-        if (pending && !isEmpty(pending)) {
-            let restored = getNodeValue(node);
-            let changedChild = false;
-            let childRestores: { path: string[]; value: any }[] | undefined;
-            for (const key of Object.keys(pending).sort((a, b) => a.split('/').length - b.split('/').length)) {
-                const entry = pending[key];
-                if (!key && !entry.c) continue;
-                const resolved = readPendingEntry(restored, key, entry);
-                if (!resolved) continue;
-                const { path, value: current } = resolved;
-                if (entry.k && (entry.d || entry.v === undefined)) {
-                    if (!('nilWritable' in resolved && resolved.nilWritable)) continue;
-                    const exists = 'exists' in resolved && resolved.exists;
-                    if (entry.d ? !exists : exists && current === undefined) continue;
-                    changedChild = true;
-                    if (restored === getNodeValue(node)) {
-                        (childRestores ||= []).push({ path, value: entry.d ? internal.symbolDelete : entry.v });
-                    } else writePendingPath(restored, path, entry.t, entry.v, entry.d);
+        // isLoadingLocal prevents saving remotely when two different caches
+        // are set on the same observable
+        node.root.isLoadingLocal = true;
+        internal.globalState.isLoadingLocal = true;
+
+        // We want to merge the local data on top of any initial state the object is created with
+        if (value === null && (!prevValue || (prevValue as any)[symbolLinked])) {
+            value$.set(value);
+        } else {
+            mergeIntoObservable(value$, value);
+        }
+        node.root.isLoadingLocal = false;
+
+        internal.globalState.isLoadingLocal = false;
+    }
+
+    const pending = localState.pendingChanges;
+    if (pending && !isEmpty(pending)) {
+        let restored = getNodeValue(node);
+        let changedChild = false;
+        let childRestores: { path: string[]; value: any }[] | undefined;
+        for (const key of Object.keys(pending).sort((a, b) => a.split('/').length - b.split('/').length)) {
+            const entry = pending[key];
+            if (!key && !entry.c) continue;
+            const resolved = readPendingEntry(restored, key, entry);
+            if (!resolved) continue;
+            const { path, value: current } = resolved;
+            if (entry.k && (entry.d || entry.v === undefined)) {
+                if (!('nilWritable' in resolved && resolved.nilWritable)) continue;
+                const exists = 'exists' in resolved && resolved.exists;
+                if (entry.d ? !exists : exists && current === undefined) continue;
+                changedChild = true;
+                if (restored === getNodeValue(node)) {
+                    (childRestores ||= []).push({ path, value: entry.d ? internal.symbolDelete : entry.v });
+                } else writePendingPath(restored, path, entry.t, entry.v, entry.d);
+                continue;
+            }
+            const previous = entry.p;
+            const working = { ...entry, h: entry.h ? entry.h.slice() : emptyPendingHistory };
+            const fieldId = key ? undefined : syncOptions.fieldId;
+            const keys =
+                key && entry.h ? undefined : addPendingHistory(working, undefined, previous, [], node, fieldId);
+            if (entry.c || !entry.h?.length) addPendingHistory(working, previous, entry.v, [], node, fieldId, keys);
+            const history = pendingHistoryTree(working.h);
+            const value = mergePendingValue(
+                current,
+                entry.v,
+                key && !entry.c && entry.h?.length ? entry.v : previous,
+                key ? undefined : node,
+                fieldId,
+                history,
+                true,
+            );
+            const baseline = mergePendingValue(
+                current,
+                previous,
+                previous,
+                key ? undefined : node,
+                fieldId,
+                history,
+                true,
+            );
+            if (baseline !== previous) entry.p = clonePendingValue(baseline);
+            entry.v = value;
+            entry.c = true;
+            if (key && !deepEqual(value, current)) {
+                changedChild = true;
+                if (restored === getNodeValue(node)) {
+                    (childRestores ||= []).push({ path, value });
                     continue;
                 }
-                const previous = entry.p;
-                const working = { ...entry, h: entry.h ? entry.h.slice() : emptyPendingHistory };
-                const fieldId = key ? undefined : syncOptions.fieldId;
-                const keys =
-                    key && entry.h ? undefined : addPendingHistory(working, undefined, previous, [], node, fieldId);
-                if (entry.c || !entry.h?.length) addPendingHistory(working, previous, entry.v, [], node, fieldId, keys);
-                const history = pendingHistoryTree(working.h);
-                const value = mergePendingValue(
-                    current,
-                    entry.v,
-                    key && !entry.c && entry.h?.length ? entry.v : previous,
-                    key ? undefined : node,
-                    fieldId,
-                    history,
-                    true,
-                );
-                const baseline = mergePendingValue(
-                    current,
-                    previous,
-                    previous,
-                    key ? undefined : node,
-                    fieldId,
-                    history,
-                    true,
-                );
-                if (baseline !== previous) entry.p = clonePendingValue(baseline);
-                entry.v = value;
-                entry.c = true;
-                if (key && !deepEqual(value, current)) {
-                    changedChild = true;
-                    if (restored === getNodeValue(node)) {
-                        (childRestores ||= []).push({ path, value });
-                        continue;
-                    }
-                }
-                restored = key ? setAtPath(restored, path, entry.t, value) : value;
             }
-            node.root.isLoadingLocal = true;
-            internal.globalState.isLoadingLocal = true;
+            restored = key ? setAtPath(restored, path, entry.t, value) : value;
+        }
+        node.root.isLoadingLocal = true;
+        internal.globalState.isLoadingLocal = true;
+        try {
+            beginBatch();
             try {
-                beginBatch();
-                try {
-                    if (childRestores) {
-                        for (const { path, value } of childRestores) {
-                            let child = node;
-                            for (const key of path) child = internal.getChildNode(child, key);
-                            internal.set(child, value);
-                        }
-                    } else value$.set(restored);
-                    restored = getNodeValue(node);
-                    if (pending['']?.c) pending[''].v = restored;
-                } finally {
-                    endBatch();
-                }
-            } finally {
-                node.root.isLoadingLocal = false;
-                internal.globalState.isLoadingLocal = false;
-            }
-            if (changedChild || !deepEqual(restored, value)) {
-                const initialValue = clonePendingValue(restored);
-                let firstRepair = true;
-                let repairing: Promise<void> | undefined;
-                const repair = () => {
-                    if (!repairing) {
-                        const first = firstRepair;
-                        firstRepair = false;
-                        let input: any;
-                        const saved = queueLocalSave(localState, () =>
-                            Promise.resolve().then(() => {
-                                if (localState.repairLocal !== repair) return;
-                                input = first ? initialValue : clonePendingValue(getNodeValue(node));
-                                return doInOrder(transformSaveData(input, [], [], config), (saved) =>
-                                    doInOrder(
-                                        config.retrySync
-                                            ? writeMetadata(value$, localState, syncState$, syncOptions, {
-                                                  pending: localState.pendingChanges,
-                                              })
-                                            : undefined,
-                                        () =>
-                                            persistPlugin.set(
-                                                table,
-                                                [
-                                                    {
-                                                        path: saved.path,
-                                                        pathTypes: [],
-                                                        prevAtPath: value,
-                                                        valueAtPath: saved.value,
-                                                    },
-                                                ],
-                                                config,
-                                            ),
-                                    ),
-                                );
-                            }),
-                        );
-                        repairing = Promise.resolve(saved).then(
-                            () => {
-                                if (localState.repairLocal === repair) localState.repairLocal = undefined;
-                            },
-                            (error) => {
-                                repairing = undefined;
-                                reportSetError({ syncState: syncState$, syncOptions }, error, () => input);
-                                throw error;
-                            },
-                        );
+                if (childRestores) {
+                    for (const { path, value } of childRestores) {
+                        let child = node;
+                        for (const key of path) child = internal.getChildNode(child, key);
+                        internal.set(child, value);
                     }
-                    return repairing;
-                };
-                localState.repairLocal = repair;
-                repair().catch(() => undefined);
+                } else value$.set(restored);
+                restored = getNodeValue(node);
+                if (pending['']?.c) pending[''].v = restored;
+            } finally {
+                endBatch();
             }
+        } finally {
+            node.root.isLoadingLocal = false;
+            internal.globalState.isLoadingLocal = false;
         }
-
-        syncStateValue.numPendingLocalLoads--;
-
-        nodeValue.resetPersistence = () =>
-            Promise.resolve(
-                queueLocalSave(localState, () => {
-                    return Promise.all(
-                        [
-                            prevResetPersistence?.(),
-                            persistPlugin.deleteTable(table, config),
-                            persistPlugin.deleteMetadata(table, config),
-                        ].filter(Boolean),
-                    ).then(() => {
-                        localState.repairLocal = undefined;
-                    });
-                }),
-            );
-    } else {
-        // Console.warn if no persist name is provided. It's ok if name is undefined as that can be the user manually disabling it,
-        // but if not provided at all it's likely user error.
-        if (
-            (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') &&
-            persist &&
-            persist.plugin &&
-            !Object.hasOwn(persist, 'name')
-        ) {
-            console.warn(
-                '[legend-state] Trying to syncObservable without `name` defined. Please include a `name` property in the `persist` configuration.',
-            );
+        if (changedChild || !deepEqual(restored, value)) {
+            const initialValue = clonePendingValue(restored);
+            let firstRepair = true;
+            let repairing: Promise<void> | undefined;
+            const repair = () => {
+                if (!repairing) {
+                    const first = firstRepair;
+                    firstRepair = false;
+                    let input: any;
+                    const saved = queueLocalSave(localState, () =>
+                        Promise.resolve().then(() => {
+                            if (localState.repairLocal !== repair) return;
+                            input = first ? initialValue : clonePendingValue(getNodeValue(node));
+                            return doInOrder(transformSaveData(input, [], [], config), (saved) =>
+                                doInOrder(
+                                    config.retrySync
+                                        ? writeMetadata(value$, localState, syncState$, syncOptions, {
+                                              pending: localState.pendingChanges,
+                                          })
+                                        : undefined,
+                                    () =>
+                                        persistPlugin.set(
+                                            table,
+                                            [
+                                                {
+                                                    path: saved.path,
+                                                    pathTypes: [],
+                                                    prevAtPath: value,
+                                                    valueAtPath: saved.value,
+                                                },
+                                            ],
+                                            config,
+                                        ),
+                                ),
+                            );
+                        }),
+                    );
+                    repairing = Promise.resolve(saved).then(
+                        () => {
+                            if (localState.repairLocal === repair) localState.repairLocal = undefined;
+                        },
+                        (error) => {
+                            repairing = undefined;
+                            reportSetError({ syncState: syncState$, syncOptions }, error, () => input);
+                            throw error;
+                        },
+                    );
+                }
+                return repairing;
+            };
+            localState.repairLocal = repair;
+            repair().catch(() => undefined);
         }
-        nodeValue.resetPersistence = () => prevResetPersistence?.();
     }
+
+    syncStateValue.numPendingLocalLoads--;
+
+    nodeValue.resetPersistence = () =>
+        Promise.resolve(
+            queueLocalSave(localState, () => {
+                return Promise.all(
+                    [
+                        prevResetPersistence?.(),
+                        persistPlugin.deleteTable(table, config),
+                        persistPlugin.deleteMetadata(table, config),
+                    ].filter(Boolean),
+                ).then(() => {
+                    localState.repairLocal = undefined;
+                });
+            }),
+        );
     // TODOV3 Remove
     nodeValue.clearPersist = nodeValue.resetPersistence;
 
