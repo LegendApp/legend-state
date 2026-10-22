@@ -246,7 +246,7 @@ describe('Pending', () => {
         obs$.test.set('hello');
         await promiseTimeout(0);
         let pending = state$.getPendingChanges();
-        expect(pending).toEqual({ test: { p: 'hi', t: ['object'], v: 'hello' } });
+        expect(pending).toEqual({ test: { p: 'hi', t: ['object'], h: [], v: 'hello', c: true } });
 
         // Updates pending
         obs$.test.set('hello2');
@@ -254,7 +254,7 @@ describe('Pending', () => {
         expect(didSetWrongValue).toEqual(false);
 
         pending = state$.getPendingChanges();
-        expect(pending).toEqual({ test: { p: 'hi', t: ['object'], v: 'hello2' } });
+        expect(pending).toEqual({ test: { p: 'hi', t: ['object'], h: [[]], v: 'hello2', c: true } });
 
         // Let it save
         isOk = true;
@@ -278,7 +278,7 @@ describe('Pending', () => {
 
         await promiseTimeout(0);
         pending = state$.getPendingChanges();
-        expect(pending).toEqual({ test: { p: 'hello2', t: ['object'], v: 'hello' } });
+        expect(pending).toEqual({ test: { p: 'hello2', t: ['object'], h: [], v: 'hello', c: true } });
 
         // Let it save
         isOk = true;
@@ -375,7 +375,7 @@ describe('Pending', () => {
         await promiseTimeout(10);
 
         const pendingAfterSecond = state$.getPendingChanges();
-        expect(pendingAfterSecond).toEqual({ a: { p: 0, t: ['object'], v: 1 } });
+        expect(pendingAfterSecond).toEqual({ a: { p: 0, t: ['object'], h: [], v: 1, c: true } });
 
         const metadataAfterSecond = JSON.parse(localStorage.getItem(persistName + '__m')!);
         expect(metadataAfterSecond.pending).toEqual(pendingAfterSecond);
@@ -574,7 +574,7 @@ describe('Pending', () => {
         expect(obs$.note.get()).toBe('local');
 
         const pending = state$.getPendingChanges();
-        expect(pending).toEqual({ note: { p: 'init', t: ['object'], v: 'local' } });
+        expect(pending).toEqual({ note: { p: 'init', t: ['object'], h: [], v: 'local', c: true } });
 
         const metadata = JSON.parse(localStorage.getItem(persistName + '__m')!);
         expect(metadata.pending).toEqual(pending);
@@ -750,7 +750,7 @@ describe('Pending', () => {
         obs$.test.set({ text: 'hello' });
         await promiseTimeout(0);
         const pending = state$.getPendingChanges();
-        expect(pending).toEqual({ test: { p: { text: 'hi' }, t: ['object'], v: { text: 'hello' } } });
+        expect(pending).toEqual({ test: { p: { text: 'hi' }, t: ['object'], h: [], v: { text: 'hello' }, c: true } });
 
         // Copy pending to new one to emulate reload
         const persistName2 = getPersistName();
@@ -816,7 +816,7 @@ describe('Pending', () => {
         obs$.test.set({ text: 'hello' });
         await promiseTimeout(0);
         const pending = state$.getPendingChanges();
-        expect(pending).toEqual({ test: { p: { text: 'hi' }, t: ['object'], v: { text: 'hello' } } });
+        expect(pending).toEqual({ test: { p: { text: 'hi' }, t: ['object'], h: [], v: { text: 'hello' }, c: true } });
 
         // Copy pending to new one to emulate reload
         const persistName2 = getPersistName();
@@ -1179,6 +1179,35 @@ describe('persist objects', () => {
 
         expect(localStorage.getItem(persistName)).toEqual('{"__LSType":"Map","value":[["key1","value1"]]}');
     });
+    test('first nested change with remote sync keeps its pending entry', async () => {
+        const persistName = getPersistName();
+        const sent: (string | number)[][][] = [];
+        let release!: () => void;
+        const obs$ = observable<string[]>();
+        const state$ = syncObservable(obs$, {
+            persist: {
+                plugin: ObservablePersistLocalStorage,
+                name: persistName,
+                retrySync: true,
+            },
+            set: ({ changes }) => {
+                sent.push(changes.map((change) => change.path));
+                return new Promise<void>((resolve) => (release = resolve));
+            },
+        });
+
+        await when(state$.isPersistLoaded);
+        obs$.push('item1');
+        await promiseTimeout(0);
+
+        expect(localStorage.getItem(persistName)).toEqual('["item1"]');
+        expect(Object.keys(state$.getPendingChanges() || {})).toEqual(['0']);
+        expect(sent).toEqual([[['0']]]);
+
+        release();
+        await when(() => !state$.isSetting.get());
+        expect(state$.getPendingChanges()).toEqual({});
+    });
     test('initial values remain an in-code default until the first change', async () => {
         const persistName = getPersistName();
         const obs$ = observable(['item1', 'item2']);
@@ -1312,7 +1341,7 @@ describe('global config', () => {
         expect(localStorage.getItem(persistName)).toEqual('{"test":true}');
         // Ensure pending to check retrySync worked
         expect(localStorage.getItem(persistName + '__m')).toEqual(
-            '{"pending":{"":{"p":{"test":false},"t":[],"v":{"test":true}}}}',
+            '{"pending":{"":{"p":{"test":false},"t":[],"h":[],"v":{"test":true},"c":true}}}',
         );
     });
 });
@@ -1368,7 +1397,7 @@ describe('clear persist', () => {
         expect(localStorage.getItem(persistName)).toEqual('{"test":false}');
 
         const states$ = getAllSyncStates();
-        states$.forEach(([state$]) => state$.resetPersistence());
+        await Promise.all(states$.map(([state$]) => state$.resetPersistence()));
 
         expect(localStorage.getItem(persistName)).toEqual(null);
     });

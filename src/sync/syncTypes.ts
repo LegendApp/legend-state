@@ -88,6 +88,8 @@ export interface SyncedOptions<TRemote = any, TLocal = TRemote> extends Omit<Lin
     set?: (params: SyncedSetParams<TRemote>) => void | Promise<any>;
     subscribe?: (params: SyncedSubscribeParams<TRemote>) => (() => void) | void;
     retry?: RetryOptions;
+    /** @internal Row identity from syncedCrud for pending root reconciliation. */
+    fieldId?: string;
     persist?: PersistOptions<any>;
     debounceSet?: number;
     syncMode?: 'auto' | 'manual';
@@ -179,4 +181,19 @@ export interface SubscribeOptions {
 }
 
 export type Synced<T> = T;
-export type PendingChanges = Record<string, { p: any; v?: any; t: TypeAtPath[] }>;
+export type PendingChanges = Record<
+    string,
+    {
+        p: any;
+        v?: any;
+        t: TypeAtPath[];
+        /** @internal Authored relative paths; absent history is conservatively unknown. */
+        h?: (readonly (string | number)[])[];
+        /** @internal Complete local snapshot at this path, including accepted server data. */
+        c?: true;
+        /** @internal Authored path components for paths that cannot be inferred from current data. */
+        k?: (string | number)[];
+        /** @internal The authored terminal key is absent, rather than present with undefined. */
+        d?: true;
+    }
+>;
