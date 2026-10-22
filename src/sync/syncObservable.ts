@@ -784,6 +784,8 @@ async function prepChangeRemote(
 function recordPendingChange(queuedChange: QueuedChange, change: PendingChange, transport?: PendingTransport) {
     const { localState, syncOptions, isApplyingPending } = queuedChange;
     const { path, pathTypes, prevAtPath, valueAtPath } = change;
+    // Known limitation: joined keys are not unique, so a key containing '/' (or Map keys 1 and '1')
+    // shares a pending entry with the path it spells. Fixing it needs a new persisted key format.
     const pathStr = path.join('/');
     // Prepare pending changes
     if (!localState.pendingChanges) {
