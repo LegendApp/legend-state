@@ -1,8 +1,11 @@
-import { observable, ObservableHint, observe, syncState, when } from '@legendapp/state';
+import { ObservablePersistLocalStorageBase } from '../src/persist-plugins/local-storage';
+import fc from 'fast-check';
+import type { PendingChanges } from '../src/sync/syncTypes';
+import { batch, observable, ObservableHint, observe, syncState, when } from '@legendapp/state';
 import { syncObservable } from '@legendapp/state/sync';
 import { syncedCrud, SyncedCrudPropsMany, SyncedCrudPropsSingle } from '@legendapp/state/sync-plugins/crud';
 import { expectTypeOf } from 'expect-type';
-import { clone, getNode, symbolDelete } from '../src/globals';
+import { clone, getNode, safeParse, safeStringify, symbolDelete } from '../src/globals';
 import {
     BasicValue,
     BasicValue2,
@@ -1066,7 +1069,7 @@ describe('Crud as Map', () => {
         });
         expect(obs$.get()).toEqual(new Map());
     });
-    test('as Map clear does nothing', async () => {
+    test('as Map clear deletes remote rows', async () => {
         let deleted = undefined;
         const obs$ = observable(
             syncedCrud({
@@ -1087,7 +1090,8 @@ describe('Crud as Map', () => {
 
         await promiseTimeout(1);
 
-        expect(deleted).toEqual(undefined);
+        expect(deleted).toEqual(ItemBasicValue());
+        expect(syncState(obs$).error.peek()).toBeUndefined();
         expect(obs$.get()).toEqual(new Map());
     });
 });
@@ -3145,8 +3149,8 @@ describe('Order of get/create', () => {
             { id: '1', test: 'hello' },
         ]);
         expect(updateCalls).toEqual([]);
-        expect(obs$.get()).toEqual({
-            '1': { id: '1', test: 'hello' },
+        expect(clone(obs$.get())).toEqual({
+            '1': { id: '1', test: 'hello', createdAt: 1 },
         });
     });
     test('pending create retry rebuilds create payload from the latest value', async () => {
@@ -3835,21 +3839,34 @@ describe('Order of get/create', () => {
             }),
         );
 
-        obs$['1'].set({ id: '1', test: 'hi' });
+        try {
+            obs$['1'].set({ id: '1', test: 'hi' });
 
-        await promiseTimeout(0);
+            await promiseTimeout(0);
 
-        obs$['1'].test.set('hello');
+            obs$['1'].test.set('hello');
 
-        await promiseTimeout(5);
+            await promiseTimeout(5);
 
-        expect(updateCalls).toEqual([{ id: '1', test: 'hello' }]);
-        expect(rejectCreate).toBeDefined();
+            expect(updateCalls).toEqual([{ id: '1', test: 'hello' }]);
+            expect(rejectCreate).toBeDefined();
 
-        rejectCreate!(new Error('create failed'));
+            rejectCreate!(new Error('create failed'));
 
-        await promiseTimeout(60);
+            await promiseTimeout(60);
 
+            expect(updateCalls).toEqual([{ id: '1', test: 'hello' }]);
+        } finally {
+            (rejectCreate as ((error: Error) => void) | undefined)?.(new Error('test cleanup'));
+            await promiseTimeout(0);
+            obs$['1'].delete();
+            await when(() => syncState(obs$).numPendingSets.get() === 0);
+        }
+        expect(obs$.peek()).toEqual({});
+        expect(syncState(obs$).isSetting.peek()).toBe(false);
+        const completedCreates = createCalls.length;
+        await promiseTimeout(50);
+        expect(createCalls).toHaveLength(completedCreates);
         expect(updateCalls).toEqual([{ id: '1', test: 'hello' }]);
     });
     test('local delete after create failure cancels queued create retry', async () => {
@@ -4719,6 +4736,7 @@ describe('Misc', () => {
                         p: { id: 'id1', test: 'hello' },
                         t: [],
                         v: { id: 'id1', test: 'hi2' },
+                        c: true,
                     },
                 },
             }),
@@ -4905,14 +4923,17 @@ describe('Misc', () => {
                             id: 'id1',
                             test: 'hi',
                         },
+                        c: true,
                     },
                     id2: {
                         p: null,
                         t: ['object'],
+                        h: [],
                         v: {
                             id: 'id2',
                             test: 'hi2',
                         },
+                        c: true,
                     },
                 },
             }),
@@ -4991,6 +5012,7 @@ describe('Misc', () => {
                             id: 'id1',
                             test: 'hi2',
                         },
+                        c: true,
                     },
                 },
             }),
@@ -5209,5 +5231,3644 @@ describe('generateId', () => {
         const value = obs$.peek();
         expect(saved).toEqual({ id: 'id2', test: 'hello' }); // fails, saved remains undefined
         expect(value).toEqual([{ id: 'id2', test: 'hello' }]); // fails, saved remains undefined
+    });
+});
+
+const releaseTick = () => promiseTimeout(1);
+for (const kind of ['Map', 'Set'] as const)
+    test(`release regression: root replacement must save changed ${kind} inside array`, async () => {
+        const value = (x: number) => (kind === 'Map' ? new Map([['x', x]]) : new Set([x]));
+        const calls: any[] = [];
+        const obs: any = observable(
+            syncedCrud<any>({
+                as: 'object',
+                list: async () => [{ id: 'id1', list: [value(1)] }],
+                update: async (input) => {
+                    calls.push(input);
+                    return undefined;
+                },
+            }),
+        );
+        obs.get();
+        await releaseTick();
+        obs.set({ id1: { id: 'id1', list: [value(2)] } });
+        await releaseTick();
+        expect(calls.length).toBe(1);
+    });
+
+for (const kind of ['Map', 'Set'] as const)
+    test(`release regression: response must preserve newer ${kind} edit while sync disabled`, async () => {
+        let release!: (v: any) => void;
+        const value = (x: number) => (kind === 'Map' ? new Map([['x', x]]) : new Set([x]));
+        const obs: any = observable(
+            syncedCrud<any>({
+                as: 'object',
+                list: async () => [{ id: 'id1', test: 'old', payload: value(1) }],
+                update: () => new Promise((r) => (release = r)),
+            }),
+        );
+        obs.get();
+        await releaseTick();
+        obs.id1.test.set('sent');
+        await releaseTick();
+        syncState(obs).isSyncEnabled.set(false);
+        if (kind === 'Map') obs.id1.payload.set('x', 2);
+        else obs.id1.payload.delete(1);
+        await releaseTick();
+        release({ id: 'id1', test: 'sent', payload: value(1) });
+        await releaseTick();
+        if (kind === 'Map') expect(obs.id1.payload.peek().get('x')).toBe(2);
+        else expect(obs.id1.payload.peek().has(1)).toBe(false);
+    });
+
+test('release regression: Map mode overlapping saves must retain plain JSON array', async () => {
+    const calls: any[] = [];
+    const releases: ((v: any) => void)[] = [];
+    const obs: any = observable(
+        syncedCrud<any, any, any>({
+            as: 'Map',
+            list: async () => [{ id: 'id1', list: [{ x: 0 }] }],
+            update: (input) => {
+                calls.push(structuredClone(input));
+                return new Promise((r) => releases.push(r));
+            },
+        }),
+    );
+    obs.get();
+    await releaseTick();
+    obs.id1.list.set([{ x: 1 }]);
+    await releaseTick();
+    obs.id1.list.set([{ x: 2 }]);
+    await releaseTick();
+    expect(calls.length).toBe(2);
+    releases[0](calls[0]);
+    await releaseTick();
+    releases[1](calls[1]);
+    await releaseTick();
+    expect(obs.id1.peek().list).toEqual([{ x: 2 }]);
+});
+
+test('release regression: transformed input must not match unrelated newer subscription local value', async () => {
+    let release!: (v: any) => void;
+    let push!: (v: any) => void;
+    let sent: any;
+    const obs: any = observable(
+        syncedCrud<any>({
+            as: 'object',
+            list: async () => [{ id: 'id1', test: 'old', values: [20] }],
+            subscribe: (params) => {
+                push = params.update;
+            },
+            transform: {
+                load: (row) => ({ ...row, ...(row.values ? { values: row.values.map((x: number) => x / 2) } : {}) }),
+                save: (row) => ({ ...row, ...(row.values ? { values: row.values.map((x: number) => x * 2) } : {}) }),
+            },
+            update: (input) => {
+                sent = structuredClone(input);
+                return new Promise((r) => (release = r));
+            },
+        }),
+    );
+    obs.get();
+    await releaseTick();
+    expect(obs.id1.peek().values).toEqual([10]);
+    obs.id1.test.set('sent');
+    await releaseTick();
+    expect(sent.values).toEqual([20]);
+    push({ value: [{ id: 'id1', values: [40] }], mode: 'merge' });
+    await releaseTick();
+    expect(obs.id1.peek().values).toEqual([20]);
+    release(sent);
+    await releaseTick();
+    expect(obs.id1.peek().values).toEqual([20]);
+});
+
+describe('seeded CRUD response sequences', () => {
+    type Row = {
+        id: string;
+        value: number;
+        list: { x: number }[];
+        remote?: { x: number }[];
+        updatedAt?: number;
+        createdAt?: number;
+    };
+    const modes = ['object', 'array', 'Map', 'value'] as const;
+    const getRow = (obs: any, as: (typeof modes)[number]) => (as === 'value' ? obs : as === 'array' ? obs[0] : obs.id1);
+    const transform = {
+        save: (row: Partial<Row>) => ({
+            ...row,
+            ...(row.value !== undefined ? { value: row.value * 2 } : {}),
+            ...(row.list ? { list: row.list.map(({ x }) => ({ x: x * 2 })) } : {}),
+            ...(row.remote ? { remote: row.remote.map(({ x }) => ({ x: x * 2 })) } : {}),
+        }),
+        load: (row: Partial<Row>) => ({
+            ...row,
+            ...(row.value !== undefined ? { value: row.value / 2 } : {}),
+            ...(row.list ? { list: row.list.map(({ x }) => ({ x: x / 2 })) } : {}),
+            ...(row.remote ? { remote: row.remote.map(({ x }) => ({ x: x / 2 })) } : {}),
+        }),
+    };
+    for (const as of modes)
+        for (const transformed of [false, true]) {
+            for (const timestamps of [false, true])
+                for (const incremental of [false, true]) {
+                    test(`${as} transforms=${transformed} timestamps=${timestamps} changesSince=${incremental}`, async () => {
+                        await fc.assert(
+                            fc.asyncProperty(
+                                fc.array(
+                                    fc.record({
+                                        kind: fc.integer({ min: 0, max: 4 }),
+                                        value: fc.integer({ min: 1, max: 1000 }),
+                                    }),
+                                    { minLength: 5, maxLength: 10 },
+                                ),
+                                async (commands) => {
+                                    let clock = 1;
+                                    const initial: Row = {
+                                        id: 'id1',
+                                        value: 0,
+                                        list: [{ x: 0 }],
+                                        remote: [{ x: 0 }],
+                                        ...(timestamps ? { updatedAt: clock, createdAt: 1 } : {}),
+                                    };
+                                    let server = structuredClone(initial);
+                                    let deleted = false;
+                                    let retryCreate = commands[0].value % 2 === 0;
+                                    const expected = structuredClone(initial);
+                                    let push!: (params: any) => void;
+                                    const pending: { resolve: (row: any) => void; response: Row }[] = [];
+                                    const encode = (row: Row) =>
+                                        transformed ? (transform.save(row) as Row) : structuredClone(row);
+                                    const decode = (row: Row) =>
+                                        transformed ? (transform.load(row) as Row) : structuredClone(row);
+                                    const obs: any = observable(
+                                        syncedCrud<any, any, any>({
+                                            as,
+                                            fieldUpdatedAt: timestamps ? 'updatedAt' : undefined,
+                                            fieldCreatedAt: timestamps ? 'createdAt' : undefined,
+                                            changesSince: incremental ? 'last-sync' : 'all',
+                                            // This server returns updated existing rows; array's default append is for streams.
+                                            mode: as === 'array' && incremental ? 'merge' : undefined,
+                                            updatePartial: incremental,
+                                            transform: transformed ? transform : undefined,
+                                            list: async () => (deleted ? [] : [encode(server)]),
+                                            retry: { times: 2, delay: 1, backoff: 'constant' },
+                                            create: async (input) => {
+                                                if (retryCreate) {
+                                                    retryCreate = false;
+                                                    throw Error('seeded create retry');
+                                                }
+                                                deleted = false;
+                                                server = {
+                                                    ...decode(input),
+                                                    ...(timestamps ? { createdAt: ++clock, updatedAt: clock } : {}),
+                                                };
+                                                const response = encode(server);
+                                                return new Promise((resolve) => pending.push({ resolve, response }));
+                                            },
+                                            delete: async () => {
+                                                deleted = true;
+                                            },
+                                            subscribe: (params) => {
+                                                push = params.update;
+                                            },
+                                            update: (input) => {
+                                                server = {
+                                                    ...server,
+                                                    ...decode(input as Row),
+                                                    ...(timestamps ? { updatedAt: ++clock } : {}),
+                                                };
+                                                const response = encode(server);
+                                                return new Promise((resolve) => pending.push({ resolve, response }));
+                                            },
+                                        }),
+                                    );
+                                    obs.get();
+                                    await releaseTick();
+                                    const check = () => {
+                                        const actual = getRow(obs, as).peek();
+                                        expect(actual.value).toBe(expected.value);
+                                        expect(actual.list).toEqual(expected.list);
+                                        expect(actual.remote).toEqual(expected.remote);
+                                    };
+                                    // Two edits guarantee overlapping requests even when generated commands only subscribe/settle.
+                                    for (const value of [1, 2]) {
+                                        expected.value = value;
+                                        getRow(obs, as).value.set(value);
+                                        await releaseTick();
+                                    }
+                                    for (const command of commands) {
+                                        const row = getRow(obs, as);
+                                        if (command.kind === 0) {
+                                            expected.value = command.value;
+                                            row.value.set(command.value);
+                                        } else if (command.kind === 1) {
+                                            expected.list = [{ x: command.value }];
+                                            row.list.set(structuredClone(expected.list));
+                                        } else if (command.kind === 2) {
+                                            server.remote = [{ x: command.value }];
+                                            expected.remote = structuredClone(server.remote);
+                                            if (timestamps) server.updatedAt = ++clock;
+                                            push({
+                                                value: [
+                                                    {
+                                                        id: 'id1',
+                                                        remote: encode(server).remote,
+                                                        ...(timestamps ? { updatedAt: server.updatedAt } : {}),
+                                                    },
+                                                ],
+                                                mode: 'merge',
+                                            });
+                                        } else if (pending.length) {
+                                            const index = command.value % pending.length;
+                                            const [request] = pending.splice(index, 1);
+                                            request.resolve(request.response);
+                                        }
+                                        await releaseTick();
+                                        check();
+                                    }
+                                    // Final edit transmits the latest state; random completion order must not roll it back.
+                                    expected.value = 1001;
+                                    getRow(obs, as).value.set(expected.value);
+                                    await releaseTick();
+                                    while (pending.length) {
+                                        const [request] = pending.splice(commands.length % pending.length, 1);
+                                        request.resolve(request.response);
+                                        await releaseTick();
+                                        check();
+                                    }
+                                    expect(syncState(obs).numPendingSets.peek()).toBe(0);
+                                    expect(getRow(obs, as).peek().value).toBe(server.value);
+                                    expect(getRow(obs, as).peek().list).toEqual(server.list);
+                                    if (timestamps) expect(getRow(obs, as).peek().updatedAt).toBe(server.updatedAt);
+                                    await syncState(obs).sync();
+                                    await releaseTick();
+                                    const serverSnapshot = () =>
+                                        as === 'value'
+                                            ? server
+                                            : as === 'array'
+                                              ? [server]
+                                              : as === 'Map'
+                                                ? new Map([['id1', server]])
+                                                : { id1: server };
+                                    expect(clone(obs.peek())).toEqual(serverSnapshot());
+                                    // Exercise deletion/recreation and a seeded transport failure in every configuration.
+                                    if (as === 'value') obs.set(null);
+                                    else if (as === 'array') obs.splice(0, 1);
+                                    else obs.id1.delete();
+                                    await releaseTick();
+                                    expect(deleted).toBe(true);
+                                    const recreated = {
+                                        id: 'id1',
+                                        value: commands[0].value + 2000,
+                                        list: [{ x: commands[1].value }],
+                                        remote: [{ x: 0 }],
+                                    };
+                                    Object.assign(expected, recreated);
+                                    if (as === 'value') obs.set(recreated);
+                                    else if (as === 'array') obs.push(recreated);
+                                    else obs.id1.set(recreated);
+                                    for (let i = 0; pending.length === 0 && i < 20; i++) await releaseTick();
+                                    expect(pending.length).toBe(1);
+                                    expect(deleted).toBe(false);
+                                    pending.shift()!.resolve(encode(server));
+                                    await releaseTick();
+                                    check();
+                                    expect(clone(obs.peek())).toEqual(serverSnapshot());
+                                    expect(syncState(obs).numPendingSets.peek()).toBe(0);
+                                    expect(syncState(obs).getPendingChanges()).toEqual({});
+                                },
+                            ),
+                            { seed: 606410, numRuns: 6, endOnFailure: true },
+                        );
+                    });
+                }
+            test(`${as} transformed=${transformed}: create retry snapshot, remote input, update retry and delete`, async () => {
+                let push!: (params: any) => void;
+                const attempts: { input: Row; resolve: (row: any) => void; reject: (error: Error) => void }[] = [];
+                const savedInputs: any[] = [];
+                let deleted = false;
+                const save = (input: any) =>
+                    new Promise<any>((resolve, reject) =>
+                        attempts.push({ input: structuredClone(input), resolve, reject }),
+                    );
+                const obs: any = observable(
+                    syncedCrud<any, any, any>({
+                        as,
+                        list: async () => [],
+                        create: save,
+                        update: save,
+                        delete: async () => {
+                            deleted = true;
+                        },
+                        retry: { times: 2, delay: 1, backoff: 'constant' },
+                        transform: transformed ? transform : undefined,
+                        subscribe: (params) => {
+                            push = params.update;
+                        },
+                        onSaved: ({ input }) => {
+                            savedInputs.push(structuredClone(input));
+                        },
+                    }),
+                );
+                obs.get();
+                await releaseTick();
+                const initial: Row = { id: 'id1', value: 10, list: [{ x: 10 }] };
+                if (as === 'value') obs.set(initial);
+                else if (as === 'array') obs.push(initial);
+                else obs.id1.set(initial);
+                await releaseTick();
+                attempts[0].reject(Error('retry create'));
+                getRow(obs, as).value.set(11);
+                getRow(obs, as).list.set([{ x: 11 }]);
+                // Retry scheduling has a short delay; bounded polling checks the real attempt, not a fixed timing guess.
+                for (let i = 0; attempts.length < 2 && i < 20; i++) await releaseTick();
+                expect(attempts.length).toBe(2);
+                expect(attempts[1].input.value).toBe(transformed ? 22 : 11);
+                getRow(obs, as).list.set([{ x: 22 }]);
+                await releaseTick();
+                attempts[1].resolve(attempts[1].input);
+                await releaseTick();
+                expect(getRow(obs, as).peek().list).toEqual([{ x: 22 }]);
+                expect(savedInputs[0]).toEqual(attempts[1].input);
+                for (let i = 2; i < attempts.length; i++) {
+                    attempts[i].resolve(attempts[i].input);
+                    await releaseTick();
+                }
+                expect(getRow(obs, as).peek().list).toEqual([{ x: 22 }]);
+                expect(syncState(obs).numPendingSets.peek()).toBe(0);
+                const before = attempts.length;
+                getRow(obs, as).value.set(12);
+                await releaseTick();
+                expect(attempts.length).toBe(before + 1);
+                attempts[before].reject(Error('retry update'));
+                for (let i = 0; attempts.length < before + 2 && i < 20; i++) await releaseTick();
+                expect(attempts.length).toBe(before + 2);
+                push({ value: [{ id: 'id1', list: [{ x: transformed ? 88 : 44 }] }], mode: 'merge' });
+                await releaseTick();
+                attempts[before + 1].resolve(attempts[before + 1].input);
+                await releaseTick();
+                expect(getRow(obs, as).peek().list).toEqual([{ x: 44 }]);
+                expect(savedInputs[savedInputs.length - 1]).toEqual(attempts[before + 1].input);
+                getRow(obs, as).value.set(13);
+                await releaseTick();
+                const late = attempts[attempts.length - 1];
+                if (as === 'value') obs.set(null);
+                else if (as === 'array') obs.splice(0, 1);
+                else obs.id1.delete();
+                await releaseTick();
+                expect(deleted).toBe(true);
+                late.resolve(late.input);
+                await releaseTick();
+                expect(as === 'value' ? obs.peek() : as === 'array' ? obs.peek().length : getRow(obs, as).peek()).toBe(
+                    as === 'value' ? null : as === 'array' ? 0 : undefined,
+                );
+            });
+        }
+});
+
+describe('CRUD adjacent invariants', () => {
+    test.each([0, false, '', null, undefined])('value mode updates an existing falsy field (%s)', async (value) => {
+        const creates: any[] = [];
+        const updates: any[] = [];
+        const obs: any = observable(
+            syncedCrud<any>({
+                as: 'value',
+                get: async () => ({ id: 'id1', value }),
+                create: async (input) => {
+                    creates.push(input);
+                    return input;
+                },
+                update: async (input) => {
+                    updates.push(input);
+                    return input;
+                },
+            }),
+        );
+        obs.get();
+        await releaseTick();
+        obs.value.set('edited');
+        await releaseTick();
+        expect(creates).toHaveLength(0);
+        expect(updates).toHaveLength(1);
+        expect(updates[0].value).toBe('edited');
+    });
+    test('onSaved distinguishes creates from updates', async () => {
+        const kinds: boolean[] = [];
+        const obs = observable(
+            syncedCrud({
+                as: 'value',
+                create: async (input: { id: string; value: number }) => input,
+                update: async (input) => input,
+                onSaved: ({ isCreate }) => {
+                    kinds.push(isCreate);
+                },
+            }),
+        );
+        obs.set({ id: 'id1', value: 1 });
+        await releaseTick();
+        obs.value.set(2);
+        await releaseTick();
+        expect(kinds).toEqual([true, false]);
+    });
+    test('Map root replacement deletes the removed row', async () => {
+        const deleted: any[] = [];
+        const obs = observable(
+            syncedCrud({
+                as: 'Map',
+                list: async () => [{ id: 'id1', value: 1 }],
+                delete: async (input) => {
+                    deleted.push(input);
+                },
+            }),
+        );
+        obs.get();
+        await releaseTick();
+        obs.set(new Map());
+        await releaseTick();
+        expect(deleted).toEqual([{ id: 'id1', value: 1 }]);
+        expect(syncState(obs).error.peek()).toBeUndefined();
+    });
+});
+
+for (const as of ['object', 'array', 'Map', 'value'] as const) {
+    test(`${as}: batched partial fields are all saved and acknowledged`, async () => {
+        const inputs: any[] = [];
+        const obs: any = observable(
+            syncedCrud<any, any, any>({
+                as,
+                list: async () => [{ id: 'id1', a: 1, b: 1, updatedAt: 1 }],
+                updatePartial: true,
+                fieldUpdatedAt: 'updatedAt',
+                update: async (input) => {
+                    inputs.push(structuredClone(input));
+                    return input;
+                },
+            }),
+        );
+        obs.get();
+        await releaseTick();
+        const row = as === 'value' ? obs : as === 'array' ? obs[0] : obs.id1;
+        batch(() => {
+            row.a.set(2);
+            row.b.set(3);
+        });
+        await releaseTick();
+        expect(inputs).toEqual([{ id: 'id1', a: 2, b: 3 }]);
+        expect(syncState(obs).getPendingChanges()).toEqual({});
+    });
+}
+
+test.each([false, true])(
+    'onSaved cannot mutate the local comparison snapshot through its remote input (transform=%s)',
+    async (transformed) => {
+        let resolve!: (row: any) => void;
+        const obs: any = observable(
+            syncedCrud<any>({
+                as: 'object',
+                transform: transformed ? { save: (row) => ({ ...row }), load: (row) => ({ ...row }) } : undefined,
+                list: async () => [{ id: 'id1', value: 1, list: [1] }],
+                update: () =>
+                    new Promise((r) => {
+                        resolve = r;
+                    }),
+                onSaved: ({ input }) => {
+                    input.list = [2];
+                },
+            }),
+        );
+        obs.get();
+        await releaseTick();
+        obs.id1.value.set(2);
+        await releaseTick();
+        syncState(obs).isSyncEnabled.set(false);
+        obs.id1.list.set([2]);
+        resolve({ id: 'id1', value: 2, list: [1] });
+        await releaseTick();
+        expect(obs.id1.peek().list).toEqual([2]);
+    },
+);
+
+test('create from a partial update sends the complete local row', async () => {
+    const inputs: any[] = [];
+    const obs: any = observable(
+        syncedCrud<any>({
+            as: 'object',
+            list: async () => [{ id: 'id1', a: 1, b: 1 }],
+            fieldCreatedAt: 'createdAt',
+            updatePartial: true,
+            create: async (input) => {
+                inputs.push(structuredClone(input));
+                return { ...input, createdAt: 1 };
+            },
+        }),
+    );
+    obs.get();
+    await releaseTick();
+    obs.id1.a.set(2);
+    await releaseTick();
+    expect(inputs).toEqual([{ id: 'id1', a: 2, b: 1 }]);
+});
+
+test('Map pending overlay retains a newer array when an older response normalizes another field', async () => {
+    const requests: { input: any; resolve: (row: any) => void }[] = [];
+    const obs: any = observable(
+        syncedCrud<any, any, 'Map'>({
+            as: 'Map',
+            list: async () => [{ id: 'id1', scalar: 'old', list: [{ x: 0 }] }],
+            update: (input) => new Promise((resolve) => requests.push({ input: structuredClone(input), resolve })),
+        }),
+    );
+    obs.get();
+    await releaseTick();
+    obs.id1.scalar.set('sent');
+    await releaseTick();
+    obs.id1.list.set([{ x: 2 }]);
+    await releaseTick();
+    expect(requests).toHaveLength(2);
+    requests[0].resolve({ ...requests[0].input, scalar: 'normalized' });
+    await releaseTick();
+    expect(obs.id1.peek()).toEqual({ id: 'id1', scalar: 'normalized', list: [{ x: 2 }] });
+    requests[1].resolve(requests[1].input);
+    await releaseTick();
+    expect(obs.id1.peek()).toEqual({ id: 'id1', scalar: 'normalized', list: [{ x: 2 }] });
+});
+
+for (const as of ['object', 'array', 'Map', 'value'] as const) {
+    test(`${as}: latest overlapping save normalization reaches the local array`, async () => {
+        const requests: { input: any; resolve: (row: any) => void }[] = [];
+        const obs: any = observable(
+            syncedCrud<any, any, any>({
+                as,
+                list: async () => [{ id: 'id1', list: [{ x: 0 }] }],
+                update: (input) => new Promise((resolve) => requests.push({ input: structuredClone(input), resolve })),
+            }),
+        );
+        obs.get();
+        await releaseTick();
+        const row = as === 'value' ? obs : as === 'array' ? obs[0] : obs.id1;
+        row.list.set([{ x: 1 }]);
+        await releaseTick();
+        row.list.set([{ x: 2 }]);
+        await releaseTick();
+        expect(requests).toHaveLength(2);
+        requests[0].resolve({ ...requests[0].input, list: [{ x: 100 }] });
+        await releaseTick();
+        expect(row.peek().list).toEqual([{ x: 2 }]);
+        requests[1].resolve({ ...requests[1].input, list: [{ x: 200 }] });
+        await releaseTick();
+        expect(row.peek().list).toEqual([{ x: 200 }]);
+        expect(syncState(obs).getPendingChanges()).toEqual({});
+    });
+}
+
+for (const as of ['object', 'array', 'Map', 'value'] as const) {
+    test(`${as}: deleting the collection root during a save ignores the late response`, async () => {
+        let resolve!: (row: any) => void;
+        let input: any;
+        const obs: any = observable(
+            syncedCrud<any, any, any>({
+                as,
+                list: async () => [{ id: 'id1', value: 1 }],
+                update: (row) => {
+                    input = structuredClone(row);
+                    return new Promise((r) => {
+                        resolve = r;
+                    });
+                },
+                delete: async () => {},
+            }),
+        );
+        obs.get();
+        await releaseTick();
+        const row = as === 'value' ? obs : as === 'array' ? obs[0] : obs.id1;
+        row.value.set(2);
+        await releaseTick();
+        obs.delete();
+        await releaseTick();
+        resolve(input);
+        await releaseTick();
+        expect(obs.peek()).toEqual(as === 'array' ? [] : undefined);
+        expect(syncState(obs).error.peek()).toBeUndefined();
+        expect(syncState(obs).numPendingSets.peek()).toBe(0);
+    });
+}
+
+describe('reviewed CRUD invariants', () => {
+    test.each(['generated', 'batched'] as const)('child-built value row creates once (%s)', async (kind) => {
+        const creates: any[] = [];
+        const updates: any[] = [];
+        const obs: any = observable(
+            syncedCrud<any>({
+                as: 'value',
+                get: async () => null,
+                generateId: kind === 'generated' ? () => 'id1' : undefined,
+                create: async (input) => {
+                    creates.push(clone(input));
+                    return input;
+                },
+                update: async (input) => {
+                    updates.push(clone(input));
+                    return input;
+                },
+            }),
+        );
+        obs.get();
+        await releaseTick();
+        if (kind === 'generated') obs.name.set('new');
+        else
+            batch(() => {
+                obs.id.set('id1');
+                obs.name.set('new');
+            });
+        await releaseTick();
+        expect(creates).toEqual([{ id: 'id1', name: 'new' }]);
+        expect(updates).toEqual([]);
+        expect(syncState(obs).getPendingChanges()).toEqual({});
+    });
+    for (const as of ['object', 'array', 'Map', 'value'] as const) {
+        test(`${as}: batched create acknowledges every changed field`, async () => {
+            const creates: any[] = [];
+            const obs: any = observable(
+                syncedCrud<any, any, any>({
+                    as,
+                    list: async () => [{ id: 'id1', a: 1, b: 1 }],
+                    fieldCreatedAt: 'createdAt',
+                    updatePartial: true,
+                    create: async (input) => {
+                        creates.push(clone(input));
+                        return { ...input, createdAt: 1 };
+                    },
+                }),
+            );
+            obs.get();
+            await releaseTick();
+            const row = as === 'value' ? obs : as === 'array' ? obs[0] : obs.id1;
+            batch(() => {
+                row.a.set(2);
+                row.b.set(3);
+            });
+            await releaseTick();
+            expect(creates).toEqual([{ id: 'id1', a: 2, b: 3 }]);
+            expect(syncState(obs).getPendingChanges()).toEqual({});
+            expect(syncState(obs).error.peek()).toBeUndefined();
+        });
+    }
+    for (const as of ['object', 'array', 'Map'] as const) {
+        test(`${as}: failed root deletion retains persisted pending alongside a successful update`, async () => {
+            const name = getPersistName();
+            let deleteChanges: any;
+            const pack = (rows: any[]) =>
+                as === 'array'
+                    ? rows
+                    : as === 'Map'
+                      ? new Map(rows.map((row) => [row.id, row]))
+                      : Object.fromEntries(rows.map((row) => [row.id, row]));
+            const obs: any = observable(
+                syncedCrud<any, any, any>({
+                    as,
+                    list: async () => [
+                        { id: 'id1', value: 1 },
+                        { id: 'id2', value: 1 },
+                    ],
+                    update: async (input) => input,
+                    delete: async (_input, params) => {
+                        deleteChanges = params.changes;
+                        await promiseTimeout(5);
+                        throw Error('delete failed');
+                    },
+                    onError: () => {},
+                    persist: { name, plugin: ObservablePersistLocalStorage, retrySync: true },
+                }),
+            );
+            obs.get();
+            await when(syncState(obs).isLoaded);
+            await when(syncState(obs).isPersistLoaded);
+            obs.set(pack([{ id: 'id2', value: 2 }]));
+            await releaseTick();
+            await when(() => syncState(obs).numPendingSets.get() === 0);
+            await releaseTick();
+            expect(deleteChanges).toHaveLength(1);
+            expect(deleteChanges[0].path).toEqual([]);
+            expect(syncState(obs).getPendingChanges()).toHaveProperty('');
+            expect(JSON.parse(localStorage.getItem(name + '__m')!).pending).toHaveProperty('');
+        });
+    }
+    for (const as of ['object', 'Map'] as const)
+        for (const missing of [null, undefined]) {
+            test(`${as}: a nullish root row does not skip its changed sibling (${missing})`, async () => {
+                const updates: any[] = [];
+                const deleted: any[] = [];
+                const obs: any = observable(
+                    syncedCrud<any, any, any>({
+                        as,
+                        list: async () => [
+                            { id: 'id1', value: 1 },
+                            { id: 'id2', value: 1 },
+                        ],
+                        update: async (input) => {
+                            updates.push(input);
+                            return input;
+                        },
+                        delete: async (input) => {
+                            deleted.push(input.id);
+                        },
+                    }),
+                );
+                obs.get();
+                await releaseTick();
+                const value = { id1: missing, id2: { id: 'id2', value: 2 } };
+                obs.set(as === 'Map' ? new Map(Object.entries(value)) : value);
+                await releaseTick();
+                expect(updates).toEqual([{ id: 'id2', value: 2 }]);
+                expect(deleted).toEqual(['id1']);
+                expect(syncState(obs).getPendingChanges()).toEqual({});
+            });
+        }
+    for (const as of ['object', 'array', 'Map', 'value'] as const)
+        for (const kind of ['JSON', 'Map', 'Set'] as const)
+            for (const edit of ['field', 'root'] as const) {
+                test(`${as}: pending ${edit} ${kind} edit survives a full stale subscription`, async () => {
+                    const payload = (value: number) =>
+                        kind === 'JSON' ? [{ x: value }] : kind === 'Map' ? new Map([['x', value]]) : new Set([value]);
+                    const row = (value: number, scalar = 'old') => ({ id: 'id1', payload: payload(value), scalar });
+                    let push!: (params: any) => void;
+                    let resolve!: (row: any) => void;
+                    let sent: any;
+                    const obs: any = observable(
+                        syncedCrud<any, any, any>({
+                            as,
+                            list: async () => [row(0)],
+                            subscribe: (params) => {
+                                push = params.update;
+                            },
+                            update: (input) => {
+                                sent = clone(input);
+                                return new Promise((r) => {
+                                    resolve = r;
+                                });
+                            },
+                        }),
+                    );
+                    obs.get();
+                    await releaseTick();
+                    const item = as === 'value' ? obs : as === 'array' ? obs[0] : obs.id1;
+                    if (edit === 'field') item.payload.set(payload(1));
+                    else
+                        obs.set(
+                            as === 'value'
+                                ? row(1)
+                                : as === 'array'
+                                  ? [row(1)]
+                                  : as === 'Map'
+                                    ? new Map([['id1', row(1)]])
+                                    : { id1: row(1) },
+                        );
+                    await releaseTick();
+                    push({ value: [row(0, 'subscription')], mode: 'merge' });
+                    await releaseTick();
+                    expect(item.peek().payload).toEqual(payload(1));
+                    resolve(sent);
+                    await releaseTick();
+                    expect(item.peek().payload).toEqual(payload(1));
+                    expect(syncState(obs).getPendingChanges()).toEqual({});
+                });
+            }
+    test('Map: a pending whole-row replacement survives a stale subscription', async () => {
+        let push!: (params: any) => void;
+        let resolve!: (row: any) => void;
+        let sent: any;
+        const obs: any = observable(
+            syncedCrud<any, any, 'Map'>({
+                as: 'Map',
+                list: async () => [{ id: 'id1', list: [0, 0] }],
+                subscribe: (params) => {
+                    push = params.update;
+                },
+                update: (input) => {
+                    sent = clone(input);
+                    return new Promise((r) => {
+                        resolve = r;
+                    });
+                },
+            }),
+        );
+        obs.get();
+        await releaseTick();
+        obs.id1.set({ id: 'id1', list: [1] });
+        await releaseTick();
+        push({ value: [{ id: 'id1', list: [0, 0] }], mode: 'merge' });
+        await releaseTick();
+        expect(obs.id1.peek().list).toEqual([1]);
+        resolve(sent);
+        await releaseTick();
+        expect(obs.id1.peek().list).toEqual([1]);
+    });
+});
+
+test('pending object merges keep __proto__ as an own data key', async () => {
+    let remote: any = { id: 'id1', payload: { value: 0 } };
+    let resolve!: (row: any) => void;
+    let sent: any;
+    const obs: any = observable(
+        syncedCrud<any>({
+            as: 'value',
+            get: async () => clone(remote),
+            update: (input) => {
+                sent = clone(input);
+                return new Promise((r) => {
+                    resolve = r;
+                });
+            },
+        }),
+    );
+    obs.get();
+    await releaseTick();
+    obs.set({ id: 'id1', payload: JSON.parse('{"__proto__":{"owned":true},"value":1}') });
+    await releaseTick();
+    remote = { id: 'id1', payload: { value: 0, server: 2 } };
+    await syncState(obs).sync();
+    await releaseTick();
+    const payload = obs.peek().payload;
+    resolve(sent);
+    await releaseTick();
+    expect(Object.getPrototypeOf(payload)).toBe(Object.prototype);
+    expect(Object.prototype.hasOwnProperty.call(payload, '__proto__')).toBe(true);
+    expect(payload['__proto__']).toEqual({ owned: true });
+    expect(payload.value).toBe(1);
+    expect(payload.server).toBe(2);
+});
+
+for (const as of ['object', 'array', 'Map', 'value'] as const) {
+    test(`${as}: repeated refreshes retain server additions during a pending root save`, async () => {
+        let remote: any = { id: 'id1', payload: { value: 0 } };
+        const requests: { input: any; resolve: (row: any) => void }[] = [];
+        const obs: any = observable(
+            syncedCrud<any, any, any>({
+                as,
+                list: async () => [clone(remote)],
+                update: (input) => new Promise((resolve) => requests.push({ input: clone(input), resolve })),
+            }),
+        );
+        obs.get();
+        await releaseTick();
+        const row = { id: 'id1', payload: { value: 1 } };
+        obs.set(as === 'value' ? row : as === 'array' ? [row] : as === 'Map' ? new Map([['id1', row]]) : { id1: row });
+        await releaseTick();
+        for (const server of [1, 2]) {
+            remote = { id: 'id1', payload: { value: 0, server } };
+            await syncState(obs).sync();
+            await releaseTick();
+        }
+        const current = () =>
+            as === 'value'
+                ? obs.peek()
+                : as === 'array'
+                  ? obs.peek()[0]
+                  : as === 'Map'
+                    ? obs.peek().get('id1')
+                    : obs.peek().id1;
+        const refreshed = clone(current());
+        for (let i = 0; i < requests.length; i++) {
+            requests[i].resolve(requests[i].input);
+            await releaseTick();
+        }
+        expect(refreshed.payload).toEqual({ value: 1, server: 2 });
+        expect(current().payload).toEqual({ value: 1, server: 2 });
+        expect(syncState(obs).numPendingSets.peek()).toBe(0);
+        expect(syncState(obs).getPendingChanges()).toEqual({});
+    });
+}
+
+for (const fieldId of ['id', '_id', 'test_id'] as const) {
+    test(`pending array roots match refreshed metadata by ${fieldId} after a local reorder`, async () => {
+        const remote: any[] = [
+            { [fieldId]: 'a', value: 0 },
+            { [fieldId]: 'b', value: 0 },
+        ];
+        const requests: { input: any; resolve: (row: any) => void }[] = [];
+        const obs: any = observable(
+            syncedCrud<any, any, 'array'>({
+                as: 'array',
+                fieldId,
+                list: async () => clone(remote),
+                update: (input) => {
+                    Object.assign(remote.find((row) => row[fieldId] === input[fieldId])!, input);
+                    return new Promise((resolve) => requests.push({ input: clone(input), resolve }));
+                },
+            }),
+        );
+        obs.get();
+        await releaseTick();
+        obs.set([
+            { [fieldId]: 'b', value: 1 },
+            { [fieldId]: 'a', value: 0 },
+        ]);
+        await releaseTick();
+        remote[0].server = 30;
+        remote[1].server = 40;
+        await syncState(obs).sync();
+        await releaseTick();
+        const refreshed = clone(obs.peek());
+        for (let i = 0; i < requests.length; i++) {
+            requests[i].resolve(requests[i].input);
+            await releaseTick();
+        }
+        expect(refreshed).toEqual([
+            { [fieldId]: 'b', value: 1, server: 40 },
+            { [fieldId]: 'a', value: 0, server: 30 },
+        ]);
+        expect(syncState(obs).getPendingChanges()).toEqual({});
+        await syncState(obs).sync();
+        await releaseTick();
+        expect(clone(obs.peek())).toEqual(remote);
+    });
+}
+
+for (const as of ['object', 'array', 'Map', 'value'] as const) {
+    test(`${as}: partial subscriptions do not erase untouched root fields or rows`, async () => {
+        const rows = [
+            { id: 'id1', payload: 0, untouched: 'keep', createdAt: 1, updatedAt: 1 },
+            { id: 'id2', payload: 100, untouched: 'other', createdAt: 1, updatedAt: 1 },
+        ];
+        const pack = (value: any[]) =>
+            as === 'value'
+                ? value[0]
+                : as === 'array'
+                  ? value
+                  : as === 'Map'
+                    ? new Map(value.map((row) => [row.id, row]))
+                    : Object.fromEntries(value.map((row) => [row.id, row]));
+        let push!: (params: any) => void;
+        const requests: { input: any; resolve: (row: any) => void }[] = [];
+        const obs: any = observable(
+            syncedCrud<any, any, any>({
+                as,
+                list: async () => clone(rows),
+                fieldCreatedAt: 'createdAt',
+                fieldUpdatedAt: 'updatedAt',
+                subscribe: (params) => {
+                    push = params.update;
+                },
+                update: (input) => new Promise((resolve) => requests.push({ input: clone(input), resolve })),
+            }),
+        );
+        obs.get();
+        await releaseTick();
+        const changed = clone(rows);
+        changed[0].payload = 1;
+        obs.set(pack(changed));
+        await releaseTick();
+        push({ value: [{ id: 'id1', payload: 0, remote: 'new' }], mode: 'merge' });
+        await releaseTick();
+        const expected = clone(changed) as any[];
+        expected[0].remote = 'new';
+        const received = clone(obs.peek());
+        for (const request of requests) {
+            request.resolve(request.input);
+            await releaseTick();
+        }
+        expect(received).toEqual(pack(expected));
+        expect(clone(obs.peek())).toEqual(pack(expected));
+        expect(syncState(obs).getPendingChanges()).toEqual({});
+    });
+}
+
+for (const as of ['object', 'array', 'Map', 'value'] as const) {
+    test(`${as}: onSaved row replacement is newer than its response`, async () => {
+        const obs: any = observable(
+            syncedCrud<any, any, any>({
+                as,
+                list: async () => [{ id: 'id1', list: [0] }],
+                update: async (input) => ({ ...input, list: [3] }),
+                onSaved: () => {
+                    syncState(obs).isSyncEnabled.set(false);
+                    const row = { id: 'id1', list: [2] };
+                    obs.set(
+                        as === 'value'
+                            ? row
+                            : as === 'array'
+                              ? [row]
+                              : as === 'Map'
+                                ? new Map([['id1', row]])
+                                : { id1: row },
+                    );
+                },
+            }),
+        );
+        obs.get();
+        await releaseTick();
+        (as === 'value' ? obs : as === 'array' ? obs[0] : obs.id1).list.set([1]);
+        await releaseTick();
+        expect((as === 'value' ? obs : as === 'array' ? obs[0] : obs.id1).peek().list).toEqual([2]);
+    });
+}
+
+test('onSaved array reorder applies normalization to the same row', async () => {
+    const obs: any = observable(
+        syncedCrud<any, any, 'array'>({
+            as: 'array',
+            list: async () => [
+                { id: 'a', list: [0] },
+                { id: 'b', list: [9] },
+            ],
+            update: async (input) => ({ ...input, list: [3] }),
+            onSaved: () => {
+                syncState(obs).isSyncEnabled.set(false);
+                obs.set([
+                    { id: 'b', list: [9] },
+                    { id: 'a', list: [1] },
+                ]);
+            },
+        }),
+    );
+    obs.get();
+    await releaseTick();
+    obs[0].list.set([1]);
+    await releaseTick();
+    expect(obs.peek()).toEqual([
+        { id: 'b', list: [9] },
+        { id: 'a', list: [3] },
+    ]);
+});
+
+test('onSaved deletion does not resurrect the row', async () => {
+    const obs: any = observable(
+        syncedCrud<any>({
+            as: 'object',
+            list: async () => [{ id: 'id1', list: [0] }],
+            update: async (input) => ({ ...input, list: [3] }),
+            onSaved: () => {
+                syncState(obs).isSyncEnabled.set(false);
+                obs.id1.delete();
+            },
+        }),
+    );
+    obs.get();
+    await releaseTick();
+    obs.id1.list.set([1]);
+    await releaseTick();
+    expect(obs.id1.peek()).toBeUndefined();
+});
+
+for (const as of ['object', 'Map', 'array'] as const) {
+    for (const action of ['edit', 'delete'] as const) {
+        test(`${as}: a later onSaved callback preserves its changes to an earlier saved row (${action})`, async () => {
+            const requests: { input: any; resolve: (row: any) => void }[] = [];
+            const obs: any = observable(
+                syncedCrud<any, any, any>({
+                    as,
+                    list: async () => [
+                        { id: 'a', value: 0 },
+                        { id: 'b', value: 0 },
+                    ],
+                    update: (input) => new Promise((resolve) => requests.push({ input: clone(input), resolve })),
+                    onSaved: ({ input }) => {
+                        if (input.id === 'a') {
+                            syncState(obs).isSyncEnabled.set(false);
+                            const row = as === 'array' ? obs[1] : obs.b;
+                            if (action === 'delete') row.delete();
+                            else row.value.set(2);
+                        }
+                    },
+                }),
+            );
+            obs.get();
+            await releaseTick();
+            batch(() => {
+                (as === 'array' ? obs[0] : obs.a).value.set(1);
+                (as === 'array' ? obs[1] : obs.b).value.set(1);
+            });
+            await releaseTick();
+            requests.find(({ input }) => input.id === 'b')!.resolve({ id: 'b', value: 3 });
+            await releaseTick();
+            requests.find(({ input }) => input.id === 'a')!.resolve({ id: 'a', value: 1 });
+            await releaseTick();
+            const expected = [{ id: 'a', value: 1 }, ...(action === 'delete' ? [] : [{ id: 'b', value: 2 }])];
+            expect(clone(obs.peek())).toEqual(
+                as === 'array'
+                    ? expected
+                    : as === 'Map'
+                      ? new Map(expected.map((row) => [row.id, row]))
+                      : Object.fromEntries(expected.map((row) => [row.id, row])),
+            );
+            expect(syncState(obs).numPendingSets.peek()).toBe(0);
+            expect(syncState(obs).getPendingChanges()).toEqual({});
+        });
+    }
+}
+
+for (const source of ['refresh', 'subscribe'] as const) {
+    test(`pending array roots retain remote additions and local removals during ${source}`, async () => {
+        const remote = [
+            { id: 'a', value: 0 },
+            { id: 'removed', value: 0 },
+        ];
+        let push!: (params: any) => void;
+        const requests: { input: any; resolve: (row: any) => void }[] = [];
+        const obs: any = observable(
+            syncedCrud<any, any, 'array'>({
+                as: 'array',
+                list: async () => clone(remote),
+                subscribe: (params) => {
+                    push = params.update;
+                },
+                update: (input) => new Promise((resolve) => requests.push({ input: clone(input), resolve })),
+                delete: async () => {},
+            }),
+        );
+        obs.get();
+        await releaseTick();
+        obs.set([{ id: 'a', value: 1 }]);
+        await releaseTick();
+        remote.push({ id: 'b', value: 2 });
+        if (source === 'refresh') await syncState(obs).sync();
+        else push({ value: clone(remote), mode: 'set' });
+        await releaseTick();
+        const expected = [
+            { id: 'a', value: 1 },
+            { id: 'b', value: 2 },
+        ];
+        expect(clone(obs.peek())).toEqual(expected);
+        for (const request of requests) request.resolve(request.input);
+        await releaseTick();
+        expect(clone(obs.peek())).toEqual(expected);
+        expect(syncState(obs).getPendingChanges()).toEqual({});
+    });
+}
+
+for (const as of ['object', 'Map', 'array'] as const) {
+    test(`${as}: successful saves without response data acknowledge their changes alongside normalized rows`, async () => {
+        const obs: any = observable(
+            syncedCrud<any, any, any>({
+                as,
+                list: async () => [
+                    { id: 'a', value: 0 },
+                    { id: 'b', value: 0 },
+                ],
+                update: async (input) => (input.id === 'a' ? { ...input, value: 2 } : undefined),
+            }),
+        );
+        obs.get();
+        await releaseTick();
+        batch(() => {
+            (as === 'array' ? obs[0] : obs.a).value.set(1);
+            (as === 'array' ? obs[1] : obs.b).value.set(1);
+        });
+        await releaseTick();
+        expect((as === 'array' ? obs[0] : obs.a).value.peek()).toBe(2);
+        expect((as === 'array' ? obs[1] : obs.b).value.peek()).toBe(1);
+        expect(syncState(obs).getPendingChanges()).toEqual({});
+    });
+}
+
+for (const as of ['object', 'Map'] as const) {
+    for (const transformed of [false, true]) {
+        for (const updatePartial of [false, true]) {
+            for (const refreshBeforeAck of [false, true]) {
+                test(`${as} transform=${transformed} partial=${updatePartial}: root then row replacements survive stale refreshes (beforeAck=${refreshBeforeAck})`, async () => {
+                    let push!: (params: any) => void;
+                    const requests: { input: any; resolve: (row: any) => void }[] = [];
+                    const obs: any = observable(
+                        syncedCrud<any, any, any>({
+                            as,
+                            list: async () => [{ id: 'id1', value: 1, removed: true }],
+                            updatePartial,
+                            transform: transformed
+                                ? { save: (row) => ({ ...row }), load: (row) => ({ ...row }) }
+                                : undefined,
+                            subscribe: (params) => {
+                                push = params.update;
+                            },
+                            update: (input) =>
+                                new Promise((resolve) => requests.push({ input: clone(input), resolve })),
+                        }),
+                    );
+                    obs.get();
+                    await releaseTick();
+                    const row = obs.id1;
+                    const first = { id: 'id1', value: 2, removed: true };
+                    obs.set(as === 'Map' ? new Map([['id1', first]]) : { id1: first });
+                    await releaseTick();
+                    row.set({ id: 'id1', value: 3 });
+                    await releaseTick();
+                    if (refreshBeforeAck) {
+                        push({ value: [{ id: 'id1', value: 1, removed: true }], mode: 'merge' });
+                        await releaseTick();
+                    }
+                    requests[0].resolve(requests[0].input);
+                    await releaseTick();
+                    push({ value: [{ id: 'id1', value: 1, removed: true }], mode: 'merge' });
+                    await releaseTick();
+                    expect(clone(row.peek())).toEqual({ id: 'id1', value: 3 });
+                    for (const request of requests.slice(1)) {
+                        request.resolve(request.input);
+                        await releaseTick();
+                    }
+                    expect(clone(row.peek())).toEqual({ id: 'id1', value: 3 });
+                    expect(syncState(obs).getPendingChanges()).toEqual({});
+                });
+            }
+        }
+    }
+}
+
+for (const as of ['object', 'Map', 'array'] as const) {
+    test(`${as}: cancelling a failed create clears pending alongside a data-free update`, async () => {
+        const obs: any = observable(
+            syncedCrud<any, any, any>({
+                as,
+                list: async () => [{ id: 'y', value: 0 }],
+                create: async () => {
+                    throw Error('create failed');
+                },
+                update: async () => {},
+                onError: () => {},
+            }),
+        );
+        obs.get();
+        await releaseTick();
+        if (as === 'array') obs.push({ id: 'x', value: 0 });
+        else obs.x.set({ id: 'x', value: 0 });
+        await releaseTick();
+        expect(Object.keys(syncState(obs).getPendingChanges() || {}).length).toBeGreaterThan(0);
+        batch(() => {
+            (as === 'array' ? obs[1] : obs.x).delete();
+            (as === 'array' ? obs[0] : obs.y).value.set(1);
+        });
+        await releaseTick();
+        expect((as === 'array' ? obs[0] : obs.y).value.peek()).toBe(1);
+        expect(syncState(obs).getPendingChanges()).toEqual({});
+    });
+}
+
+for (const as of ['object', 'Map', 'array'] as const) {
+    test(`${as}: pending root refreshes retain identical row references`, async () => {
+        const requests: { input: any; resolve: (row: any) => void }[] = [];
+        const remote = [
+            { id: 'a', value: 0 },
+            { id: 'b', value: 0 },
+        ];
+        const obs: any = observable(
+            syncedCrud<any, any, any>({
+                as,
+                list: async () => clone(remote),
+                update: (input) => new Promise((resolve) => requests.push({ input: clone(input), resolve })),
+            }),
+        );
+        obs.get();
+        await releaseTick();
+        const rows = [{ id: 'a', value: 1 }, remote[1]];
+        obs.set(
+            as === 'array'
+                ? rows
+                : as === 'Map'
+                  ? new Map(rows.map((row) => [row.id, row]))
+                  : { a: rows[0], b: rows[1] },
+        );
+        await releaseTick();
+        const unchanged = (as === 'array' ? obs[1] : obs.b).peek();
+        const unchangedRoot = obs.peek();
+        await syncState(obs).sync();
+        await releaseTick();
+        expect(obs.peek()).toBe(unchangedRoot);
+        expect((as === 'array' ? obs[1] : obs.b).peek()).toBe(unchanged);
+        expect((as === 'array' ? obs[0] : obs.a).value.peek()).toBe(1);
+        for (const request of requests) request.resolve(request.input);
+        await releaseTick();
+    });
+}
+
+for (const response of ['plain', 'custom JSON', 'custom JSON getter', 'plain proxy'] as const) {
+    test(`value callbacks preserve response serialization (${response})`, async () => {
+        const saved = { id: 'id1', value: 2, untouched: undefined };
+        let serializationReads = 0;
+        const obs: any = observable(
+            syncedCrud<any, any, 'value'>({
+                as: 'value',
+                get: async () => ({ id: 'id1', value: 0, untouched: 'keep' }),
+                update: async () =>
+                    response === 'custom JSON'
+                        ? { ignored: true, toJSON: () => saved }
+                        : response === 'custom JSON getter'
+                          ? {
+                                get toJSON() {
+                                    if (++serializationReads > 1) throw Error('serializer read twice');
+                                    return () => saved;
+                                },
+                            }
+                          : response === 'plain proxy'
+                            ? new Proxy(saved, {})
+                            : saved,
+                onSaved: () => {},
+            }),
+        );
+        obs.get();
+        await releaseTick();
+        obs.value.set(1);
+        await releaseTick();
+        expect(clone(obs.peek())).toEqual({ id: 'id1', value: 2, untouched: 'keep' });
+        expect(syncState(obs).error.peek()).toBeUndefined();
+        expect(syncState(obs).getPendingChanges()).toEqual({});
+    });
+}
+
+for (const as of ['object', 'Map', 'array'] as const) {
+    test(`${as}: callbacks in overlapping single-row batches preserve newer cross-row edits`, async () => {
+        const requests: { input: any; resolve: (row: any) => void }[] = [];
+        const obs: any = observable(
+            syncedCrud<any, any, any>({
+                as,
+                list: async () => [
+                    { id: 'a', value: 0 },
+                    { id: 'b', value: 0 },
+                ],
+                update: (input) => new Promise((resolve) => requests.push({ input: clone(input), resolve })),
+                onSaved: ({ input }) => {
+                    if (input.id === 'a') {
+                        syncState(obs).isSyncEnabled.set(false);
+                        (as === 'array' ? obs[1] : obs.b).value.set(2);
+                    }
+                },
+            }),
+        );
+        obs.get();
+        await releaseTick();
+        (as === 'array' ? obs[1] : obs.b).value.set(1);
+        await releaseTick();
+        (as === 'array' ? obs[0] : obs.a).value.set(1);
+        await releaseTick();
+        requests.find(({ input }) => input.id === 'b')!.resolve({ id: 'b', value: 3 });
+        requests.find(({ input }) => input.id === 'a')!.resolve({ id: 'a', value: 1 });
+        await releaseTick();
+        expect((as === 'array' ? obs[1] : obs.b).value.peek()).toBe(2);
+        expect(syncState(obs).numPendingSets.peek()).toBe(0);
+        expect(syncState(obs).getPendingChanges()).toEqual({});
+    });
+}
+
+describe('queued CRUD root changes', () => {
+    test.each([false, true])('value deletion keeps its old ID while loading (retry=%s)', async (retryDelete) => {
+        let release!: (value: any) => void;
+        const deleted: any[] = [];
+        const updated: any[] = [];
+        const errors: string[] = [];
+        const obs: any = observable(
+            syncedCrud<any, any, 'value'>({
+                as: 'value',
+                initial: { id: 'old', value: 1 },
+                get: () => new Promise((resolve) => (release = resolve)),
+                update: async (input) => {
+                    updated.push(clone(input));
+                    return input;
+                },
+                delete: async (input) => {
+                    deleted.push(clone(input));
+                    if (retryDelete && deleted.length === 1) throw Error('retry deletion');
+                    await promiseTimeout(2);
+                    return { ...input, server: 'obsolete' };
+                },
+                retry: retryDelete ? { times: 2, delay: 1 } : undefined,
+                onError: (error) => errors.push(error.message),
+            }),
+        );
+        obs.get();
+        await releaseTick();
+        obs.set(null);
+        await releaseTick();
+        obs.set({ id: 'new', value: 2 });
+        await releaseTick();
+        release({ id: 'old', value: 1, server: 'obsolete refresh' });
+        await promiseTimeout(30);
+        expect(deleted).toEqual(Array(retryDelete ? 2 : 1).fill({ id: 'old', value: 1, server: 'obsolete refresh' }));
+        expect(updated).toEqual([{ id: 'new', value: 2 }]);
+        expect(obs.peek()).toEqual({ id: 'new', value: 2 });
+        expect(errors).toEqual([]);
+        expect(syncState(obs).getPendingChanges()).toEqual({});
+        expect(syncState(obs).numPendingSets.peek()).toBe(0);
+    });
+});
+
+describe('queued generated array IDs', () => {
+    test.each(['removed', 'replaced', 'retained'] as const)(
+        'uses current rows when the old row is %s',
+        async (kind) => {
+            let release!: (rows: any[]) => void;
+            let generated = 0;
+            const created: any[] = [];
+            const errors: string[] = [];
+            const obs: any = observable(
+                syncedCrud<any, any, 'array'>({
+                    as: 'array',
+                    list: () => new Promise<any[]>((resolve) => (release = resolve)),
+                    generateId: () => `generated-${++generated}`,
+                    create: async (input) => {
+                        created.push(clone(input));
+                        return input;
+                    },
+                    update: async (input) => input,
+                    delete: async () => {},
+                    onError: (error) => errors.push(error.message),
+                }),
+            );
+            obs.get();
+            await releaseTick();
+            obs.set([{ id: 'a', value: 1 }, { value: 7 }]);
+            await releaseTick();
+            const current =
+                kind === 'removed'
+                    ? [{ id: 'a', value: 2 }]
+                    : kind === 'replaced'
+                      ? [{ value: 9 }, { id: 'a', value: 2 }]
+                      : [{ id: 'a', value: 2 }, { value: 7 }];
+            obs.set(current);
+            await releaseTick();
+            release([{ id: 'a', value: 0 }]);
+            await promiseTimeout(10);
+            const expected =
+                kind === 'removed'
+                    ? [{ id: 'a', value: 2 }]
+                    : kind === 'replaced'
+                      ? [
+                            { value: 9, id: 'generated-1' },
+                            { id: 'a', value: 2 },
+                        ]
+                      : [
+                            { id: 'a', value: 2 },
+                            { value: 7, id: 'generated-1' },
+                        ];
+            expect(obs.peek()).toEqual(expected);
+            expect(created).toEqual(kind === 'removed' ? [] : [expected[kind === 'replaced' ? 0 : 1]]);
+            expect(generated).toBe(kind === 'removed' ? 0 : 1);
+            expect(errors).toEqual([]);
+            expect(syncState(obs).error.peek()).toBeUndefined();
+            expect(syncState(obs).getPendingChanges()).toEqual({});
+        },
+    );
+});
+
+test.each([false, true])('nested response getters are serialized once (onSaved=%s)', async (onSaved) => {
+    let reads = 0;
+    const obs: any = observable(
+        syncedCrud<any, any, 'value'>({
+            as: 'value',
+            get: async () => ({ id: 'row', value: 1, payload: { x: 0 } }),
+            update: async () => ({
+                id: 'row',
+                value: 2,
+                payload: {
+                    get x() {
+                        if (++reads > 1) throw Error('nested getter read twice');
+                        return 1;
+                    },
+                },
+            }),
+            onSaved: onSaved ? () => {} : undefined,
+            onError: () => {},
+        }),
+    );
+    obs.get();
+    await releaseTick();
+    obs.value.set(2);
+    await releaseTick();
+    expect(reads).toBe(1);
+    expect(obs.peek()).toEqual({ id: 'row', value: 2, payload: { x: 1 } });
+    expect(syncState(obs).error.peek()).toBeUndefined();
+    expect(syncState(obs).getPendingChanges()).toEqual({});
+});
+
+test.each(['before response', 'onSaved'] as const)(
+    'obsolete value response does not rename a replacement (%s)',
+    async (replace) => {
+        let resolve!: (value: any) => void;
+        let callbacks = 0;
+        const obs: any = observable(
+            syncedCrud<any, any, 'value'>({
+                as: 'value',
+                initial: { id: 'old', value: 0 },
+                update: () => new Promise((release) => (resolve = release)),
+                onSaved: () => {
+                    callbacks++;
+                    if (replace === 'onSaved') replaceRoot();
+                },
+            }),
+        );
+        const replaceRoot = () => {
+            syncState(obs).isSyncEnabled.set(false);
+            obs.set({ id: 'new', value: 9 });
+        };
+        obs.get();
+        obs.value.set(1);
+        await releaseTick();
+        if (replace === 'before response') replaceRoot();
+        resolve({ id: 'old', value: 2, server: 'obsolete' });
+        await releaseTick();
+        expect(obs.peek()).toEqual({ id: 'new', value: 9 });
+        expect(callbacks).toBe(replace === 'onSaved' ? 1 : 0);
+        expect(syncState(obs).getPendingChanges()).toEqual({});
+        expect(syncState(obs).error.peek()).toBeUndefined();
+    },
+);
+
+for (const as of ['object', 'Map'] as const) {
+    test.each([undefined, 0, ''])(
+        'local row removal acknowledges missing or falsy IDs (%s, ' + as + ')',
+        async (id) => {
+            const orphan = { value: 0, ...(id === undefined ? {} : { id }) };
+            const rows = { orphan, live: { id: 'live', value: 0 } };
+            const deleted: any[] = [];
+            const obs: any = observable(
+                syncedCrud<any, any, any>({
+                    as,
+                    initial: as === 'Map' ? new Map(Object.entries(rows)) : rows,
+                    update: async (input) => input,
+                    delete: async (input) => {
+                        deleted.push(clone(input));
+                    },
+                }),
+            );
+            obs.get();
+            batch(() => {
+                obs.orphan.delete();
+                obs.live.value.set(1);
+            });
+            await releaseTick();
+            expect(deleted).toEqual(id === undefined ? [] : [orphan]);
+            expect(obs.live.value.peek()).toBe(1);
+            expect(syncState(obs).getPendingChanges()).toEqual({});
+            expect(syncState(obs).error.peek()).toBeUndefined();
+        },
+    );
+}
+
+test.each([false, true])(
+    'value replacement keeps refresh metadata on its original row (initial=%s)',
+    async (hasInitial) => {
+        let release!: (value: any) => void;
+        const created: any[] = [];
+        const updated: any[] = [];
+        const errors: string[] = [];
+        const obs: any = observable(
+            syncedCrud<any, any, 'value'>({
+                as: 'value',
+                initial: hasInitial ? { id: 'old', value: 1, createdAt: 1 } : undefined,
+                get: () => new Promise((resolve) => (release = resolve)),
+                fieldCreatedAt: 'createdAt',
+                create: async (input) => {
+                    created.push(clone(input));
+                    return input;
+                },
+                update: async (input) => {
+                    updated.push(clone(input));
+                    return input;
+                },
+                delete: async () => {},
+                onError: (error) => errors.push(error.message),
+            }),
+        );
+        obs.get();
+        await releaseTick();
+        if (hasInitial) {
+            obs.set(null);
+            await releaseTick();
+        }
+        obs.set({ id: 'new', value: 2 });
+        await releaseTick();
+        release({ id: 'old', value: 1, createdAt: 1, server: 'obsolete refresh' });
+        await promiseTimeout(20);
+        expect(obs.peek()).toEqual({ id: 'new', value: 2 });
+        expect(created).toEqual([{ id: 'new', value: 2 }]);
+        for (const input of updated) expect(input).toEqual({ id: 'new', value: 2 });
+        expect(errors).toEqual([]);
+        expect(syncState(obs).getPendingChanges()).toEqual({});
+        expect(syncState(obs).numPendingSets.peek()).toBe(0);
+    },
+);
+
+for (const as of ['object', 'array', 'Map'] as const) {
+    test.each([false, true])(
+        `${as}: deleting a row acknowledges its cancelled update with a sibling save (retry=%s)`,
+        async (retry) => {
+            let resolve!: (value: any) => void;
+            let input: any;
+            let calls = 0;
+            const obs: any = observable(
+                syncedCrud<any, any, any>({
+                    as,
+                    list: async () => [
+                        { id: 'x', value: 0 },
+                        { id: 'y', value: 0 },
+                    ],
+                    updatePartial: true,
+                    update: async (value) => {
+                        if (value.id === 'x') {
+                            calls++;
+                            input = clone(value);
+                            if (retry) throw Error('retry update');
+                            return new Promise((r) => (resolve = r));
+                        }
+                        return value;
+                    },
+                    delete: async () => {},
+                    retry: retry ? { times: 2, delay: 20, backoff: 'constant' } : undefined,
+                }),
+            );
+            obs.get();
+            await releaseTick();
+            batch(() => {
+                (as === 'array' ? obs[0] : obs.x).value.set(1);
+                (as === 'array' ? obs[1] : obs.y).value.set(2);
+            });
+            await releaseTick();
+            if (as === 'array') obs.splice(0, 1);
+            else obs.x.delete();
+            await releaseTick();
+            if (!retry) resolve(input);
+            await promiseTimeout(40);
+            expect(calls).toBe(1);
+            expect((as === 'array' ? obs[0] : obs.y).peek()).toEqual({ id: 'y', value: 2 });
+            expect(as === 'array' ? obs.peek().length : obs.x.peek()).toEqual(as === 'array' ? 1 : undefined);
+            expect(syncState(obs).getPendingChanges()).toEqual({});
+            expect(syncState(obs).numPendingSets.peek()).toBe(0);
+            expect(syncState(obs).error.peek()).toBeUndefined();
+        },
+    );
+}
+
+for (const as of ['object', 'array', 'Map'] as const) {
+    test.each([
+        [false, false],
+        [false, true],
+        [true, false],
+        [true, true],
+    ])(
+        `${as}: observed creates retain only unsaved edits after metadata arrives (root=%s matching=%s)`,
+        async (root, matching) => {
+            let push!: (params: any) => void;
+            let creates = 0;
+            const persistName = getPersistName();
+            const obs: any = observable(
+                syncedCrud<any, any, any>({
+                    as,
+                    fieldCreatedAt: 'createdAt',
+                    list: async () => [{ id: 'y', value: 0, createdAt: 1 }],
+                    create: async () => {
+                        creates++;
+                        throw Error('retry create');
+                    },
+                    update: async () => {},
+                    subscribe: (params) => {
+                        push = params.update;
+                    },
+                    retry: { times: 2, delay: 30, backoff: 'constant' },
+                    persist: { name: persistName, plugin: ObservablePersistLocalStorage },
+                }),
+            );
+            obs.get();
+            await releaseTick();
+            if (root) {
+                const rows = [
+                    { id: 'y', value: 1, createdAt: 1 },
+                    { id: 'x', value: 2 },
+                ];
+                obs.set(
+                    as === 'array'
+                        ? rows
+                        : as === 'Map'
+                          ? new Map(rows.map((row) => [row.id, row]))
+                          : Object.fromEntries(rows.map((row) => [row.id, row])),
+                );
+            } else
+                batch(() => {
+                    if (as === 'array') obs.push({ id: 'x', value: 2 });
+                    else obs.x.set({ id: 'x', value: 2 });
+                    (as === 'array' ? obs[0] : obs.y).value.set(1);
+                });
+            await releaseTick();
+            push({
+                value: [
+                    { id: 'y', value: 1, createdAt: 1 },
+                    { id: 'x', value: matching ? 2 : 0, createdAt: 2 },
+                ],
+                mode: 'set',
+            });
+            await promiseTimeout(60);
+            expect(creates).toBe(1);
+            expect((as === 'array' ? obs[1] : obs.x).peek()).toEqual({ id: 'x', value: 2, createdAt: 2 });
+            expect(syncState(obs).numPendingSets.peek()).toBe(0);
+            const pending = syncState(obs).getPendingChanges();
+            expect(Object.keys(pending || {})).toHaveLength(matching ? 0 : 1);
+            expect(safeParse(localStorage.getItem(persistName + '__m') || '{}').pending || {}).toEqual(pending);
+            expect(syncState(obs).error.peek()).toBeUndefined();
+        },
+    );
+}
+
+for (const as of ['object', 'array', 'Map', 'value'] as const) {
+    test.each(['field', 'row'] as const)(
+        `${as}: a reverted %s survives an older echo until acknowledged`,
+        async (scope) => {
+            let push!: (params: any) => void;
+            const requests: { input: any; resolve: (value: any) => void }[] = [];
+            const persistName = getPersistName();
+            const obs: any = observable(
+                syncedCrud<any, any, any>({
+                    as,
+                    list: async () => [{ id: 'a', value: 'A' }],
+                    update: (input) => new Promise((resolve) => requests.push({ input: clone(input), resolve })),
+                    subscribe: (params) => {
+                        push = params.update;
+                    },
+                    persist: { name: persistName, plugin: ObservablePersistLocalStorage },
+                }),
+            );
+            obs.get();
+            await releaseTick();
+            const row = as === 'value' ? obs : as === 'array' ? obs[0] : obs.a;
+            const edit = (value: string) => (scope === 'field' ? row.value.set(value) : row.set({ id: 'a', value }));
+            edit('B');
+            await releaseTick();
+            edit('A');
+            await releaseTick();
+            expect(requests.map((request) => request.input.value)).toEqual(['B', 'A']);
+            push({ value: [{ id: 'a', value: 'B' }], mode: 'set' });
+            await releaseTick();
+            expect(row.value.peek()).toBe('A');
+            expect(Object.keys(syncState(obs).getPendingChanges() || {})).not.toHaveLength(0);
+            expect(
+                Object.keys(JSON.parse(localStorage.getItem(persistName + '__m') || '{}').pending || {}),
+            ).not.toHaveLength(0);
+            requests[0].resolve(requests[0].input);
+            await releaseTick();
+            expect(row.value.peek()).toBe('A');
+            expect(Object.keys(syncState(obs).getPendingChanges() || {})).not.toHaveLength(0);
+            requests[1].resolve(requests[1].input);
+            await releaseTick();
+            expect(row.value.peek()).toBe('A');
+            expect(syncState(obs).getPendingChanges()).toEqual({});
+            expect(JSON.parse(localStorage.getItem(persistName + '__m') || '{}').pending || {}).toEqual({});
+            expect(syncState(obs).numPendingSets.peek()).toBe(0);
+            expect(syncState(obs).error.peek()).toBeUndefined();
+        },
+    );
+}
+
+for (const as of ['object', 'array', 'Map'] as const) {
+    test(`${as}: mixed root reversions retain intent through later root edits and server fields`, async () => {
+        let push!: (params: any) => void;
+        const requests: { input: any; resolve: (value: any) => void }[] = [];
+        const persistName = getPersistName();
+        const pack = (a: string, b: string, server = 0) => {
+            const rows = [
+                { id: 'a', value: a, server },
+                { id: 'b', value: b, server },
+            ];
+            return as === 'array'
+                ? rows
+                : as === 'Map'
+                  ? new Map(rows.map((row) => [row.id, row]))
+                  : Object.fromEntries(rows.map((row) => [row.id, row]));
+        };
+        const obs: any = observable(
+            syncedCrud<any, any, any>({
+                as,
+                list: async () => [
+                    { id: 'a', value: 'A', server: 0 },
+                    { id: 'b', value: 'A', server: 0 },
+                ],
+                update: (input) => new Promise((resolve) => requests.push({ input: clone(input), resolve })),
+                subscribe: (params) => {
+                    push = params.update;
+                },
+                persist: { name: persistName, plugin: ObservablePersistLocalStorage },
+            }),
+        );
+        obs.get();
+        await releaseTick();
+        obs.set(pack('B', 'A'));
+        await releaseTick();
+        obs.set(pack('A', 'C'));
+        await releaseTick();
+        obs.set(pack('A', 'D'));
+        await releaseTick();
+        push({
+            value: [
+                { id: 'a', value: 'B', server: 1 },
+                { id: 'b', value: 'A', server: 1 },
+            ],
+            mode: 'set',
+        });
+        await releaseTick();
+        expect(obs.peek()).toEqual(pack('A', 'D', 1));
+        expect(Object.keys(syncState(obs).getPendingChanges() || {})).not.toHaveLength(0);
+        for (const request of requests) {
+            request.resolve({ ...request.input, server: 1 });
+            await releaseTick();
+        }
+        expect(obs.peek()).toEqual(pack('A', 'D', 1));
+        expect(syncState(obs).getPendingChanges()).toEqual({});
+        expect(JSON.parse(localStorage.getItem(persistName + '__m') || '{}').pending || {}).toEqual({});
+        expect(syncState(obs).numPendingSets.peek()).toBe(0);
+    });
+}
+
+for (const as of ['object', 'array', 'Map', 'value'] as const) {
+    test(`${as}: persisted reversion history survives a fresh persistence instance`, async () => {
+        const name = getPersistName();
+        const first: any = observable(
+            syncedCrud<any, any, any>({
+                as,
+                list: async () => [{ id: 'a', value: 'A', server: 0 }],
+                update: () => new Promise(() => {}),
+                persist: { name, plugin: new ObservablePersistLocalStorage(), retrySync: true },
+            }),
+        );
+        first.get();
+        await releaseTick();
+        const row = as === 'value' ? first : as === 'array' ? first[0] : first.a;
+        row.set({ id: 'a', value: 'B', server: 0 });
+        await releaseTick();
+        row.set({ id: 'a', value: 'A', server: 0 });
+        await releaseTick();
+        const saved = safeParse(localStorage.getItem(name + '__m')!);
+        const key = Object.keys(saved.pending)[0];
+        expect(saved.pending[key].h).toEqual([['value']]);
+        let push!: (params: any) => void;
+        const requests: (() => void)[] = [];
+        const restored: any = observable(
+            syncedCrud<any, any, any>({
+                as,
+                list: async () => [{ id: 'a', value: 'B', server: 1 }],
+                update: () => new Promise<void>((resolve) => requests.push(resolve)),
+                subscribe: (params) => {
+                    push = params.update;
+                },
+                persist: { name, plugin: new ObservablePersistLocalStorage(), retrySync: true },
+            }),
+        );
+        restored.get();
+        await releaseTick();
+        await releaseTick();
+        const current = as === 'value' ? restored : as === 'array' ? restored[0] : restored.a;
+        expect(current.peek()).toEqual({ id: 'a', value: 'A', server: 1 });
+        expect((syncState(restored).getPendingChanges() as PendingChanges)?.[key].h).toEqual(saved.pending[key].h);
+        expect(safeParse(localStorage.getItem(name + '__m')!).pending[key].h).toEqual(saved.pending[key].h);
+        push({ value: [{ id: 'a', value: 'A', server: 1 }], mode: 'set' });
+        await releaseTick();
+        expect(syncState(restored).getPendingChanges()).toEqual({});
+        expect(safeParse(localStorage.getItem(name + '__m')!).pending || {}).toEqual({});
+        for (const resolve of requests) resolve();
+        await releaseTick();
+        expect(current.peek()).toEqual({ id: 'a', value: 'A', server: 1 });
+    });
+}
+
+for (const as of ['object', 'array', 'Map', 'value'] as const) {
+    test(`${as}: wider replacements retain descendant reversion history`, async () => {
+        let push!: (params: any) => void;
+        const requests: (() => void)[] = [];
+        const rowValue = (value: string, extra = 0, server = 0) => ({ id: 'a', value, extra, server });
+        const pack = (row: any) =>
+            as === 'value' ? row : as === 'array' ? [row] : as === 'Map' ? new Map([['a', row]]) : { a: row };
+        const obs: any = observable(
+            syncedCrud<any, any, any>({
+                as,
+                list: async () => [rowValue('A')],
+                update: () => new Promise<void>((resolve) => requests.push(resolve)),
+                subscribe: (params) => {
+                    push = params.update;
+                },
+            }),
+        );
+        obs.get();
+        await releaseTick();
+        const row = as === 'value' ? obs : as === 'array' ? obs[0] : obs.a;
+        row.value.set('B');
+        await releaseTick();
+        row.value.set('A');
+        await releaseTick();
+        row.set(rowValue('A', 2));
+        await releaseTick();
+        obs.set(pack(rowValue('A', 3)));
+        await releaseTick();
+        push({ value: [rowValue('B', 0, 1)], mode: 'set' });
+        await releaseTick();
+        expect(obs.peek()).toEqual(pack(rowValue('A', 3, 1)));
+        expect(Object.keys(syncState(obs).getPendingChanges() || {})).not.toHaveLength(0);
+        push({ value: [rowValue('A', 3, 1)], mode: 'set' });
+        await releaseTick();
+        expect(syncState(obs).getPendingChanges()).toEqual({});
+        for (const resolve of requests) resolve();
+        await releaseTick();
+        expect(obs.peek()).toEqual(pack(rowValue('A', 3, 1)));
+    });
+}
+
+test('array order and descendant reversion markers coexist while untouched metadata advances', async () => {
+    let push!: (params: any) => void;
+    const rows = (a: number, b: number, server = 0) => [
+        { id: 'a', value: a, server },
+        { id: 'b', value: b, server },
+    ];
+    const requests: (() => void)[] = [];
+    const obs: any = observable(
+        syncedCrud<any, any, 'array'>({
+            as: 'array',
+            list: async () => rows(0, 0),
+            update: () => new Promise<void>((resolve) => requests.push(resolve)),
+            subscribe: (params) => {
+                push = params.update;
+            },
+        }),
+    );
+    obs.get();
+    await releaseTick();
+    obs.set(rows(0, 1).reverse());
+    await releaseTick();
+    obs.set(rows(0, 0));
+    await releaseTick();
+    obs.set(rows(0, 2));
+    await releaseTick();
+    push({ value: rows(0, 1, 1).reverse(), mode: 'set' });
+    await releaseTick();
+    expect(obs.peek()).toEqual(rows(0, 2, 1));
+    const history = (syncState(obs).getPendingChanges() as PendingChanges)?.[''].h;
+    expect(history).toContainEqual([]);
+    expect(history).toContainEqual(['b', 'value']);
+    push({ value: rows(0, 2, 1), mode: 'set' });
+    await releaseTick();
+    expect(syncState(obs).getPendingChanges()).toEqual({});
+    for (const resolve of requests) resolve();
+    await releaseTick();
+});
+
+test('array membership reversions retain a recreated row until a matching confirmation', async () => {
+    let push!: (params: any) => void;
+    const rows = (server = 0) => [
+        { id: 'a', value: 0, server },
+        { id: 'b', value: 0, server },
+    ];
+    const requests: (() => void)[] = [];
+    const hold = () => new Promise<void>((resolve) => requests.push(resolve));
+    const obs: any = observable(
+        syncedCrud<any, any, 'array'>({
+            as: 'array',
+            list: async () => rows(),
+            create: hold as any,
+            delete: hold,
+            update: hold,
+            subscribe: (params) => {
+                push = params.update;
+            },
+        }),
+    );
+    obs.get();
+    await releaseTick();
+    obs.set(rows().slice(0, 1));
+    await releaseTick();
+    obs.set(rows());
+    await releaseTick();
+    push({ value: rows(1).slice(0, 1), mode: 'set' });
+    await releaseTick();
+    expect(obs.peek()).toEqual([rows(1)[0], rows()[1]]);
+    push({ value: rows(2), mode: 'set' });
+    await releaseTick();
+    expect(obs.peek()).toEqual([rows(2)[0], rows()[1]]);
+    expect(Object.keys(syncState(obs).getPendingChanges() || {})).not.toHaveLength(0);
+    push({ value: [rows(2)[0], rows()[1]], mode: 'set' });
+    await releaseTick();
+    expect(syncState(obs).getPendingChanges()).toEqual({});
+    push({ value: rows(2), mode: 'set' });
+    await releaseTick();
+    expect(obs.peek()).toEqual(rows(2));
+    for (const resolve of requests) resolve();
+    await releaseTick();
+});
+
+for (const kind of ['Map', 'slash-key'] as const) {
+    test(`${kind}: persisted history paths preserve key identity`, async () => {
+        const pack = (a: number, b: number, server = 0): any =>
+            kind === 'Map'
+                ? new Map<any, any>([
+                      [1, { value: a, server }],
+                      ['1', { value: b, server }],
+                  ])
+                : { 'a/b': { value: a, server }, a: { b: { value: b, server } } };
+        let push!: (params: any) => void;
+        const requests: (() => void)[] = [];
+        const obs: any = observable(pack(0, 0));
+        syncObservable(obs, {
+            get: async () => pack(0, 0),
+            set: () => new Promise<void>((resolve) => requests.push(resolve)),
+            subscribe: (params) => {
+                push = params.update;
+            },
+        });
+        obs.get();
+        await releaseTick();
+        obs.set(pack(1, 0));
+        await releaseTick();
+        obs.set(pack(0, 2));
+        await releaseTick();
+        obs.set(pack(0, 3));
+        await releaseTick();
+        push({ value: pack(1, 0, 1), mode: 'set' });
+        await releaseTick();
+        expect(obs.peek()).toEqual(pack(0, 3, 1));
+        const history = (syncState(obs).getPendingChanges() as PendingChanges)?.[''].h;
+        expect(history).toContainEqual(kind === 'Map' ? [1, 'value'] : ['a/b', 'value']);
+        expect(history).toContainEqual(kind === 'Map' ? ['1', 'value'] : ['a', 'b', 'value']);
+        push({ value: pack(0, 3, 1), mode: 'set' });
+        await releaseTick();
+        expect(syncState(obs).getPendingChanges()).toEqual({});
+        for (const resolve of requests) resolve();
+        await releaseTick();
+    });
+}
+
+test('legacy pending history keeps ambiguous reversions until a matching complete snapshot', async () => {
+    const name = getPersistName();
+    localStorage.setItem(name, JSON.stringify({ id: 'a', value: 'A', server: 0 }));
+    localStorage.setItem(
+        name + '__m',
+        JSON.stringify({
+            pending: { '': { p: { id: 'a', value: 'A', server: 0 }, v: { id: 'a', value: 'A', server: 0 }, t: [] } },
+        }),
+    );
+    let push!: (params: any) => void;
+    const requests: (() => void)[] = [];
+    const obs: any = observable(
+        syncedCrud<any, any, 'value'>({
+            as: 'value',
+            get: async () => ({ id: 'a', value: 'B', server: 1 }),
+            update: () => new Promise<void>((resolve) => requests.push(resolve)),
+            subscribe: (params) => {
+                push = params.update;
+            },
+            persist: { name, plugin: new ObservablePersistLocalStorage(), retrySync: true },
+        }),
+    );
+    obs.get();
+    await releaseTick();
+    await releaseTick();
+    expect(obs.peek()).toEqual({ id: 'a', value: 'A', server: 0 });
+    expect((syncState(obs).getPendingChanges() as PendingChanges)?.[''].h).toContainEqual(['value']);
+    push({ value: [{ id: 'a', value: 'A', server: 0 }], mode: 'set' });
+    await releaseTick();
+    expect(syncState(obs).getPendingChanges()).toEqual({});
+    for (const resolve of requests) resolve();
+    await releaseTick();
+});
+
+test('history reflection failure conservatively retains pending data without throwing', async () => {
+    let push!: (params: any) => void;
+    const requests: (() => void)[] = [];
+    const obs: any = observable({ value: 0, server: 0 });
+    syncObservable(obs, {
+        get: async () => ({ value: 0, server: 0 }),
+        set: () => new Promise<void>((resolve) => requests.push(resolve)),
+        subscribe: (params) => {
+            push = params.update;
+        },
+    });
+    obs.get();
+    await releaseTick();
+    obs.set({ value: 1, server: 0 });
+    await releaseTick();
+    const entry = (syncState(obs).getPendingChanges() as PendingChanges)[''];
+    entry.p = new Proxy(
+        { value: 0, server: 0 },
+        {
+            ownKeys: () => {
+                throw Error('inaccessible history');
+            },
+        },
+    );
+    obs.set({ value: 0, server: 0 });
+    await releaseTick();
+    expect(entry.h).toBeUndefined();
+    push({ value: { value: 1, server: 1 }, mode: 'set' });
+    await releaseTick();
+    expect(obs.peek()).toEqual({ value: 0, server: 0 });
+    expect(syncState(obs).error.peek()).toBeUndefined();
+    push({ value: { value: 0, server: 0 }, mode: 'set' });
+    await releaseTick();
+    expect(syncState(obs).getPendingChanges()).toEqual({});
+    for (const resolve of requests) resolve();
+    await releaseTick();
+});
+
+for (const as of ['object', 'array', 'Map'] as const) {
+    test(`${as}: an absorbed child reversion survives a later sibling edit`, async () => {
+        let push!: (params: any) => void;
+        const requests: (() => void)[] = [];
+        const value = (edit: number, extra = 0, server = 0) => ({ id: 'a', value: edit, extra, server });
+        const obs: any = observable(
+            syncedCrud<any, any, any>({
+                as,
+                list: async () => [value(0)],
+                update: () => new Promise<void>((resolve) => requests.push(resolve)),
+                subscribe: (params) => {
+                    push = params.update;
+                },
+            }),
+        );
+        obs.get();
+        await releaseTick();
+        const row = as === 'array' ? obs[0] : obs.a;
+        row.set(value(1));
+        await releaseTick();
+        row.value.set(0);
+        await releaseTick();
+        row.extra.set(2);
+        await releaseTick();
+        push({ value: [value(1, 0, 1)], mode: 'set' });
+        await releaseTick();
+        expect(row.peek()).toEqual(value(0, 2, 1));
+        push({ value: [value(0, 2, 1)], mode: 'set' });
+        await releaseTick();
+        expect(syncState(obs).getPendingChanges()).toEqual({});
+        for (const resolve of requests) resolve();
+        await releaseTick();
+    });
+}
+
+test('wider pending replacements absorb descendants without absorbing sibling key prefixes', async () => {
+    let push!: (params: any) => void;
+    const requests: (() => void)[] = [];
+    const rows = (a: number, ab: number, server = 0) => [
+        { id: 'a', value: a, server },
+        { id: 'ab', value: ab, server },
+    ];
+    const obs: any = observable(
+        syncedCrud<any, any, 'object'>({
+            as: 'object',
+            list: async () => rows(0, 0),
+            update: () => new Promise<void>((resolve) => requests.push(resolve)),
+            subscribe: (params) => {
+                push = params.update;
+            },
+        }),
+    );
+    obs.get();
+    await releaseTick();
+    obs.ab.value.set(1);
+    await releaseTick();
+    obs.a.value.set(1);
+    await releaseTick();
+    obs.a.set(rows(0, 0)[0]);
+    await releaseTick();
+    push({ value: rows(1, 0, 1), mode: 'set' });
+    await releaseTick();
+    expect(obs.peek()).toEqual(Object.fromEntries(rows(0, 1, 1).map((row) => [row.id, row])));
+    expect(syncState(obs).getPendingChanges()).toHaveProperty('ab/value');
+    push({ value: rows(0, 1, 1), mode: 'set' });
+    await releaseTick();
+    expect(syncState(obs).getPendingChanges()).toEqual({});
+    for (const resolve of requests) resolve();
+    await releaseTick();
+});
+for (const as of ['object', 'array', 'Map', 'value'] as const) {
+    test.each([
+        ['wait', 'confirm'],
+        ['wait', 'delete'],
+        ['transform', 'confirm'],
+        ['transform', 'delete'],
+    ])(`${as}: cancelling a create during %s by %s preserves its ownership`, async (boundary, action) => {
+        const ready = observable(false);
+        let release!: () => void;
+        let push!: (params: any) => void;
+        let creates = 0;
+        let deletes = 0;
+        let entered = false;
+        const obs: any = observable(
+            syncedCrud<any, any, any>({
+                as,
+                list: async () => [],
+                fieldCreatedAt: 'createdAt',
+                waitForSet:
+                    boundary === 'wait'
+                        ? () => {
+                              entered = true;
+                              return ready;
+                          }
+                        : undefined,
+                transform:
+                    boundary === 'transform'
+                        ? {
+                              save: (value) => {
+                                  entered = true;
+                                  return new Promise((resolve) => {
+                                      release = () => resolve(value);
+                                  });
+                              },
+                          }
+                        : undefined,
+                create: async (input) => {
+                    creates++;
+                    return input;
+                },
+                delete: async () => {
+                    deletes++;
+                },
+                subscribe: (params) => {
+                    push = params.update;
+                },
+            }),
+        );
+        obs.get();
+        await releaseTick();
+        if (as === 'value') obs.set({ id: 'x', value: 1 });
+        else if (as === 'array') obs.push({ id: 'x', value: 1 });
+        else obs.x.set({ id: 'x', value: 1 });
+        await releaseTick();
+        expect(entered).toBe(true);
+        if (action === 'confirm') push({ value: [{ id: 'x', value: 1, createdAt: 1 }], mode: 'set' });
+        else if (as === 'value') obs.set(null);
+        else if (as === 'array') obs.splice(0, 1);
+        else obs.x.delete();
+        await releaseTick();
+        if (boundary === 'wait') ready.set(true);
+        else release();
+        await releaseTick();
+        expect(creates).toBe(0);
+        expect(deletes).toBe(0);
+        const row = as === 'value' ? obs : as === 'array' ? obs[0] : obs.x;
+        expect(row.peek()).toEqual(
+            action === 'confirm' ? { id: 'x', value: 1, createdAt: 1 } : as === 'value' ? null : undefined,
+        );
+        expect(syncState(obs).getPendingChanges()).toEqual({});
+        expect(syncState(obs).numPendingSets.peek()).toBe(0);
+        expect(syncState(obs).error.peek()).toBeUndefined();
+    });
+}
+
+for (const as of ['object', 'array', 'Map'] as const) {
+    test.each([
+        [false, false],
+        [false, true],
+        [true, false],
+        [true, true],
+    ])(
+        `${as}: a cancelled shared root accepts its sibling normalization (onSaved=%s transform=%s)`,
+        async (callback, transformed) => {
+            let push!: (params: any) => void;
+            let creates = 0;
+            const name = getPersistName();
+            const normalize = (input: any) => ({ ...input, value: 10, server: 1 });
+            const obs: any = observable(
+                syncedCrud<any, any, any>({
+                    as,
+                    fieldCreatedAt: 'createdAt',
+                    list: async () => [{ id: 'y', value: 0, createdAt: 1 }],
+                    create: async () => {
+                        creates++;
+                        throw Error('retry create');
+                    },
+                    update: async (input) => (callback ? input : { ...input, value: transformed ? 20 : 10, server: 1 }),
+                    transform: transformed
+                        ? {
+                              save: (value) => ({ ...value, value: value.value * 2 }),
+                              load: (value) => ({ ...value, value: value.value / 2 }),
+                          }
+                        : undefined,
+                    onSaved: callback ? ({ saved }) => normalize(saved) : undefined,
+                    subscribe: (params) => {
+                        push = params.update;
+                    },
+                    retry: { times: 2, delay: 40, backoff: 'constant' },
+                    persist: { name, plugin: ObservablePersistLocalStorage },
+                }),
+            );
+            obs.get();
+            await releaseTick();
+            const rows = [
+                { id: 'y', value: 1, createdAt: 1 },
+                { id: 'x', value: 2 },
+            ];
+            obs.set(
+                as === 'array'
+                    ? rows
+                    : as === 'Map'
+                      ? new Map(rows.map((row) => [row.id, row]))
+                      : Object.fromEntries(rows.map((row) => [row.id, row])),
+            );
+            await releaseTick();
+            push({
+                value: [
+                    { id: 'y', value: transformed ? 20 : 10, server: 1, createdAt: 1 },
+                    { id: 'x', value: 0, createdAt: 2 },
+                ],
+                mode: 'set',
+            });
+            await promiseTimeout(60);
+            expect((as === 'array' ? obs[0] : obs.y).peek()).toEqual({
+                id: 'y',
+                value: 10,
+                server: 1,
+                createdAt: 1,
+            });
+            expect((as === 'array' ? obs[1] : obs.x).peek()).toEqual({
+                id: 'x',
+                value: 2,
+                createdAt: 2,
+            });
+            expect(creates).toBe(1);
+            expect(syncState(obs).numPendingSets.peek()).toBe(0);
+            expect(Object.keys(syncState(obs).getPendingChanges()!)).toHaveLength(1);
+            expect(safeParse(localStorage.getItem(name + '__m')!).pending).toEqual(syncState(obs).getPendingChanges());
+            push({
+                value: [
+                    { id: 'y', value: transformed ? 20 : 10, server: 1, createdAt: 1 },
+                    { id: 'x', value: transformed ? 4 : 2, createdAt: 2 },
+                ],
+                mode: 'set',
+            });
+            await releaseTick();
+            expect(syncState(obs).getPendingChanges()).toEqual({});
+            expect(safeParse(localStorage.getItem(name + '__m')!).pending || {}).toEqual({});
+            expect(syncState(obs).error.peek()).toBeUndefined();
+        },
+    );
+
+    test(`${as}: partial root confirmation waits for a complete snapshot`, async () => {
+        let push!: (params: any) => void;
+        const requests: (() => void)[] = [];
+        const rows = (value: number) => [
+            { id: 'a', value },
+            { id: 'b', value },
+        ];
+        const obs: any = observable(
+            syncedCrud<any, any, any>({
+                as,
+                list: async () => rows(0),
+                update: (input) => new Promise((resolve) => requests.push(() => resolve(input))),
+                subscribe: (params) => {
+                    push = params.update;
+                },
+            }),
+        );
+        obs.get();
+        await releaseTick();
+        const next = rows(1);
+        obs.set(
+            as === 'array'
+                ? next
+                : as === 'Map'
+                  ? new Map(next.map((row) => [row.id, row]))
+                  : Object.fromEntries(next.map((row) => [row.id, row])),
+        );
+        await releaseTick();
+        push({ value: rows(1), mode: 'assign' });
+        await releaseTick();
+        expect(Object.keys(syncState(obs).getPendingChanges()!)).toHaveLength(1);
+        push({ value: rows(1), mode: 'set' });
+        await releaseTick();
+        expect(syncState(obs).getPendingChanges()).toEqual({});
+        for (const resolve of requests) resolve();
+        await releaseTick();
+        expect(syncState(obs).numPendingSets.peek()).toBe(0);
+        expect(syncState(obs).error.peek()).toBeUndefined();
+    });
+}
+
+test.each([
+    [
+        ['0', '1', 'tail'],
+        ['0', '1', 'tail'],
+    ],
+    [
+        ['tail', '2', '1'],
+        ['1', '2', 'tail'],
+    ],
+    [
+        ['2', '1', '0'],
+        ['0', '1', '2'],
+    ],
+    [['x', 'x'], ['x']],
+    [['1', 1], [1]],
+])('root array saves retain record ordering and duplicate handling for %s', async (ids, expectedIds) => {
+    const saved: any[] = [];
+    const obs: any = observable(
+        syncedCrud<any, any, 'array'>({
+            as: 'array',
+            list: async () => ids.map((id, value) => ({ id, value })),
+            update: async (input) => {
+                saved.push(clone(input));
+                return input;
+            },
+        }),
+    );
+    obs.get();
+    await releaseTick();
+    obs.set(ids.map((id, value) => ({ id, value: value + 10 })));
+    await releaseTick();
+    expect(saved.map((row) => row.id)).toEqual(expectedIds);
+    if (ids.length !== expectedIds.length) expect(saved[0].value).toBe(ids.length + 9);
+    expect(syncState(obs).getPendingChanges()).toEqual({});
+    expect(syncState(obs).error.peek()).toBeUndefined();
+});
+
+test('a late array fallback reads a previous ID getter only once during classification', async () => {
+    let reads = 0;
+    const saved: any[] = [];
+    const errors: string[] = [];
+    const obs: any = observable(
+        syncedCrud<any, any, 'array'>({
+            as: 'array',
+            list: async () => [
+                { id: '0', value: 0 },
+                { id: '2', value: 2 },
+                { id: '1', value: 1 },
+            ],
+            update: async (input) => {
+                saved.push(clone(input));
+                return input;
+            },
+            onError: (error) => errors.push(error.message),
+        }),
+    );
+    obs.get();
+    await releaseTick();
+    Object.defineProperty(obs.peek()[0], 'id', {
+        enumerable: true,
+        configurable: true,
+        get: () => {
+            if (++reads > 4) throw Error('repeated previous ID read');
+            return '0';
+        },
+    });
+    obs.set([
+        { id: '0', value: 10 },
+        { id: '2', value: 12 },
+        { id: '1', value: 11 },
+    ]);
+    await releaseTick();
+    expect(reads).toBe(4);
+    expect(saved).toEqual([
+        { id: '0', value: 10 },
+        { id: '1', value: 11 },
+        { id: '2', value: 12 },
+    ]);
+    expect(errors).toEqual([]);
+    expect(syncState(obs).getPendingChanges()).toEqual({});
+});
+
+for (const as of ['value', 'object', 'array', 'Map'] as const)
+    test(`${as}: restoring a removed row retains authored fields through an older echo`, async () => {
+        let push!: (p: any) => void;
+        const releases: (() => void)[] = [];
+        const hold = () => new Promise<void>((resolve) => releases.push(resolve));
+        const obs: any = observable(
+            syncedCrud<any, any, any>({
+                as,
+                list: async () => [{ id: 'a', value: 'A', server: 0 }],
+                create: hold as any,
+                delete: hold,
+                update: hold,
+                subscribe: (params) => {
+                    push = params.update;
+                },
+            }),
+        );
+        obs.get();
+        await when(syncState(obs).isLoaded);
+        if (as === 'value') obs.set(null);
+        else if (as === 'array') obs.splice(0, 1);
+        else obs.a.delete();
+        await releaseTick();
+        if (as === 'value') obs.set({ id: 'a', value: 'A', server: 0 });
+        else if (as === 'array') obs.push({ id: 'a', value: 'A', server: 0 });
+        else obs.a.set({ id: 'a', value: 'A', server: 0 });
+        await releaseTick();
+        push({ value: [{ id: 'a', value: 'B', server: 1 }], mode: 'set' });
+        await releaseTick();
+        const row = as === 'value' ? obs : as === 'array' ? obs[0] : obs.a;
+        expect(row.peek()).toEqual({ id: 'a', value: 'A', server: 0 });
+        expect(Object.keys(syncState(obs).getPendingChanges()!)).not.toHaveLength(0);
+        push({ value: [{ id: 'a', value: 'A', server: 0 }], mode: 'set' });
+        await releaseTick();
+        expect(syncState(obs).getPendingChanges()).toEqual({});
+        for (const release of releases) release();
+        await when(() => !syncState(obs).isSetting.get());
+        expect(row.peek()).toEqual({ id: 'a', value: 'A', server: 0 });
+        expect(syncState(obs).error.peek()).toBeUndefined();
+    });
+
+for (const serialized of [null, undefined])
+    for (const response of ['direct', 'callback', 'buffered'] as const)
+        test(`CRUD ${response} response serialized to ${serialized} acknowledges without losing a newer edit`, async () => {
+            const requests: { input: any; resolve: (value: any) => void }[] = [];
+            const errors: string[] = [];
+            let reads = 0;
+            const empty = {
+                toJSON: () => {
+                    reads++;
+                    return serialized;
+                },
+            };
+            const obs = observable(
+                syncedCrud<any, any, 'object'>({
+                    as: 'object',
+                    list: async () => [
+                        { id: 'a', value: 0 },
+                        { id: 'b', value: 0 },
+                    ],
+                    update: (input) => new Promise((resolve) => requests.push({ input: clone(input), resolve })),
+                    onSaved:
+                        response === 'direct'
+                            ? undefined
+                            : ({ input }) =>
+                                  response === 'callback' && input.id === 'a' && input.value === 1 ? empty : undefined,
+                    onError: (error) => errors.push(error.message),
+                }),
+            );
+            obs.get();
+            await when(syncState(obs).isLoaded);
+            batch(() => {
+                obs.a.value.set(1);
+                if (response === 'buffered') obs.b.value.set(1);
+            });
+            await releaseTick();
+            const oldCount = requests.length;
+            expect(oldCount).toBe(response === 'buffered' ? 2 : 1);
+            obs.a.value.set(2);
+            await releaseTick();
+            for (const request of requests.slice(0, oldCount)) {
+                request.resolve(request.input.id === 'a' && response !== 'callback' ? empty : request.input);
+            }
+            await releaseTick();
+            expect(reads).toBe(1);
+            expect(errors).toEqual([]);
+            expect(obs.a.value.peek()).toBe(2);
+            expect(syncState(obs).numPendingSets.peek()).toBe(1);
+            requests[oldCount].resolve(requests[oldCount].input);
+            await when(() => !syncState(obs).isSetting.get());
+            expect(obs.a.value.peek()).toBe(2);
+            expect(obs.b.value.peek()).toBe(response === 'buffered' ? 1 : 0);
+            expect(syncState(obs).getPendingChanges()).toEqual({});
+            expect(syncState(obs).numPendingSets.peek()).toBe(0);
+            expect(syncState(obs).error.peek()).toBeUndefined();
+        });
+
+for (const held of [false, true])
+    for (const removeFirst of [false, true])
+        test(`batched value ID selection updates its new ID without deleting the old ID (held=${held}, remove=${removeFirst})`, async () => {
+            let release!: (row: any) => void;
+            const created: any[] = [];
+            const updated: any[] = [];
+            const deleted: string[] = [];
+            const errors: string[] = [];
+            const initial = { id: 'old', value: 1 };
+            const obs = observable(
+                syncedCrud<any, any>({
+                    as: 'value',
+                    initial,
+                    get: () =>
+                        held
+                            ? new Promise((resolve) => {
+                                  release = resolve;
+                              })
+                            : Promise.resolve(clone(initial)),
+                    create: async (input) => {
+                        created.push(clone(input));
+                        return input;
+                    },
+                    update: async (input) => {
+                        updated.push(clone(input));
+                        return input;
+                    },
+                    delete: async (input) => {
+                        deleted.push(input.id);
+                    },
+                    onError: (error) => errors.push(error.message),
+                }),
+            );
+            obs.get();
+            if (held) await releaseTick();
+            else await when(syncState(obs).isLoaded);
+            batch(() => {
+                if (removeFirst) obs.set(null);
+                obs.set({ id: 'new', value: 2 });
+            });
+            await releaseTick();
+            if (held) release(clone(initial));
+            await releaseTick();
+            expect(created).toEqual([]);
+            expect(updated).toEqual([{ id: 'new', value: 2 }]);
+            expect(deleted).toEqual([]);
+            expect(obs.peek()).toEqual({ id: 'new', value: 2 });
+            expect(errors).toEqual([]);
+            expect(syncState(obs).getPendingChanges()).toEqual({});
+            expect(syncState(obs).numPendingSets.peek()).toBe(0);
+        });
+
+for (const as of ['object', 'array', 'Map'] as const)
+    for (const callback of [false, true])
+        test(`${as}: a failed sibling waits for the remaining response (onSaved=${callback})`, async () => {
+            let release!: (row: any) => void;
+            const errors: string[] = [];
+            const obs: any = observable(
+                syncedCrud<any, any, any>({
+                    as,
+                    list: async () => [
+                        { id: 'a', value: 0 },
+                        { id: 'b', value: 0 },
+                    ],
+                    updatePartial: true,
+                    update: async (input) => {
+                        if (input.id === 'a') throw Error('first failed');
+                        return new Promise((resolve) => {
+                            release = resolve;
+                        });
+                    },
+                    onSaved: callback ? ({ saved }) => ({ ...saved, value: 10 }) : undefined,
+                    onError: (error) => errors.push(error.message),
+                }),
+            );
+            obs.get();
+            await when(syncState(obs).isLoaded);
+            const a = as === 'array' ? obs[0] : obs.a;
+            const b = as === 'array' ? obs[1] : obs.b;
+            batch(() => {
+                a.value.set(1);
+                b.value.set(1);
+            });
+            await releaseTick();
+            const stillSetting = syncState(obs).isSetting.peek();
+            release({ id: 'b', value: 10 });
+            await releaseTick();
+            expect(stillSetting).toBe(true);
+            expect(a.value.peek()).toBe(1);
+            expect(b.value.peek()).toBe(10);
+            expect(Object.keys(syncState(obs).getPendingChanges()!)).toEqual([as === 'array' ? '0/value' : 'a/value']);
+            expect(syncState(obs).numPendingSets.peek()).toBe(0);
+            expect(errors).toEqual(['first failed']);
+        });
+
+for (const history of ['legacy', 'active'] as const)
+    for (const as of ['array', 'object', 'Map'] as const)
+        for (const mode of as === 'array' ? ['append', 'prepend'] : ['assign'])
+            test(`${as}: ${history} pending roots keep repeated ${mode} deltas and local removals`, async () => {
+                const name = getPersistName();
+                const a = { id: 'a', value: 'A', updatedAt: 1 };
+                const oldA = { ...a, value: 'old' };
+                const deleted = { id: 'd', value: 'deleted', updatedAt: 1 };
+                const b = { id: 'b', value: 'new', updatedAt: 2 };
+                const c = { id: 'c', value: 'newer', updatedAt: 3 };
+                const pack = (rows: any[]) =>
+                    as === 'array'
+                        ? rows
+                        : as === 'Map'
+                          ? new Map(rows.map((row) => [row.id, row]))
+                          : Object.fromEntries(rows.map((row) => [row.id, row]));
+                if (history === 'legacy') {
+                    localStorage.setItem(name, safeStringify(pack([a])));
+                    localStorage.setItem(
+                        name + '__m',
+                        safeStringify({
+                            lastSync: 1,
+                            pending: { '': { p: pack([oldA, deleted]), v: pack([a]), t: [] } },
+                        }),
+                    );
+                }
+                let remote = history === 'legacy' ? [b, { ...deleted, updatedAt: 2 }] : [oldA, deleted];
+                const seen: any[] = [];
+                const creates: any[] = [];
+                const errors: string[] = [];
+                const releases: (() => void)[] = [];
+                const hold = (input: any) => new Promise<any>((resolve) => releases.push(() => resolve(input)));
+                let push!: (params: any) => void;
+                const obs: any = observable(
+                    syncedCrud<any, any, any>({
+                        as,
+                        mode: mode === 'prepend' ? 'prepend' : undefined,
+                        fieldUpdatedAt: 'updatedAt',
+                        changesSince: 'last-sync',
+                        list: async ({ lastSync }) => {
+                            seen.push(lastSync);
+                            return clone(remote);
+                        },
+                        update: hold,
+                        delete: hold,
+                        create: async (input) => {
+                            creates.push(input);
+                            return input;
+                        },
+                        subscribe: (params) => {
+                            push = params.update;
+                        },
+                        onError: (error) => errors.push(error.message),
+                        persist: { name, plugin: new ObservablePersistLocalStorage(), retrySync: true },
+                    }),
+                );
+                obs.get();
+                await when(syncState(obs).isLoaded);
+                await releaseTick();
+                if (history === 'active') {
+                    expect(obs.peek()).toEqual(pack([oldA, deleted]));
+                    obs.set(pack([a]));
+                    await releaseTick();
+                    expect((syncState(obs).getPendingChanges()![''] as any).h).toEqual([]);
+                    remote = [b, { ...deleted, updatedAt: 2 }];
+                    await syncState(obs).sync();
+                    await releaseTick();
+                }
+                expect(obs.peek()).toEqual(pack(mode === 'prepend' ? [b, a] : [a, b]));
+                expect(syncState(obs).getPendingChanges()!['']).toBeDefined();
+                await when(() => syncState(obs).lastSync.get() === 2);
+                remote = [c];
+                await syncState(obs).sync();
+                await releaseTick();
+                expect(obs.peek()).toEqual(pack(mode === 'prepend' ? [c, b, a] : [a, b, c]));
+                await when(() => syncState(obs).lastSync.get() === 3);
+                const subscribedB = { ...b, value: 'subscription' };
+                push({ value: [{ id: 'b', value: 'subscription' }], mode: 'merge' });
+                await releaseTick();
+                const rows = mode === 'prepend' ? [c, subscribedB, a] : [a, subscribedB, c];
+                expect(obs.peek()).toEqual(pack(rows));
+                remote = [{ ...deleted, updatedAt: 4 }];
+                await syncState(obs).sync();
+                await releaseTick();
+                expect(obs.peek()).toEqual(pack(rows));
+                await when(() => syncState(obs).lastSync.get() === 4);
+                const updatedB = { ...b, value: 'updated', updatedAt: 5 };
+                remote = [updatedB];
+                await syncState(obs).sync();
+                await releaseTick();
+                const finalRows = mode === 'prepend' ? [c, updatedB, a] : [a, updatedB, c];
+                expect(obs.peek()).toEqual(pack(finalRows));
+                expect(seen).toEqual(history === 'legacy' ? [1, 2, 3, 4] : [undefined, 1, 2, 3, 4]);
+                expect(creates).toEqual([]);
+                expect(syncState(obs).getPendingChanges()!['']).toBeDefined();
+                push({ value: mode === 'prepend' ? [c, oldA] : [oldA, c], mode: 'set' });
+                await releaseTick();
+                const confirmedRows = mode === 'prepend' ? [c, a] : [a, c];
+                expect(obs.peek()).toEqual(pack(confirmedRows));
+                expect(syncState(obs).getPendingChanges()!['']).toBeDefined();
+                push({ value: confirmedRows, mode: 'set' });
+                await releaseTick();
+                expect(syncState(obs).getPendingChanges()).toEqual({});
+                for (const release of releases) release();
+                await when(() => !syncState(obs).isSetting.get());
+                expect(obs.peek()).toEqual(pack(confirmedRows));
+                expect(errors).toEqual([]);
+                expect(syncState(obs).error.peek()).toBeUndefined();
+            });
+
+for (const legacy of [false, true])
+    for (const as of ['object', 'array', 'Map'] as const)
+        test(`${as}: a complete refresh removes a server-added field beside pending edits (legacy=${legacy})`, async () => {
+            const name = getPersistName();
+            const initial = { id: 'a', value: 0 };
+            const edited = { id: 'a', value: 1 };
+            const pack = (row: any) => (as === 'array' ? [row] : as === 'Map' ? new Map([['a', row]]) : { a: row });
+            if (legacy) {
+                localStorage.setItem(name, safeStringify(pack(edited)));
+                localStorage.setItem(
+                    name + '__m',
+                    safeStringify({ pending: { '': { p: pack(initial), v: pack(edited), t: [] } } }),
+                );
+            }
+            let remote: any[] = [initial];
+            let push!: (params: any) => void;
+            const releases: (() => void)[] = [];
+            const obs: any = observable(
+                syncedCrud<any, any, any>({
+                    as,
+                    list: async () => clone(remote),
+                    update: () => new Promise<void>((resolve) => releases.push(resolve)),
+                    subscribe: (params) => {
+                        push = params.update;
+                    },
+                    persist: { name, plugin: new ObservablePersistLocalStorage(), retrySync: true },
+                }),
+            );
+            obs.get();
+            await when(syncState(obs).isLoaded);
+            if (!legacy) obs.set(pack(edited));
+            await releaseTick();
+            remote = [{ ...initial, server: 1 }];
+            await syncState(obs).sync();
+            await releaseTick();
+            expect(obs.peek()).toEqual(pack({ ...edited, server: 1 }));
+            remote = [initial];
+            await syncState(obs).sync();
+            await releaseTick();
+            expect(obs.peek()).toEqual(pack(edited));
+            expect(syncState(obs).getPendingChanges()!['']).toBeDefined();
+            push({ value: [edited], mode: 'set' });
+            await releaseTick();
+            expect(syncState(obs).getPendingChanges()).toEqual({});
+            for (const release of releases) release();
+            await when(() => !syncState(obs).isSetting.get());
+            expect(obs.peek()).toEqual(pack(edited));
+            expect(syncState(obs).error.peek()).toBeUndefined();
+        });
+
+for (const legacy of [false, true])
+    for (const as of ['object', 'Map'] as const)
+        test(`${as}: last-sync deletion removes an untouched server row beside pending edits (legacy=${legacy})`, async () => {
+            const name = getPersistName();
+            const initial = { id: 'a', value: 0, updatedAt: 1 };
+            const edited = { ...initial, value: 1 };
+            const b = { id: 'b', value: 2, updatedAt: 2 };
+            const pack = (rows: any[]) =>
+                as === 'Map'
+                    ? new Map(rows.map((row) => [row.id, row]))
+                    : Object.fromEntries(rows.map((row) => [row.id, row]));
+            if (legacy) {
+                localStorage.setItem(name, safeStringify(pack([edited])));
+                localStorage.setItem(
+                    name + '__m',
+                    safeStringify({ lastSync: 1, pending: { '': { p: pack([initial]), v: pack([edited]), t: [] } } }),
+                );
+            }
+            let remote: any[] = legacy ? [b] : [initial];
+            let push!: (params: any) => void;
+            const releases: (() => void)[] = [];
+            const obs: any = observable(
+                syncedCrud<any, any, any>({
+                    as,
+                    changesSince: 'last-sync',
+                    fieldUpdatedAt: 'updatedAt',
+                    fieldDeleted: 'deleted',
+                    list: async () => clone(remote),
+                    update: () => new Promise<void>((resolve) => releases.push(resolve)),
+                    subscribe: (params) => {
+                        push = params.update;
+                    },
+                    persist: { name, plugin: new ObservablePersistLocalStorage(), retrySync: true },
+                }),
+            );
+            obs.get();
+            await when(syncState(obs).isLoaded);
+            if (!legacy) {
+                obs.set(pack([edited]));
+                await releaseTick();
+                remote = [b];
+                await syncState(obs).sync();
+            }
+            await releaseTick();
+            expect(obs.peek()).toEqual(pack([edited, b]));
+            await when(() => syncState(obs).lastSync.get() === 2);
+            remote = [{ ...b, deleted: true, updatedAt: 3 }];
+            await syncState(obs).sync();
+            await releaseTick();
+            expect(obs.peek()).toEqual(pack([edited]));
+            expect(syncState(obs).getPendingChanges()!['']).toBeDefined();
+            await when(() => syncState(obs).lastSync.get() === 3);
+            push({ value: [edited], mode: 'set' });
+            await releaseTick();
+            expect(syncState(obs).getPendingChanges()).toEqual({});
+            for (const release of releases) release();
+            await when(() => !syncState(obs).isSetting.get());
+            expect(obs.peek()).toEqual(pack([edited]));
+            expect(syncState(obs).error.peek()).toBeUndefined();
+        });
+
+for (const timestamped of [false, true])
+    test(`selecting an existing value ID does not delete the previous row (timestamped=${timestamped})`, async () => {
+        const deleted: string[] = [];
+        const updated: any[] = [];
+        const created: any[] = [];
+        const initial = { id: 'old', value: 1, ...(timestamped ? { createdAt: 1 } : {}) };
+        const next = { id: 'new', value: 2, ...(timestamped ? { createdAt: 2 } : {}) };
+        const obs: any = observable(
+            syncedCrud<any, any, 'value'>({
+                as: 'value',
+                get: async () => clone(initial),
+                fieldCreatedAt: timestamped ? 'createdAt' : undefined,
+                create: timestamped
+                    ? async (input) => {
+                          created.push(input);
+                          return input;
+                      }
+                    : undefined,
+                update: async (input) => {
+                    updated.push(input);
+                    return input;
+                },
+                delete: async (input) => {
+                    deleted.push(input.id);
+                },
+            }),
+        );
+        obs.get();
+        await when(syncState(obs).isLoaded);
+        obs.set(next);
+        await releaseTick();
+        expect(deleted).toEqual([]);
+        expect(created).toEqual([]);
+        expect(updated).toEqual([next]);
+        expect(obs.peek()).toEqual(next);
+        expect(syncState(obs).getPendingChanges()).toEqual({});
+        expect(syncState(obs).numPendingSets.peek()).toBe(0);
+        expect(syncState(obs).error.peek()).toBeUndefined();
+    });
+
+describe('pending history after a persistence restart', () => {
+    const tick = () => promiseTimeout(0);
+    const wait = async (check: () => boolean) => {
+        for (let i = 0; i < 300; i++) {
+            if (check()) return;
+            await tick();
+        }
+        throw Error('reload probe timed out');
+    };
+    for (const as of ['object', 'Map'] as const)
+        test(`${as}: persisted reversion history retains A and accepted B through replay`, async () => {
+            const name = 'reload-root-' + as;
+            const stored = new Map<string, string>();
+            const storage = (rows: Map<string, string>) => ({
+                getItem: (key: string) => rows.get(key) ?? null,
+                setItem: (key: string, value: string) => rows.set(key, value),
+                removeItem: (key: string) => rows.delete(key),
+            });
+            const pack = (rows: any[]) =>
+                as === 'Map'
+                    ? new Map(rows.map((row) => [row.id, row]))
+                    : Object.fromEntries(rows.map((row) => [row.id, row]));
+            const a = { id: 'a', value: 0, updatedAt: 1 };
+            const localA = { ...a };
+            const d = { id: 'd', value: 0, updatedAt: 1 };
+            const localD = { ...d, value: 1 };
+            const b = { id: 'b', value: 2, updatedAt: 2 };
+            let remote = [a, d];
+            const originalReleases: (() => void)[] = [];
+            let requested = false;
+            const original: any = observable(
+                syncedCrud<any, any, any>({
+                    as,
+                    fieldUpdatedAt: 'updatedAt',
+                    changesSince: 'last-sync',
+                    list: async () => structuredClone(remote),
+                    update: (input) => {
+                        requested = true;
+                        return new Promise((resolve) => originalReleases.push(() => resolve(input)));
+                    },
+                    onError: () => {},
+                    persist: {
+                        name,
+                        plugin: new ObservablePersistLocalStorageBase(storage(stored) as any),
+                        retrySync: true,
+                    },
+                }),
+            );
+            original.get();
+            await when(syncState(original).isLoaded);
+            original.set(pack([{ ...a, value: 1 }, localD]));
+            await wait(() => requested);
+            original.set(pack([localA, localD]));
+            await tick();
+            remote = [b];
+            await syncState(original).sync();
+            await tick();
+            expect(as === 'Map' ? original.peek().get('b') : original.peek().b).toEqual(b);
+            for (let i = 0; i < 5; i++) await tick();
+            const restartedStorage = new Map(stored);
+            const replayed: any[] = [];
+            const deleted: any[] = [];
+            const created: any[] = [];
+            const releases: (() => void)[] = [];
+            const persistedCache = safeParse(restartedStorage.get(name)!);
+            expect(as === 'Map' ? persistedCache.get('b') : persistedCache.b).toEqual(b);
+            const restarted: any = observable(
+                syncedCrud<any, any, any>({
+                    as,
+                    fieldUpdatedAt: 'updatedAt',
+                    changesSince: 'last-sync',
+                    list: async () => [{ ...a, value: 1 }, d],
+                    update: (input) => {
+                        replayed.push(input);
+                        return new Promise((resolve) => releases.push(() => resolve(input)));
+                    },
+                    create: async (input) => {
+                        created.push(input);
+                        return input;
+                    },
+                    delete: async (input) => {
+                        deleted.push(input);
+                    },
+                    onError: () => {},
+                    persist: {
+                        name,
+                        plugin: new ObservablePersistLocalStorageBase(storage(restartedStorage) as any),
+                        retrySync: true,
+                    },
+                }),
+            );
+            restarted.get();
+            await when(syncState(restarted).isLoaded);
+            await wait(() => replayed.length > 0);
+            for (let i = 0; i < 5; i++) await tick();
+            try {
+                expect(as === 'Map' ? restarted.peek().get('a') : restarted.peek().a).toEqual(localA);
+                expect(as === 'Map' ? restarted.peek().get('d') : restarted.peek().d).toEqual(localD);
+                expect(as === 'Map' ? restarted.peek().get('b') : restarted.peek().b).toEqual(b);
+                expect(deleted).toEqual([]);
+                expect(created).toEqual([]);
+                const consumerCache = safeParse(restartedStorage.get(name)!);
+                expect(as === 'Map' ? consumerCache.get('b') : consumerCache.b).toEqual(b);
+            } finally {
+                releases.splice(0).forEach((resolve) => resolve());
+                originalReleases.splice(0).forEach((resolve) => resolve());
+            }
+            await wait(() => !syncState(restarted).isSetting.peek());
+        });
+});
+
+test('CRUD array accepted server row survives root ACK and pending drains', async () => {
+    let release!: (value: any) => void;
+    let push!: (p: any) => void;
+    const obs: any = observable(
+        syncedCrud<any, any, 'array'>({
+            as: 'array',
+            list: async () => [{ id: 'a', value: 0 }],
+            update: () =>
+                new Promise((resolve) => {
+                    release = resolve;
+                }),
+            subscribe: (p) => {
+                push = p.update;
+            },
+        }),
+    );
+    obs.get();
+    const state = syncState(obs);
+    await when(state.isLoaded);
+    obs.set([{ id: 'a', value: 1 }]);
+    await when(state.isSetting);
+    push({ value: [{ id: 'b', value: 7 }], mode: 'append' });
+    await releaseTick();
+    expect(obs.peek()).toEqual([
+        { id: 'a', value: 1 },
+        { id: 'b', value: 7 },
+    ]);
+    release({ id: 'a', value: 1 });
+    await releaseTick();
+    expect(obs.peek()).toEqual([
+        { id: 'a', value: 1 },
+        { id: 'b', value: 7 },
+    ]);
+    expect(state.getPendingChanges()).toEqual({});
+    expect(state.numPendingSets.peek()).toBe(0);
+});
+
+test('selecting a different value ID updates that record without deleting the previous server record', async () => {
+    const previous = { id: 'old', value: 1 };
+    const next = { id: 'new', value: 2 };
+    const server = new Map<string, any>([
+        ['old', previous],
+        ['new', { id: 'new', value: 0 }],
+    ]);
+    const created: any[] = [];
+    const updated: any[] = [];
+    const deleted: any[] = [];
+    const errors: string[] = [];
+    const obs: any = observable(
+        syncedCrud<any, any, 'value'>({
+            as: 'value',
+            get: async () => clone(previous),
+            create: async (input) => {
+                created.push(clone(input));
+                server.set(input.id, clone(input));
+                return input;
+            },
+            update: async (input) => {
+                updated.push(clone(input));
+                server.set(input.id, clone(input));
+                return input;
+            },
+            delete: async (input) => {
+                deleted.push(clone(input));
+                server.delete(input.id);
+            },
+            onError: (error) => errors.push(error.message),
+        }),
+    );
+    obs.get();
+    const state = syncState(obs);
+    await when(state.isLoaded);
+    obs.set(next);
+    await releaseTick();
+    expect(created).toEqual([]);
+    expect(updated).toEqual([next]);
+    expect(deleted).toEqual([]);
+    expect(server).toEqual(
+        new Map([
+            ['old', previous],
+            ['new', next],
+        ]),
+    );
+    expect(obs.peek()).toEqual(next);
+    expect(errors).toEqual([]);
+    expect(state.getPendingChanges()).toEqual({});
+    expect(state.numPendingSets.peek()).toBe(0);
+    expect(state.error.peek()).toBeUndefined();
+});
+
+describe('literal CRUD Map normalization fields', () => {
+    for (const existing of [false, true])
+        test(`saved method and prototype fields remain row data existing=${existing}`, async () => {
+            const fields = (value: number) =>
+                JSON.parse(
+                    `{"__proto__":{"literalCrudField":${value}},"constructor":{"saved":${value}},"get":{"saved":${value}},"set":{"saved":${value}},"peek":{"saved":${value}},"assign":{"saved":${value}}}`,
+                );
+            const old = Object.getOwnPropertyDescriptor(Object.prototype, 'literalCrudField');
+            const response = { id: 'r', value: 1, ...fields(2) };
+            const obs: any = observable(
+                syncedCrud<any, any, 'Map'>({
+                    as: 'Map',
+                    list: () => [{ id: 'r', value: 0, ...(existing ? fields(0) : {}) }],
+                    update: async () => response,
+                }),
+            );
+            try {
+                obs.get();
+                await releaseTick();
+                obs.set(new Map([['r', { id: 'r', value: 1, ...(existing ? fields(0) : {}) }]]));
+                await releaseTick();
+                expect(Object.getOwnPropertyDescriptor(Object.prototype, 'literalCrudField')).toEqual(old);
+                const row = obs.peek().get('r');
+                expect(Object.getPrototypeOf(row)).toBe(Object.prototype);
+                for (const key of Object.keys(fields(2)))
+                    expect(Object.getOwnPropertyDescriptor(row, key)!.value).toEqual(response[key]);
+                expect(response).toEqual({ id: 'r', value: 1, ...fields(2) });
+                expect(syncState(obs).error.peek()).toBeUndefined();
+                expect(syncState(obs).getPendingChanges()).toEqual({});
+                expect(syncState(obs).numPendingSets.peek()).toBe(0);
+            } finally {
+                if (old) Object.defineProperty(Object.prototype, 'literalCrudField', old);
+                else delete (Object.prototype as any).literalCrudField;
+            }
+        });
+});
+
+describe('typed Map saved normalization', () => {
+    for (const callback of [false, true])
+        for (const mode of ['single', 'both', 'mixed'] as const)
+            test(`numeric and string IDs keep their own normalization mode=${mode} callback=${callback}`, async () => {
+                const rows = [
+                    { id: 1, value: 0, server: 'old-number' },
+                    { id: '1', value: 0, server: 'old-string' },
+                ];
+                const calls: (number | string)[] = [];
+                const errors: Error[] = [];
+                const obs: any = observable(
+                    syncedCrud<any, any, 'Map'>({
+                        as: 'Map',
+                        list: () => rows,
+                        update: async (input) => {
+                            calls.push(input.id);
+                            return mode === 'mixed' && typeof input.id === 'string'
+                                ? undefined
+                                : {
+                                      ...input,
+                                      server: typeof input.id === 'number' ? 'normalized-number' : 'normalized-string',
+                                  };
+                        },
+                        onSaved: callback ? ({ saved }) => saved : undefined,
+                        onError: (error) => errors.push(error),
+                    }),
+                );
+                obs.get();
+                await releaseTick();
+                obs.set(
+                    new Map(
+                        rows.map((row) => [
+                            row.id,
+                            { ...row, value: mode === 'single' && typeof row.id === 'string' ? 0 : 1 },
+                        ]),
+                    ),
+                );
+                await releaseTick();
+                expect(calls).toEqual(mode === 'single' ? [1] : [1, '1']);
+                expect(obs.peek().get(1)).toEqual({ id: 1, value: 1, server: 'normalized-number' });
+                expect(obs.peek().get('1')).toEqual({
+                    id: '1',
+                    value: mode === 'single' ? 0 : 1,
+                    server: mode === 'both' ? 'normalized-string' : 'old-string',
+                });
+                expect(syncState(obs).getPendingChanges()).toEqual({});
+                expect(syncState(obs).numPendingSets.peek()).toBe(0);
+                expect(errors).toEqual([]);
+            });
+    test('a numeric normalization does not resurrect its deleted string sibling', async () => {
+        const requests: { resolve: (value: any) => void; input: any }[] = [];
+        let releaseDelete!: () => void;
+        const obs: any = observable(
+            syncedCrud<any, any, 'Map'>({
+                as: 'Map',
+                list: () => [
+                    { id: 1, value: 0 },
+                    { id: '1', value: 0 },
+                ],
+                update: (input) => new Promise((resolve) => requests.push({ input: clone(input), resolve })),
+                delete: () =>
+                    new Promise<void>((resolve) => {
+                        releaseDelete = resolve;
+                    }),
+            }),
+        );
+        obs.get();
+        await releaseTick();
+        obs.set(
+            new Map<any, any>([
+                [1, { id: 1, value: 1 }],
+                ['1', { id: '1', value: 0 }],
+            ]),
+        );
+        await releaseTick();
+        expect(requests).toHaveLength(1);
+        obs.set(new Map([[1, { id: 1, value: 1 }]]));
+        await releaseTick();
+        expect(typeof releaseDelete).toBe('function');
+        requests[0].resolve({ ...requests[0].input, server: 'normalized-number' });
+        await releaseTick();
+        expect(obs.peek().get(1)).toEqual({ id: 1, value: 1, server: 'normalized-number' });
+        expect(obs.peek().has('1')).toBe(false);
+        releaseDelete();
+        await releaseTick();
+        expect(obs.peek().has('1')).toBe(false);
+        expect(syncState(obs).getPendingChanges()).toEqual({});
+        expect(syncState(obs).numPendingSets.peek()).toBe(0);
+    });
+});
+
+describe('Map metadata names are CRUD row IDs', () => {
+    test('normalization for the size row preserves its ID and local value', async () => {
+        const obs: any = observable(
+            syncedCrud<any, any, 'Map'>({
+                as: 'Map',
+                list: () => [{ id: 'size', value: 0 }],
+                update: async (input) => ({ ...input, server: 'saved' }),
+            }),
+        );
+        obs.get();
+        await releaseTick();
+        obs.set(new Map([['size', { id: 'size', value: 1 }]]));
+        await releaseTick();
+        expect(obs.peek().get('size')).toEqual({ id: 'size', value: 1, server: 'saved' });
+        expect(obs.get('size').peek()).toEqual({ id: 'size', value: 1, server: 'saved' });
+        expect(obs.size).toBe(1);
+        expect(syncState(obs).getPendingChanges()).toEqual({});
+        expect(syncState(obs).numPendingSets.peek()).toBe(0);
+        expect(syncState(obs).error.peek()).toBeUndefined();
+    });
+    test('Map method names keep independent saved rows', async () => {
+        const ids = ['get', 'set', 'peek', 'constructor', '__proto__'];
+        const rows = ids.map((id) => ({ id, value: 0 }));
+        const obs: any = observable(
+            syncedCrud<any, any, 'Map'>({
+                as: 'Map',
+                list: () => rows,
+                update: async (input) => ({ ...input, server: input.id }),
+            }),
+        );
+        obs.get();
+        await releaseTick();
+        obs.set(new Map(rows.map((row) => [row.id, { ...row, value: 1 }])));
+        await releaseTick();
+        for (const id of ids) expect(obs.peek().get(id)).toEqual({ id, value: 1, server: id });
+        expect(obs.peek().size).toBe(ids.length);
+        expect(syncState(obs).getPendingChanges()).toEqual({});
+        expect(syncState(obs).numPendingSets.peek()).toBe(0);
+        expect(syncState(obs).error.peek()).toBeUndefined();
+    });
+});
+
+describe('CRUD retry batch settlement', () => {
+    test('superseding a retry releases a saved sibling while retaining the unsaved successor', async () => {
+        const failure = new Error('first A failed');
+        const errors: Error[] = [];
+        const sources: string[] = [];
+        const calls: any[] = [];
+        let finish!: (value: any) => void;
+        const obs: any = observable(
+            syncedCrud<any>({
+                list: () => [
+                    { id: 'a', value: 0, server: 'old' },
+                    { id: 'b', value: 0, server: 'old' },
+                ],
+                retry: { delay: 60, times: 3, backoff: 'constant' },
+                update: async (input) => {
+                    calls.push(clone(input));
+                    if (input.id === 'a') {
+                        if (input.value === 1) throw failure;
+                        return new Promise((resolve) => {
+                            finish = resolve;
+                        });
+                    }
+                    return { ...input, server: 'saved' };
+                },
+                onSaved: ({ saved }) => saved,
+                onError: (error, params) => {
+                    errors.push(error);
+                    sources.push(params.source);
+                },
+            }),
+        );
+        obs.get();
+        await promiseTimeout(0);
+        batch(() => {
+            obs.a.value.set(1);
+            obs.b.value.set(1);
+        });
+        await promiseTimeout(10);
+        obs.a.value.set(2);
+        await promiseTimeout(10);
+        expect(obs.peek().b).toEqual({ id: 'b', value: 1, server: 'saved' });
+        expect(obs.peek().a.value).toBe(2);
+        expect(syncState(obs).getPendingChanges()?.['a/value']?.v).toBe(2);
+        expect(syncState(obs).numPendingSets.peek()).toBe(1);
+        expect(errors).toEqual([failure]);
+        expect(sources).toEqual(['set']);
+        finish({ id: 'a', value: 2, server: 'saved' });
+        await promiseTimeout(0);
+        await promiseTimeout(0);
+        expect(calls.filter((value) => value.id === 'a').map((value) => value.value)).toEqual([1, 2]);
+        expect(obs.peek().a).toEqual({ id: 'a', value: 2, server: 'saved' });
+        expect(syncState(obs).getPendingChanges()).toEqual({});
+        expect(syncState(obs).numPendingSets.peek()).toBe(0);
+        expect(syncState(obs).isSetting.peek()).toBe(false);
+        expect(syncState(obs).error.peek()).toBe(failure);
+    });
+});
+
+describe('CRUD retry callback failure', () => {
+    test('a synchronous throw on a later retry settles through the save error owner', async () => {
+        const failure = new Error('retry callback threw');
+        const errors: Error[] = [];
+        const sources: string[] = [];
+        let attempts = 0;
+        const obs: any = observable(
+            syncedCrud<any>({
+                list: () => [{ id: 'a', value: 0 }],
+                retry: { delay: 5, times: 2, backoff: 'constant' },
+                update: () => {
+                    attempts++;
+                    if (attempts === 1) return Promise.reject(failure);
+                    throw failure;
+                },
+                onError: (error, params) => {
+                    errors.push(error);
+                    sources.push(params.source);
+                },
+            }),
+        );
+        obs.get();
+        await promiseTimeout(0);
+        obs.a.value.set(1);
+        await promiseTimeout(30);
+        expect(attempts).toBe(2);
+        expect(errors).toEqual([failure]);
+        expect(sources).toEqual(['set']);
+        expect(obs.peek().a.value).toBe(1);
+        expect(syncState(obs).getPendingChanges()?.['a/value']?.v).toBe(1);
+        expect(syncState(obs).numPendingSets.peek()).toBe(0);
+        expect(syncState(obs).isSetting.peek()).toBe(false);
+    });
+});
+
+describe('CRUD retry identity', () => {
+    test('numeric and string Map IDs retry independently', async () => {
+        const calls: (number | string)[] = [];
+        const errors: Error[] = [];
+        let numericAttempts = 0;
+        const obs: any = observable(
+            syncedCrud<any, any, 'Map'>({
+                as: 'Map',
+                list: () => [
+                    { id: 1, value: 0 },
+                    { id: '1', value: 0 },
+                ],
+                retry: { delay: 40, times: 3, backoff: 'constant' },
+                update: async (input) => {
+                    calls.push(input.id);
+                    if (typeof input.id === 'number' && ++numericAttempts === 1) throw new Error('numeric retry');
+                },
+                onError: (error) => errors.push(error),
+            }),
+        );
+        obs.get();
+        await promiseTimeout(0);
+        obs.get(1).value.set(1);
+        await promiseTimeout(10);
+        obs.get('1').value.set(1);
+        await promiseTimeout(90);
+        expect(calls).toEqual([1, '1', 1]);
+        expect(errors).toEqual([]);
+        expect(obs.peek().get(1)).toEqual({ id: 1, value: 1 });
+        expect(obs.peek().get('1')).toEqual({ id: '1', value: 1 });
+        expect(syncState(obs).getPendingChanges()).toEqual({});
+        expect(syncState(obs).numPendingSets.peek()).toBe(0);
+        expect(syncState(obs).isSetting.peek()).toBe(false);
+    });
+    test('distinct CRUD owners do not cancel each other for the same ID', async () => {
+        const calls: string[] = [];
+        const errors: Error[] = [];
+        let attempts = 0;
+        const make = (owner: string) =>
+            observable(
+                syncedCrud<any>({
+                    list: () => [{ id: 'a', value: 0 }],
+                    retry: { delay: 40, times: 3, backoff: 'constant' },
+                    update: async () => {
+                        calls.push(owner);
+                        if (owner === 'first' && ++attempts === 1) throw new Error('first owner retry');
+                    },
+                    onError: (error) => errors.push(error),
+                }),
+            );
+        const first: any = make('first');
+        const second: any = make('second');
+        first.get();
+        second.get();
+        await promiseTimeout(0);
+        first.a.value.set(1);
+        await promiseTimeout(10);
+        second.a.value.set(2);
+        await promiseTimeout(90);
+        expect(calls).toEqual(['first', 'second', 'first']);
+        expect(errors).toEqual([]);
+        expect(first.peek().a.value).toBe(1);
+        expect(second.peek().a.value).toBe(2);
+        for (const value of [first, second]) {
+            expect(syncState(value).getPendingChanges()).toEqual({});
+            expect(syncState(value).numPendingSets.peek()).toBe(0);
+            expect(syncState(value).isSetting.peek()).toBe(false);
+        }
+    });
+});
+
+describe('CRUD retry generation ownership', () => {
+    test('an older success cannot detach a newer queued retry from its successor', async () => {
+        const failure = new Error('third value failed');
+        const calls: number[] = [];
+        const errors: Error[] = [];
+        let server = 0;
+        let finishFirst!: () => void;
+        const obs: any = observable(
+            syncedCrud<any>({
+                list: () => [{ id: 'a', value: server }],
+                retry: { delay: 60, times: 3, backoff: 'constant' },
+                update: (input) => {
+                    const value = input.value;
+                    calls.push(value);
+                    if (value === 1)
+                        return new Promise<void>((resolve) => {
+                            finishFirst = () => {
+                                server = value;
+                                resolve();
+                            };
+                        });
+                    if (value === 3 && calls.filter((v) => v === 3).length === 1) return Promise.reject(failure);
+                    server = value;
+                    return Promise.resolve();
+                },
+                onError: (error) => errors.push(error),
+            }),
+        );
+        obs.get();
+        await promiseTimeout(0);
+        obs.a.value.set(1);
+        await promiseTimeout(0);
+        obs.a.value.set(2);
+        await promiseTimeout(0);
+        await promiseTimeout(0);
+        obs.a.value.set(3);
+        await promiseTimeout(10);
+        finishFirst();
+        await promiseTimeout(0);
+        await promiseTimeout(0);
+        obs.a.value.set(4);
+        await promiseTimeout(90);
+        expect(calls).toEqual([1, 2, 3, 4]);
+        expect(errors).toEqual([failure]);
+        expect(server).toBe(4);
+        expect(obs.peek().a.value).toBe(4);
+        expect(syncState(obs).getPendingChanges()).toEqual({});
+        expect(syncState(obs).numPendingSets.peek()).toBe(0);
+        expect(syncState(obs).isSetting.peek()).toBe(false);
+    });
+});
+
+describe('CRUD read retry ownership', () => {
+    test('owners sharing a list function keep independent initial read retries', async () => {
+        let calls = 0;
+        const errors: Error[] = [];
+        const list = async () => {
+            if (++calls === 1) throw new Error('first owner read retry');
+            return [{ id: 'a', value: 1 }];
+        };
+        const make = () =>
+            observable(
+                syncedCrud<any>({
+                    list,
+                    retry: { delay: 40, times: 3, backoff: 'constant' },
+                    onError: (error) => errors.push(error),
+                }),
+            );
+        const first = make();
+        first.get();
+        await promiseTimeout(10);
+        expect(calls).toBe(1);
+        expect(syncState(first).numPendingGets.peek()).toBe(1);
+        const second = make();
+        second.get();
+        await promiseTimeout(0);
+        expect(calls).toBe(2);
+        await promiseTimeout(90);
+        expect(calls).toBe(3);
+        expect(errors).toEqual([]);
+        for (const obs of [first, second]) {
+            expect(obs.peek()).toEqual({ a: { id: 'a', value: 1 } });
+            expect(syncState(obs).numPendingGets.peek()).toBe(0);
+            expect(syncState(obs).isGetting.peek()).toBe(false);
+            expect(syncState(obs).isLoaded.peek()).toBe(true);
+        }
+    });
+});
+
+describe('CRUD retry invocation ownership within one shared record', () => {
+    test.each(['update', 'delete'] as const)('older success preserves a failing successor until %s', async (next) => {
+        const failure = new Error('second value failed');
+        const calls: number[] = [];
+        const writes: (number | undefined)[] = [];
+        const errors: Error[] = [];
+        let server: number | undefined = 0;
+        let secondAttempts = 0;
+        let finishFirst: (() => void) | undefined;
+        let firstRequested!: () => void;
+        let secondRequested!: () => void;
+        let thirdRequested!: () => void;
+        const firstSent = new Promise<void>((resolve) => (firstRequested = resolve));
+        const secondSent = new Promise<void>((resolve) => (secondRequested = resolve));
+        const thirdSent = new Promise<void>((resolve) => (thirdRequested = resolve));
+        const obs: any = observable(
+            syncedCrud<any>({
+                list: () => (server === undefined ? [] : [{ id: 'a', value: server }]),
+                retry: { delay: 100, times: 3, backoff: 'constant' },
+                update: (input) => {
+                    const value = input.value;
+                    calls.push(value);
+                    if (value === 1)
+                        return new Promise<void>((resolve) => {
+                            finishFirst = () => {
+                                server = value;
+                                writes.push(value);
+                                resolve();
+                            };
+                            firstRequested();
+                        });
+                    if (value === 2 && ++secondAttempts === 1) {
+                        secondRequested();
+                        return Promise.reject(failure);
+                    }
+                    server = value;
+                    writes.push(value);
+                    if (value === 3) thirdRequested();
+                    return Promise.resolve();
+                },
+                delete: async () => {
+                    server = undefined;
+                    writes.push(undefined);
+                    thirdRequested();
+                },
+                onError: (error) => errors.push(error),
+            }),
+        );
+        const dispose = obs.onChange(() => {});
+        try {
+            obs.get();
+            const state = syncState(obs);
+            await when(state.isLoaded);
+            obs.a.value.set(1);
+            await firstSent;
+            obs.a.value.set(2);
+            await secondSent;
+            await promiseTimeout(0);
+            finishFirst!();
+            finishFirst = undefined;
+            await promiseTimeout(0);
+            if (next === 'update') obs.a.value.set(3);
+            else obs.a.delete();
+            await thirdSent;
+            await promiseTimeout(150);
+            expect({ calls, writes, server }).toEqual(
+                next === 'update'
+                    ? { calls: [1, 2, 3], writes: [1, 3], server: 3 }
+                    : { calls: [1, 2], writes: [1, undefined], server: undefined },
+            );
+            expect(errors).toEqual(next === 'update' ? [failure] : []);
+            expect(obs.peek()).toEqual(next === 'update' ? { a: { id: 'a', value: 3 } } : {});
+            expect(state.getPendingChanges()).toEqual({});
+            expect(state.numPendingSets.peek()).toBe(0);
+            expect(state.isSetting.peek()).toBe(false);
+        } finally {
+            finishFirst?.();
+            dispose();
+        }
     });
 });

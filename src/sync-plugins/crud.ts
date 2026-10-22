@@ -5,13 +5,11 @@ import {
     RetryOptions,
     UpdateFnParams,
     WaitForSetFnParams,
-    applyChanges,
     getNodeValue,
     internal,
     isArray,
     isNullOrUndefined,
     isPromise,
-    setAtPath,
     symbolDelete,
 } from '@legendapp/state';
 import {
@@ -26,7 +24,7 @@ import {
     synced,
 } from '@legendapp/state/sync';
 
-const { clone, getKeys, setNodeValue, getChildNode } = internal;
+const { clone, getKeys, setNodeValue, getChildNode, getNode } = internal;
 const { waitForSet, runWithRetry } = internalSync;
 
 export type CrudAsOption = 'Map' | 'object' | 'value' | 'array';
@@ -160,12 +158,12 @@ function computeLastSync(
     return newLastSync;
 }
 
-function arrayToRecord<T>(arr: T[], keyField: keyof T): Record<string, T> {
+function arrayToRecord<T>(arr: T[], keyField: keyof T, getKey?: (value: T, index: number) => any): Record<string, T> {
     const record: Record<string, T> = {};
     if (arr?.length) {
         for (let i = 0; i < arr.length; i++) {
             const v = arr[i];
-            const key = v[keyField] as string;
+            const key = (getKey ? getKey(v, i) : v[keyField]) as string;
             if (isNullOrUndefined(key)) {
                 warnMissingId(v);
             } else {
@@ -179,11 +177,7 @@ function arrayToRecord<T>(arr: T[], keyField: keyof T): Record<string, T> {
 type ItemKey = string | number;
 type RetryAction = 'create' | 'update' | 'delete';
 
-type QueuedRetry = {
-    value: any;
-    fullValue: any;
-    cancelled?: boolean;
-};
+type QueuedRetry = RetryValue & { cancelled?: boolean; owner?: SyncedSetParams<any> };
 
 type PendingCreate = {
     hasFailed: boolean;
@@ -194,6 +188,7 @@ type PendingCreate = {
 type RetryValue = {
     value: any;
     fullValue: any;
+    localValue: any;
 };
 
 type QueuedRetries = Record<RetryAction, Map<ItemKey, QueuedRetry>>;
@@ -212,17 +207,20 @@ function queueRetryValue(
     itemKey: ItemKey,
     itemValue: any,
     itemValueFull: any,
+    localValue: any,
 ) {
     const queuedRetry = queuedRetries.get(itemKey);
     if (queuedRetry) {
         queuedRetry.value = mergeQueuedRetryValue(queuedRetry.value, itemValue);
         queuedRetry.fullValue = mergeQueuedRetryValue(queuedRetry.fullValue, itemValueFull);
+        queuedRetry.localValue = mergeQueuedRetryValue(queuedRetry.localValue, localValue);
         return queuedRetry;
     }
 
     const nextQueuedRetry: QueuedRetry = {
         value: itemValue,
         fullValue: itemValueFull,
+        localValue,
     };
     queuedRetries.set(itemKey, nextQueuedRetry);
     return nextQueuedRetry;
@@ -242,12 +240,21 @@ function retrySet(
     action: RetryAction,
     itemKey: ItemKey,
     itemValue: any,
-    change: ChangeWithPathStr,
+    changes: ChangeWithPathStr[],
     queuedRetries: QueuedRetries,
     itemValueFull: any,
     actionFn: (value: any, params: SyncedSetParams<any>) => Promise<any>,
-    saveResult: (itemKey: ItemKey, itemValue: any, result: any, isCreate: boolean, change: ChangeWithPathStr) => void,
+    saveResult: (
+        itemKey: ItemKey,
+        itemValue: any,
+        result: any,
+        isCreate: boolean,
+        changes: ChangeWithPathStr[],
+        localValue: any,
+    ) => void,
     options?: {
+        localValue?: any;
+        snapshotRemote?: boolean;
         onAttemptFailure?: () => void;
         refreshValue?: () => false | RetryValue | Promise<false | RetryValue | undefined> | undefined;
     },
@@ -260,41 +267,69 @@ function retrySet(
         cancelQueuedRetry(queuedRetries.delete, itemKey);
     }
 
-    const queuedRetry = queueRetryValue(queuedRetries[action], itemKey, itemValue, itemValueFull);
+    const queuedRetry = queueRetryValue(
+        queuedRetries[action],
+        itemKey,
+        itemValue,
+        itemValueFull,
+        options?.localValue ?? itemValueFull,
+    );
 
-    const paramsWithChanges: SyncedSetParams<any> = { ...params, changes: [change] };
+    const paramsWithChanges: SyncedSetParams<any> = { ...params, changes };
+    queuedRetry.owner = paramsWithChanges;
+    const cancelledResult = (result?: any) => {
+        params.update({ value: {}, failedChanges: changes });
+        return Promise.resolve(result);
+    };
 
     const runAttempt = () => {
-        if (queuedRetry.cancelled) {
-            return Promise.resolve(undefined as any);
+        if (queuedRetry.cancelled || queuedRetry.owner !== paramsWithChanges) {
+            return cancelledResult();
         }
 
         const refreshed = options?.refreshValue?.();
         const runWithRefreshedValue = (retryValue?: false | RetryValue) => {
+            if (queuedRetry.owner !== paramsWithChanges) return cancelledResult();
             if (retryValue === false || queuedRetry.cancelled) {
                 queuedRetry.cancelled = true;
-                queuedRetries[action]!.delete(itemKey);
-                return Promise.resolve(undefined as any);
+                if (queuedRetries[action]!.get(itemKey) === queuedRetry) queuedRetries[action]!.delete(itemKey);
+                return cancelledResult();
             }
 
             if (retryValue) {
                 queuedRetry.value = retryValue.value;
                 queuedRetry.fullValue = retryValue.fullValue;
+                queuedRetry.localValue = retryValue.localValue;
             }
 
             const attemptValue = queuedRetry.value;
-            const attemptFullValue = clone(queuedRetry.fullValue);
+            // Keep the local comparison domain separate from transforms and transport mutations.
+            const attemptLocalValue = clone(queuedRetry.localValue);
+            const attemptFullValue =
+                queuedRetry.localValue === queuedRetry.fullValue
+                    ? attemptLocalValue
+                    : options?.snapshotRemote
+                      ? clone(queuedRetry.fullValue)
+                      : queuedRetry.fullValue;
             return actionFn!(attemptValue, paramsWithChanges)
                 .catch((error) => {
                     options?.onAttemptFailure?.();
                     throw error;
                 })
                 .then(async (result) => {
-                    queuedRetries[action]!.delete(itemKey);
+                    if (queuedRetries[action]!.get(itemKey) === queuedRetry && queuedRetry.owner === paramsWithChanges)
+                        queuedRetries[action]!.delete(itemKey);
                     if (queuedRetry.cancelled) {
-                        return result;
+                        return cancelledResult(result);
                     }
-                    await saveResult(itemKey, attemptFullValue, result as any, true, change);
+                    await saveResult(
+                        itemKey,
+                        attemptFullValue,
+                        result as any,
+                        action === 'create',
+                        changes,
+                        attemptLocalValue,
+                    );
                     return result;
                 });
         };
@@ -302,8 +337,8 @@ function retrySet(
         return isPromise(refreshed) ? refreshed.then(runWithRefreshedValue) : runWithRefreshedValue(refreshed);
     };
 
-    return runWithRetry(paramsWithChanges, retry, action + '_' + itemKey, runAttempt).catch((error) => {
-        params.update({ value: {}, failedChanges: [change] });
+    return runWithRetry(paramsWithChanges, retry, queuedRetry, runAttempt).catch((error) => {
+        params.update({ value: {}, failedChanges: changes });
         throw error;
     });
 }
@@ -375,8 +410,9 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
             cancelQueuedRetry(queuedRetries.create, id);
         }
     };
-    const cancelFailedPendingCreate = (id: ItemKey | undefined | null) => {
-        if (!isNullOrUndefined(id) && pendingCreates.get(id)?.hasFailed) {
+    const cancelPendingCreate = (id: ItemKey | undefined | null) => {
+        const pendingCreate = !isNullOrUndefined(id) ? pendingCreates.get(id) : undefined;
+        if (pendingCreate && (pendingCreate.hasFailed || !pendingCreate.promise)) {
             clearPendingCreate(id);
             return true;
         }
@@ -468,7 +504,7 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
     const get: undefined | ((params: SyncedGetParams<TRemote>) => TLocal | Promise<TLocal>) =
         getFn || listFn
             ? (getParams: SyncedGetParams<TRemote>) => {
-                  return runWithRetry(getParams, retry, getFn || listFn, () => {
+                  return runWithRetry(getParams, retry, queuedRetries, () => {
                       const { updateLastSync, lastSync, value } = getParams;
                       if (listFn) {
                           const isLastSyncMode = changesSince === 'last-sync';
@@ -553,12 +589,22 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                   const updates = new Map<ItemKey, object>();
                   const updateFullValues = new Map<ItemKey, object>();
                   const deletes = new Set<TRemote>();
-                  const changesById = new Map<ItemKey, ChangeWithPathStr>();
+                  const changesById = new Map<ItemKey, ChangeWithPathStr[]>();
+                  const addChange = (id: ItemKey, change: ChangeWithPathStr) => {
+                      const changes = changesById.get(id);
+                      if (changes) {
+                          if (!changes.includes(change)) changes.push(change);
+                      } else {
+                          changesById.set(id, [change]);
+                      }
+                  };
 
-                  const getUpdateValue = (itemValue: object, prev: object) => {
+                  const getUpdateValue = (itemValue: object, prev: object, changedKey?: string) => {
                       return updatePartial
                           ? Object.assign(
-                                diffObjects(prev, itemValue, /*deep*/ true),
+                                changedKey === undefined
+                                    ? diffObjects(prev, itemValue, /*deep*/ true)
+                                    : { [changedKey]: (itemValue as any)[changedKey] },
                                 !isNullOrUndefined((itemValue as any)[fieldId])
                                     ? { [fieldId]: (itemValue as any)[fieldId] }
                                     : {},
@@ -569,7 +615,7 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                   const getCurrentValueAtKey = (itemKey: ItemKey) => {
                       const currentPeeked = getNodeValue(node);
                       if (asType === 'value') {
-                          return currentPeeked;
+                          return currentPeeked?.[fieldId] === itemKey ? currentPeeked : undefined;
                       }
                       if (asType === 'array') {
                           return isArray(currentPeeked)
@@ -596,22 +642,47 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                           existingPendingCreate.change = change;
                       }
                       const pendingCreate = beginPendingCreate(id, change);
-                      changesById.set(id, pendingCreate.change!);
+                      addChange(id, pendingCreate.change!);
+                      addChange(id, change);
                       creates.set(id, itemValue);
                   };
 
+                  const valueNeedsCreate =
+                      asType === 'value' &&
+                      (isNullOrUndefined(value?.[fieldId]) ||
+                          changes.some(
+                              (change) =>
+                                  change.path.length === 1 &&
+                                  change.path[0] === fieldId &&
+                                  isNullOrUndefined(change.prevAtPath),
+                          ));
                   changes.forEach((change) => {
-                      const { path, prevAtPath, valueAtPath, pathTypes } = change;
+                      const { path, prevAtPath, valueAtPath } = change;
                       if (asType === 'value') {
+                          const previousId = path.length === 0 ? prevAtPath?.[fieldId] : undefined;
+                          let isCreate = fieldCreatedAt
+                              ? !value?.[fieldCreatedAt!]
+                              : path.length === 0
+                                ? !prevAtPath
+                                : valueNeedsCreate || (!updateFn && !prevAtPath);
+                          if (
+                              !isNullOrUndefined(previousId) &&
+                              isNullOrUndefined(valueAtPath) &&
+                              !queuedRetries.delete.has(previousId) &&
+                              !cancelPendingCreate(previousId)
+                          ) {
+                              deletes.add(prevAtPath);
+                              addChange(previousId, change);
+                          }
+                          if (path.length === 0 && isNullOrUndefined(valueAtPath)) return;
                           if (value) {
-                              let isCreate = fieldCreatedAt ? !value[fieldCreatedAt!] : !prevAtPath;
                               if (isNullOrUndefined(value[fieldId]) && generateId) {
                                   ensureId(value, fieldId, generateId, node);
                               }
                               const id = value[fieldId];
                               if (!isNullOrUndefined(id)) {
-                                  changesById.set(id, change);
-                                  if (isFailedCreateReadyToRetry(id)) {
+                                  addChange(id, change);
+                                  if (isFailedCreateReadyToRetry(id) || creates.has(id)) {
                                       isCreate = true;
                                   } else if (pendingCreates.has(id)) {
                                       isCreate = false;
@@ -626,22 +697,17 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                                       if (valueAtPath) {
                                           updates.set(id, getUpdateValue(valueAtPath, prevAtPath));
                                           updateFullValues.set(id, valueAtPath);
-                                      } else if (prevAtPath) {
-                                          deletes.add(prevAtPath);
                                       }
-                                  } else if (!updates.has(id)) {
-                                      const previous = applyChanges(clone(value), changes, /*applyPrevious*/ true);
-                                      updates.set(id, getUpdateValue(value, previous));
+                                  } else {
+                                      const changed = getUpdateValue(value, value, path[0]);
+                                      updates.set(
+                                          id,
+                                          updates.has(id) ? Object.assign(updates.get(id)!, changed) : changed,
+                                      );
                                       updateFullValues.set(id, value);
                                   }
                               } else {
                                   console.error('[legend-state]: added synced item without an id');
-                              }
-                          } else if (path.length === 0) {
-                              const id = prevAtPath?.[fieldId];
-                              if (!cancelFailedPendingCreate(id)) {
-                                  deletes.add(prevAtPath);
-                                  changesById.set(prevAtPath[fieldId], change);
                               }
                           }
                       } else {
@@ -650,36 +716,109 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                           if (path.length === 0) {
                               // Generate ids before converting to object
                               if (asArray && generateId) {
-                                  for (let i = 0; i < valueAtPath.length; i++) {
-                                      const value = valueAtPath[i];
-                                      if (value && !value[fieldId]) {
-                                          ensureId(value, fieldId, generateId, getChildNode(node, i + ''));
+                                  for (let i = 0; i < value.length; i++) {
+                                      const item = value[i];
+                                      if (item && !item[fieldId]) {
+                                          ensureId(item, fieldId, generateId, getChildNode(node, i + ''));
                                       }
                                   }
                               }
 
-                              const valueAsObject = asArray ? arrayToRecord(valueAtPath, fieldId) : valueAtPath;
-                              const prevAsObject = asArray ? arrayToRecord(prevAtPath, fieldId) : prevAtPath;
+                              // Preserve record key order and duplicate handling when iterating arrays directly.
+                              let alignedArrays =
+                                  asArray &&
+                                  isArray(value) &&
+                                  isArray(prevAtPath) &&
+                                  value.length === prevAtPath.length;
+                              let alignedPrefix = 0;
+                              let lastPreviousIndex = -1;
+                              let lastPreviousId: any;
+                              if (alignedArrays) {
+                                  let stringIds: Set<string> | undefined;
+                                  let previousIndex = -1;
+                                  let sawStringKey = false;
+                                  for (let i = 0; i < value.length; i++) {
+                                      const id = value[i]?.[fieldId];
+                                      const previousId = prevAtPath[i]?.[fieldId];
+                                      lastPreviousIndex = i;
+                                      lastPreviousId = previousId;
+                                      if (
+                                          (typeof id !== 'string' && typeof id !== 'number') ||
+                                          (typeof previousId !== 'string' && typeof previousId !== 'number')
+                                      ) {
+                                          alignedArrays = false;
+                                          break;
+                                      }
+                                      const key = String(id);
+                                      if (key === '__proto__' || key !== String(previousId)) {
+                                          alignedArrays = false;
+                                          break;
+                                      }
+                                      const index = Number(key);
+                                      const isIndex =
+                                          Number.isInteger(index) &&
+                                          index >= 0 &&
+                                          index < 4294967295 &&
+                                          String(index) === key;
+                                      if (isIndex && (sawStringKey || index <= previousIndex)) {
+                                          alignedArrays = false;
+                                          break;
+                                      }
+                                      if (isIndex) previousIndex = index;
+                                      else {
+                                          if (stringIds?.has(key)) {
+                                              alignedArrays = false;
+                                              break;
+                                          }
+                                          (stringIds ||= new Set()).add(key);
+                                          sawStringKey = true;
+                                      }
+                                      alignedPrefix++;
+                                  }
+                              }
+                              // Root changes must use the same isolated snapshot as child changes.
+                              const valueAsObject = asArray && !alignedArrays ? arrayToRecord(value, fieldId) : value;
+                              // Reuse validated IDs so fallback does not reread previous getters.
+                              const prevAsObject =
+                                  asArray && !alignedArrays
+                                      ? arrayToRecord(
+                                            prevAtPath,
+                                            fieldId,
+                                            lastPreviousIndex < 0
+                                                ? undefined
+                                                : (row, index) =>
+                                                      index < alignedPrefix
+                                                          ? value[index][fieldId]
+                                                          : index === lastPreviousIndex
+                                                            ? lastPreviousId
+                                                            : row[fieldId],
+                                        )
+                                      : prevAtPath;
                               // Do a deep equal of each element vs its previous element to see which have changed
-                              const keys = getKeys(valueAsObject, false, asMap, false);
-                              const keysPrev = getKeys(prevAsObject, false, asMap, false);
-                              const keysSet = new Set<number | string>(keys);
+                              const keys = alignedArrays ? undefined : getKeys(valueAsObject, false, asMap, false);
+                              const keysPrev = alignedArrays ? undefined : getKeys(prevAsObject, false, asMap, false);
                               const length = (keys || valueAsObject)?.length || 0;
-                              const lengthPrev = (keysPrev || prevAsObject)?.length || 0;
+                              const lengthPrev = alignedArrays ? 0 : (keysPrev || prevAsObject)?.length || 0;
 
                               for (let i = 0; i < lengthPrev; i++) {
-                                  const key = keysPrev[i];
-                                  if (!keysSet.has(key)) {
-                                      const prevValue = prevAsObject[key];
+                                  const key = keysPrev![i];
+                                  if (
+                                      !valueAsObject ||
+                                      (asMap
+                                          ? !valueAsObject.has(key)
+                                          : !Object.prototype.propertyIsEnumerable.call(valueAsObject, key))
+                                  ) {
+                                      const prevValue = asMap ? prevAsObject.get(key) : prevAsObject[key];
                                       const id = prevValue?.[fieldId];
-                                      if (!cancelFailedPendingCreate(id)) {
+                                      if (!cancelPendingCreate(id)) {
                                           deletes.add(prevValue);
+                                          addChange(id, change);
                                       }
                                   }
                               }
 
                               for (let i = 0; i < length; i++) {
-                                  const key = keys[i];
+                                  const key = alignedArrays ? i : keys![i];
                                   const value = asMap ? valueAsObject.get(key) : valueAsObject[key];
                                   const prev = prevAsObject
                                       ? asMap
@@ -688,7 +827,7 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                                       : undefined;
                                   if (isNullOrUndefined(value) && !isNullOrUndefined(prev)) {
                                       deletes.add(prev);
-                                      return false;
+                                      addChange(prev[fieldId], change);
                                   } else {
                                       const isDiff = !prevAsObject || !deepEqual(value, prev);
                                       const isFailedCreateRetry = isFailedCreateReadyToRetry(value?.[fieldId]);
@@ -704,23 +843,28 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                               if (!itemValue) {
                                   if (path.length === 1 && prevAtPath) {
                                       const id = prevAtPath[fieldId];
-                                      if (!cancelFailedPendingCreate(id)) {
+                                      if (!cancelPendingCreate(id)) {
                                           deletes.add(prevAtPath);
-                                          changesById.set(id, change);
+                                          addChange(id, change);
                                       }
                                   }
                               } else {
                                   if (generateId) {
                                       ensureId(itemValue, fieldId, generateId, getChildNode(node, itemKey + ''));
                                   }
-                                  const previous = setAtPath(
-                                      clone(itemValue),
-                                      path.slice(1),
-                                      pathTypes.slice(1),
-                                      prevAtPath,
-                                  );
-
-                                  itemsChanged = [[getUpdateValue(itemValue, previous), previous, itemValue]];
+                                  const previous =
+                                      path.length === 1
+                                          ? prevAtPath
+                                          : path.length === 2
+                                            ? { ...itemValue, [path[1]]: prevAtPath }
+                                            : itemValue;
+                                  itemsChanged = [
+                                      [
+                                          getUpdateValue(itemValue, previous, path.length > 1 ? path[1] : undefined),
+                                          previous,
+                                          itemValue,
+                                      ],
+                                  ];
                               }
                           }
                           itemsChanged?.forEach(([item, prev, fullValue]) => {
@@ -728,25 +872,26 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                               const isFailedCreateRetry = isFailedCreateReadyToRetry(id);
                               const isCreate =
                                   isFailedCreateRetry ||
+                                  creates.has(id) ||
                                   (!pendingCreates.has(id) &&
                                       (fieldCreatedAt
-                                          ? !item[fieldCreatedAt!] && !prev?.[fieldCreatedAt!]
+                                          ? !fullValue[fieldCreatedAt!] && !prev?.[fieldCreatedAt!]
                                           : fieldUpdatedAt
-                                            ? !item[fieldUpdatedAt] && !prev?.[fieldCreatedAt!]
+                                            ? !fullValue[fieldUpdatedAt] && !prev?.[fieldUpdatedAt]
                                             : isNullOrUndefined(prev)));
                               if (isCreate) {
                                   if (!id) {
                                       console.error('[legend-state]: added item without an id');
                                   }
                                   if (createFn) {
-                                      addCreate(id, isFailedCreateRetry ? fullValue : item, change);
+                                      addCreate(id, fullValue, change);
                                   } else {
                                       console.warn('[legend-state] missing create function');
                                   }
                               } else {
                                   if (updateFn) {
                                       const id = item[fieldId];
-                                      changesById.set(id, change);
+                                      addChange(id, change);
                                       updates.set(id, updates.has(id) ? Object.assign(updates.get(id)!, item) : item);
                                       updateFullValues.set(
                                           id,
@@ -762,100 +907,135 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                       }
                   });
 
+                  let changesToAck: Set<ChangeWithPathStr> | undefined = new Set(changes);
+                  const acknowledge = (changes: ChangeWithPathStr[]) => {
+                      if (changesToAck) changes.forEach((change) => changesToAck!.add(change));
+                      else update({ value: {}, changes });
+                  };
+                  const requestCount = creates.size + updates.size + deletes.size;
+                  const syncStateValue = onSaved ? getNodeValue(getNode(node.state!)) : undefined;
+                  const applySaved = (
+                      itemKey: ItemKey,
+                      saved: Partial<TLocal>,
+                      changes: ChangeWithPathStr[],
+                      localValue: TLocal,
+                  ) => {
+                      const currentValue = getCurrentValueAtKey(itemKey);
+                      if (isNullOrUndefined(currentValue)) {
+                          acknowledge(changes);
+                          return;
+                      }
+                      // Remove keys modified locally since this save started.
+                      Object.keys(saved).forEach((key) => {
+                          const i = (localValue as any)[key];
+                          const c = currentValue[key];
+                          if (
+                              // value is already the new value, can ignore
+                              deepEqual((saved as any)[key], c) ||
+                              // Out-of-order responses must not roll server timestamps backward.
+                              (key === fieldUpdatedAt && +new Date((saved as any)[key]) < +new Date(c)) ||
+                              // user has changed local value
+                              (key !== fieldId && key !== fieldUpdatedAt && key !== fieldCreatedAt && !deepEqual(i, c))
+                          ) {
+                              delete (saved as any)[key];
+                          }
+                      });
+
+                      if (Object.keys(saved).length === 0) {
+                          acknowledge(changes);
+                          return;
+                      }
+                      let value: any;
+                      if (asType === 'array') {
+                          const currentPeeked = getNodeValue(node);
+                          const index = (currentPeeked as any[]).findIndex((cur: any) => cur[fieldId] === itemKey);
+                          if (index < 0) {
+                              console.warn('[legend-state] Item saved that does not exist in array', saved);
+                          } else {
+                              value = { [index]: saved };
+                          }
+                      } else {
+                          value = asMap
+                              ? new Map([[itemKey, saved]])
+                              : itemKey !== 'undefined' && asType !== 'value'
+                                ? { [itemKey]: saved }
+                                : saved;
+                      }
+
+                      if (value !== undefined) {
+                          update({
+                              value,
+                              mode: 'merge',
+                              changes,
+                          });
+                      }
+                  };
+                  // Other callbacks can come from this batch or another in-flight set.
+                  let savedResults: Parameters<typeof applySaved>[] | undefined = onSaved ? [] : undefined;
                   const saveResult = async (
                       itemKey: ItemKey,
                       input: TRemote,
                       data: CrudResult<TRemote>,
                       isCreate: boolean,
-                      change: ChangeWithPathStr,
+                      changes: ChangeWithPathStr[],
+                      localValue: TLocal,
                   ) => {
-                      if (data) {
-                          let saved: Partial<TLocal> = (
-                              transform?.load ? await transform.load(data as any, 'set') : data
-                          ) as any;
-
-                          const isChild = itemKey !== 'undefined' && asType !== 'value';
-                          const currentPeeked = getNodeValue(node);
-
-                          // If this is a child then get the value from the parent
-                          // If it's an array then find the value in the array
-                          // Otherwise get the value from the object
-                          const currentValue = isChild
-                              ? ((asType === 'array' && isArray(currentPeeked)
-                                    ? currentPeeked.find((v) => v[fieldId] === itemKey)
-                                    : undefined) ??
-                                (asType === 'Map' ? currentPeeked.get(itemKey) : currentPeeked[itemKey]))
-                              : currentPeeked;
-
-                          // If this value has been deleted locally before this finished saving then ignore the result
-                          if (saved && !isNullOrUndefined(currentValue)) {
-                              if (onSaved) {
-                                  // First call onSaved the saved value before removing keys
-                                  const ret = onSaved({
-                                      saved: saved as TLocal,
-                                      input,
-                                      currentValue,
-                                      isCreate,
-                                      props,
-                                  });
-
-                                  if (ret) {
-                                      saved = ret;
-                                  }
-                              }
-
-                              // Remove keys from saved that have been modified locally since saving
-                              saved = clone(saved) as TLocal;
-                              Object.keys(saved).forEach((key) => {
-                                  const i = (input as any)[key];
-                                  const c = currentValue[key];
-                                  if (
-                                      // value is already the new value, can ignore
-                                      (saved as any)[key] === c ||
-                                      // user has changed local value
-                                      (key !== fieldId && i !== undefined && !deepEqual(i, c))
-                                  ) {
-                                      delete (saved as any)[key];
-                                  }
-                              });
-
-                              let value: any;
-                              if (asType === 'array') {
-                                  const index = (currentPeeked as any[]).findIndex(
-                                      (cur: any) => cur[fieldId] === itemKey,
-                                  );
-                                  if (index < 0) {
-                                      console.warn('[legend-state] Item saved that does not exist in array', saved);
-                                  } else {
-                                      value = { [index < 0 ? 0 : index]: saved };
-                                  }
-                              } else {
-                                  value = itemKey !== 'undefined' && asType !== 'value' ? { [itemKey]: saved } : saved;
-                              }
-
-                              if (value !== undefined) {
-                                  update({
-                                      value,
-                                      mode: 'merge',
-                                      changes: [change],
-                                  });
-                              }
+                      if (
+                          asType === 'value' &&
+                          changes.some((change) => !change.path.length && change.valueAtPath?.[fieldId] === itemKey)
+                      ) {
+                          changes = changes.map((change) =>
+                              !change.path.length && change.valueAtPath?.[fieldId] === itemKey
+                                  ? { ...change, valueAtPath: localValue }
+                                  : change,
+                          );
+                      }
+                      let saved: Partial<TLocal> | undefined = data
+                          ? ((transform?.load ? await transform.load(data as any, 'set') : data) as any)
+                          : undefined;
+                      if (saved && onSaved) {
+                          const currentValue = getCurrentValueAtKey(itemKey);
+                          if (isNullOrUndefined(currentValue)) {
+                              acknowledge(changes);
+                              return;
                           }
+                          const ret = onSaved({
+                              saved: saved as TLocal,
+                              input: input === (localValue as unknown) ? clone(input) : input,
+                              currentValue,
+                              isCreate,
+                              props,
+                          });
+                          if (ret) saved = ret;
+                      }
+                      saved = saved ? clone(saved) : undefined;
+                      if (saved && typeof saved === 'object') {
+                          if (savedResults && (requestCount > 1 || syncStateValue.numPendingSets > 1)) {
+                              savedResults.push([itemKey, saved, changes, localValue]);
+                          } else {
+                              applySaved(itemKey, saved, changes, localValue);
+                          }
+                      } else {
+                          acknowledge(changes);
                       }
                   };
 
-                  return Promise.all([
+                  return Promise.allSettled([
                       // Handle creates
                       ...Array.from(creates).map(async ([itemKey, itemValue]) => {
+                          changesById.get(itemKey)!.forEach((change) => changesToAck!.delete(change));
+                          const pendingCreate = pendingCreates.get(itemKey)!;
                           if (waitForSetParam) {
                               await waitForSet(waitForSetParam as any, changes, itemValue, { type: 'create' });
                           }
                           const createObj = (await transformOut(itemValue as any, transform?.save)) as TRemote;
-                          const pendingCreate = pendingCreates.get(itemKey) || { hasFailed: false };
-                          pendingCreates.set(itemKey, pendingCreate);
+                          if (pendingCreates.get(itemKey) !== pendingCreate) {
+                              params.update({ value: {}, failedChanges: changesById.get(itemKey)! });
+                              return;
+                          }
                           const refreshCreateValue = async () => {
                               const currentPendingCreate = pendingCreates.get(itemKey);
-                              if (!currentPendingCreate) {
+                              if (currentPendingCreate !== pendingCreate) {
                                   return false;
                               }
                               if (!currentPendingCreate.hasFailed) {
@@ -866,11 +1046,9 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                                   clearPendingCreate(itemKey);
                                   return false;
                               }
-                              const nextCreateObj = (await transformOut(
-                                  clone(currentValue),
-                                  transform?.save,
-                              )) as TRemote;
-                              return { value: nextCreateObj, fullValue: nextCreateObj };
+                              const localValue = clone(currentValue);
+                              const nextCreateObj = (await transformOut(localValue, transform?.save)) as TRemote;
+                              return { value: nextCreateObj, fullValue: nextCreateObj, localValue };
                           };
                           const createPromise = retrySet(
                               params,
@@ -884,6 +1062,8 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                               createFn!,
                               saveResult,
                               {
+                                  localValue: itemValue,
+                                  snapshotRemote: !!onSaved,
                                   onAttemptFailure: () => markPendingCreateFailed(itemKey),
                                   refreshValue: refreshCreateValue,
                               },
@@ -906,6 +1086,7 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
 
                       // Handle updates
                       ...Array.from(updates).map(async ([itemKey, itemValue]) => {
+                          changesById.get(itemKey)!.forEach((change) => changesToAck!.delete(change));
                           const pendingCreate = pendingCreates.get(itemKey);
                           if (pendingCreate?.hasFailed && pendingCreate.promise) {
                               await pendingCreate.promise;
@@ -916,10 +1097,10 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                               await waitForSet(waitForSetParam as any, changes, fullValue, { type: 'update' });
                           }
                           const changed = (await transformOut(itemValue as TLocal, transform?.save)) as TRemote;
-                          const fullValueTransformed = (await transformOut(
-                              fullValue as TLocal,
-                              transform?.save,
-                          )) as TRemote;
+                          const fullValueTransformed =
+                              itemValue === fullValue
+                                  ? changed
+                                  : ((await transformOut(fullValue as TLocal, transform?.save)) as TRemote);
                           if (Object.keys(changed).length > 0) {
                               return retrySet(
                                   params,
@@ -932,24 +1113,24 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                                   fullValueTransformed,
                                   updateFn!,
                                   saveResult,
+                                  { localValue: fullValue, snapshotRemote: !!onSaved },
                               );
                           }
+                          acknowledge(changesById.get(itemKey)!);
                       }),
 
                       // Handle deletes
                       ...Array.from(deletes)
                           .filter((val) => val !== (symbolDelete as any))
                           .map(async (valuePrevious) => {
+                              const itemKey = (valuePrevious as any)[fieldId];
+                              if (isNullOrUndefined(itemKey)) return;
+                              if (deleteFn || (fieldDeleted && updateFn)) {
+                                  changesById.get(itemKey)!.forEach((change) => changesToAck!.delete(change));
+                              }
                               if (waitForSetParam) {
                                   await waitForSet(waitForSetParam as any, changes, valuePrevious, { type: 'delete' });
                               }
-                              const itemKey = (valuePrevious as any)[fieldId];
-
-                              if (!itemKey) {
-                                  console.error('[legend-state]: deleting item without an id');
-                                  return;
-                              }
-
                               if (deleteFn) {
                                   return retrySet(
                                       params,
@@ -983,7 +1164,20 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
 
                               console.warn('[legend-state] missing delete function');
                           }),
-                  ]);
+                  ])
+                      .then((results) => {
+                          const failed = results.find((result) => result.status === 'rejected');
+                          if (failed) throw failed.reason;
+                      })
+                      .finally(() => {
+                          // Callbacks can edit other rows whose responses have already completed.
+                          const results = savedResults;
+                          savedResults = undefined;
+                          results?.forEach((result) => applySaved(...result));
+                          const acknowledged = changesToAck;
+                          changesToAck = undefined;
+                          if (acknowledged?.size) update({ value: {}, changes: Array.from(acknowledged) });
+                      });
               }
             : undefined;
 
@@ -1021,6 +1215,7 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
         get,
         subscribe,
         mode: modeParam,
+        fieldId: asType === 'array' || asType === 'value' ? fieldId : undefined,
         ...(rest as any),
     });
 }
