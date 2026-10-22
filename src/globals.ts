@@ -102,6 +102,13 @@ function setNewValue(parentValue: any, key: string, newValue: any, useSetFn: boo
         parentValue.add(newValue);
     } else if (useMapFn) {
         parentValue.set(key, newValue);
+    } else if (key === '__proto__' && !Object.prototype.hasOwnProperty.call(parentValue, key)) {
+        Object.defineProperty(parentValue, key, {
+            value: newValue,
+            enumerable: true,
+            configurable: true,
+            writable: true,
+        });
     } else {
         parentValue[key] = newValue;
     }
@@ -124,14 +131,20 @@ export function setNodeValue(node: NodeInfo, newValue: any) {
         useSetFn || useMapFn ? parentValue.has(key) : Object.prototype.hasOwnProperty.call(parentValue, key);
 
     // Save the previous value first
-    const prevValue = useSetFn ? key : useMapFn ? parentValue.get(key) : parentValue[key];
+    const prevValue = useSetFn
+        ? key
+        : useMapFn
+          ? parentValue.get(key)
+          : key === '__proto__' && !parentHadKey
+            ? undefined
+            : parentValue[key];
 
     const isFunc = isFunction(newValue);
 
     // Compute newValue if newValue is a function or an observable
     newValue = !parentNode.isAssigning && isFunc && !isFunction(prevValue) ? newValue(prevValue) : newValue;
 
-    if (newValue !== prevValue) {
+    if (newValue !== prevValue || (isDelete ? parentHadKey : !parentHadKey)) {
         try {
             parentNode.isSetting = (parentNode.isSetting || 0) + 1;
 
@@ -167,7 +180,7 @@ export function getNodeValue(node: NodeInfo): any {
     let child = node.root._;
     for (let i = count - 1; child && i >= 0; i--) {
         const key = arrNodeKeys[i] as any;
-        child = key !== 'size' && isMap(child) ? child.get(key) : child[key];
+        child = isMap(child) ? child.get(key) : child[key];
     }
     return child;
 }

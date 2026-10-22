@@ -3962,3 +3962,34 @@ describe('Misc', () => {
         expect(obj.constructor).toBe(ctor);
     });
 });
+
+describe('Object membership with undefined values', () => {
+    test.each(['insert', 'delete'] as const)('direct child %s changes membership and notifies once', (operation) => {
+        const obs = observable({
+            entries: operation === 'delete' ? { x: undefined } : ({} as Record<string, undefined>),
+        });
+        const normal = jest.fn();
+        const shallow = jest.fn();
+        const optimizedHandler = jest.fn();
+        const child = jest.fn();
+        obs.entries.onChange(normal);
+        obs.entries.onChange(shallow, { trackingType: true });
+        obs.entries.onChange(optimizedHandler, { trackingType: optimized });
+        obs.entries.x.onChange(child);
+        const mutate = () => (operation === 'delete' ? obs.entries.x.delete() : obs.entries.x.set(undefined));
+        mutate();
+        expect(Object.prototype.hasOwnProperty.call(obs.entries.peek(), 'x')).toBe(operation === 'insert');
+        expect(Object.keys(obs.entries.peek())).toEqual(operation === 'insert' ? ['x'] : []);
+        for (const handler of [normal, shallow, optimizedHandler, child]) expect(handler).toHaveBeenCalledTimes(1);
+        mutate();
+        for (const handler of [normal, shallow, optimizedHandler, child]) expect(handler).toHaveBeenCalledTimes(1);
+    });
+    test('setting an existing undefined property leaves membership and notifications unchanged', () => {
+        const obs = observable({ x: undefined });
+        const handler = jest.fn();
+        obs.onChange(handler);
+        obs.x.set(undefined);
+        expect(Object.keys(obs.peek())).toEqual(['x']);
+        expect(handler).not.toHaveBeenCalled();
+    });
+});

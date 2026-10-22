@@ -1,5 +1,6 @@
+import { getProxy } from './ObservableObject';
 import { beginBatch, endBatch } from './batching';
-import { getNode, isObservable, setNodeValue, symbolDelete, symbolOpaque } from './globals';
+import { getChildNode, getNode, isObservable, setNodeValue, symbolDelete, symbolOpaque } from './globals';
 import {
     hasOwnProperty,
     isArray,
@@ -45,7 +46,7 @@ export function opaqueObject<T extends object>(value: T): OpaqueObject<T> {
     return value as OpaqueObject<T>;
 }
 
-const getValueAtPathReducer = (o: any, p: any) => o && o[p];
+const getValueAtPathReducer = (o: any, p: any) => o && (isMap(o) ? o.get(p) : o[p]);
 export function getValueAtPath(obj: Record<string, any>, path: string[]): any {
     return path.reduce(getValueAtPathReducer, obj);
 }
@@ -161,13 +162,28 @@ function _mergeIntoObservable<T extends ObservableParam<Record<string, any>>>(
                   ? (source as Map<any, any>).get(key)
                   : (source as Record<string, any>)[key];
             if (sourceValue === symbolDelete) {
-                (target as any)[key].delete();
+                let targetChild =
+                    isMap(targetValue) || key === '__proto__'
+                        ? getProxy(getChildNode(getNode(target), key))
+                        : (target as Record<string, any>)[key];
+                if (isFunction(targetChild) && !isObservable(targetChild))
+                    targetChild = getProxy(getChildNode(getNode(target), key));
+                targetChild.delete();
             } else {
                 const isObj = isObject(sourceValue);
                 const isArr = !isObj && isArray(sourceValue);
-                const targetChild = (target as Record<string, any>)[key];
+                let targetChild =
+                    isMap(targetValue) || key === '__proto__'
+                        ? getProxy(getChildNode(getNode(target), key))
+                        : (target as Record<string, any>)[key];
+                if (isFunction(targetChild) && !isObservable(targetChild))
+                    targetChild = getProxy(getChildNode(getNode(target), key));
 
-                if ((isObj || isArr) && targetChild) {
+                if (
+                    (isObj || isArr) &&
+                    targetChild &&
+                    (key !== '__proto__' || isMap(targetValue) || hasOwnProperty.call(targetValue, key))
+                ) {
                     if (isArr) {
                         // Replace dense arrays entirely, merge sparse arrays
                         const sourceArr = sourceValue as any[];
@@ -259,22 +275,37 @@ export function deepMerge<T>(target: T, ...sources: any[]): T {
 
     for (let i = 0; i < sources.length; i++) {
         const obj2 = sources[i];
-        if (isPlainObject(obj2) || isArray(obj2)) {
+        let mergeable = isPlainObject(obj2) || isArray(obj2);
+        if (!mergeable) {
+            try {
+                if (isObject(obj2)) {
+                    const prototype = Object.getPrototypeOf(obj2);
+                    mergeable = prototype === Object.prototype || prototype === null;
+                }
+            } catch {
+                // Keep sources with inaccessible prototypes atomic.
+            }
+        }
+        if (mergeable) {
             const objTarget = obj2 as Record<string, any>;
             for (const key in objTarget) {
                 if (hasOwnProperty.call(objTarget, key)) {
-                    if (
+                    const value =
                         objTarget[key] instanceof Object &&
                         !isObservable(objTarget[key]) &&
                         Object.keys(objTarget[key]).length > 0
-                    ) {
-                        (result as any)[key] = deepMerge(
-                            (result as any)[key] || (isArray((objTarget as any)[key]) ? [] : {}),
-                            (objTarget as any)[key],
-                        );
-                    } else {
-                        (result as any)[key] = objTarget[key];
-                    }
+                            ? deepMerge(
+                                  (hasOwnProperty.call(result, key) && (result as any)[key]) ||
+                                      (isArray((objTarget as any)[key]) ? [] : {}),
+                                  (objTarget as any)[key],
+                              )
+                            : objTarget[key];
+                    Object.defineProperty(result, key, {
+                        value,
+                        enumerable: true,
+                        configurable: true,
+                        writable: true,
+                    });
                 }
             }
         } else {

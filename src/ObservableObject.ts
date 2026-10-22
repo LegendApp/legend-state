@@ -230,9 +230,10 @@ function updateNodes(parent: NodeInfo, obj: Record<any, any> | Array<any> | unde
     } else if (prevValue && (!obj || isObject(obj))) {
         // For keys that have been removed from object, notify and update children recursively
         const lengthPrev = keysPrev.length;
+        let keysSet: Set<string> | undefined;
         for (let i = 0; i < lengthPrev; i++) {
             const key = keysPrev[i];
-            if (!keys.includes(key)) {
+            if ((i >= keys.length || keys[i] !== key) && !(keysSet ||= new Set(keys)).has(key)) {
                 hasADiff = true;
                 const child = getChildNode(parent, key);
 
@@ -745,7 +746,7 @@ function setKey(node: NodeInfo, key: string, newValue?: any, level?: number) {
             } while ((parent = parent.parent!));
         }
 
-        const notify = !equals(savedValue, prevValue);
+        const notify = !equals(savedValue, prevValue) || parentHadKey !== parentHasKey;
         const forceNotify = !notify && childNode.isComputing && !isPrim && !childNode.isPlain;
 
         if (
@@ -839,12 +840,11 @@ function handlerMapSet(node: NodeInfo, p: any, value: Map<any, any> | WeakMap<an
                 return getProxy(node);
             } else if (p === 'delete') {
                 if (l > 0) {
-                    // Support Set by just returning a if it doesn't have get, meaning it's not a Map
-                    const prev = (value as Map<any, any>).get ? valueMapOrSet.get(a) : a;
-                    deleteFn(node, a);
+                    const hadKey = valueMapOrSet.has(a);
+                    setKey(node, a, symbolDelete, /*level*/ -1);
 
                     // Return whether it was deleted
-                    return prev !== undefined;
+                    return hadKey;
                 }
             } else if (p === 'clear') {
                 const prev = isSet(valueMapOrSet) ? new Set(valueMapOrSet) : new Map(valueMapOrSet);
@@ -942,7 +942,7 @@ function updateNodesAndNotify(
     if (valueAsArr) {
         whenOptimizedOnlyIf = valueAsArr?.length !== prevValue?.length;
     } else if (valueAsMap) {
-        whenOptimizedOnlyIf = valueAsMap?.size !== prevValue?.size;
+        whenOptimizedOnlyIf = !!parentKeyChanged || valueAsMap?.size !== prevValue?.size;
     } else if (valueAsObj) {
         const keys = Object.keys(valueAsObj);
         const prevValueAsObj = isObject(prevValue) ? prevValue : {};
@@ -953,7 +953,10 @@ function updateNodesAndNotify(
         whenOptimizedOnlyIf = !!parentKeyChanged;
     }
 
-    if (isPrim || !newValue || (isEmpty(newValue) && !isEmpty(prevValue)) ? newValue !== prevValue : hasADiff) {
+    if (
+        parentKeyChanged ||
+        (isPrim || !newValue || (isEmpty(newValue) && !isEmpty(prevValue)) ? newValue !== prevValue : hasADiff)
+    ) {
         // Notify for this element if something inside it has changed
         notify(
             isPrim && isRoot ? node : childNode,

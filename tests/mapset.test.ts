@@ -353,3 +353,61 @@ describe('Map/Set pathTypes', () => {
         expect(lastSetValue).toEqual(new Set(['hi1', 'hi2']));
     });
 });
+
+describe('Collection membership with undefined values', () => {
+    test.each(['insert', 'delete'] as const)('Map %s changes membership and notifies once', (operation) => {
+        const obs = observable({
+            entries: new Map<string, undefined>(operation === 'delete' ? [['x', undefined]] : []),
+        });
+        const normal = jest.fn();
+        const shallow = jest.fn();
+        const optimizedHandler = jest.fn();
+        const child = jest.fn();
+        obs.entries.onChange(normal);
+        obs.entries.onChange(shallow, { trackingType: true });
+        obs.entries.onChange(optimizedHandler, { trackingType: optimized });
+        obs.entries.get('x').onChange(child);
+        const mutate = () => (operation === 'delete' ? obs.entries.delete('x') : obs.entries.set('x', undefined));
+        const result = mutate();
+        expect(obs.entries.peek().has('x')).toBe(operation === 'insert');
+        if (operation === 'delete') expect(result).toBe(true);
+        for (const handler of [normal, shallow, optimizedHandler, child]) expect(handler).toHaveBeenCalledTimes(1);
+        mutate();
+        for (const handler of [normal, shallow, optimizedHandler, child]) expect(handler).toHaveBeenCalledTimes(1);
+        if (operation === 'delete') expect(obs.entries.delete('x')).toBe(false);
+    });
+    test('Map root inserts and deletes an undefined entry', () => {
+        const obs = observable(new Map<string, undefined>());
+        obs.set('x', undefined);
+        expect(obs.peek().has('x')).toBe(true);
+        expect(obs.delete('x')).toBe(true);
+        expect(obs.peek().has('x')).toBe(false);
+        expect(obs.delete('x')).toBe(false);
+    });
+    test('Set deletes undefined membership and reports absent members', () => {
+        const obs = observable(new Set<undefined>([undefined]));
+        expect(obs.delete(undefined)).toBe(true);
+        expect(obs.peek().has(undefined)).toBe(false);
+        expect(obs.delete(undefined)).toBe(false);
+    });
+});
+describe('Explicit undefined collection keys', () => {
+    test('Map deletes an undefined key without replacing the root', () => {
+        const obs = observable(
+            new Map<any, undefined>([
+                [undefined, undefined],
+                ['other', undefined],
+            ]),
+        );
+        expect(obs.delete(undefined)).toBe(true);
+        expect(obs.peek()).toBeInstanceOf(Map);
+        expect(obs.peek().has(undefined)).toBe(false);
+        expect(obs.peek().has('other')).toBe(true);
+        expect(obs.delete(undefined)).toBe(false);
+    });
+    test('Set absent deletion reports false', () => {
+        const obs = observable(new Set(['x']));
+        expect(obs.delete('missing')).toBe(false);
+        expect(obs.peek()).toEqual(new Set(['x']));
+    });
+});
