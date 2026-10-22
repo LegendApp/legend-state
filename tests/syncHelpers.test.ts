@@ -7,22 +7,24 @@ describe('deepEqual', () => {
         expect(deepEqual([1, 2], [2, 1])).toBe(false);
     });
 
-    test('compares Map values using native key identity', () => {
+    test('compares Map keys structurally, like isDeepStrictEqual', () => {
         const key = {};
 
         expect(deepEqual(new Map([['key', { value: 1 }]]), new Map([['key', { value: 1 }]]))).toBe(true);
         expect(deepEqual(new Map([['key', 1]]), new Map([['key', 2]]))).toBe(false);
         expect(deepEqual(new Map([[key, 1]]), new Map([[key, 1]]))).toBe(true);
-        expect(deepEqual(new Map([[{}, 1]]), new Map([[{}, 1]]))).toBe(false);
+        expect(deepEqual(new Map([[{}, 1]]), new Map([[{}, 1]]))).toBe(true);
+        expect(deepEqual(new Map([[{}, 1]]), new Map([[{}, 2]]))).toBe(false);
     });
 
-    test('compares Set values using native identity', () => {
+    test('compares Set members structurally, like isDeepStrictEqual', () => {
         const value = {};
 
         expect(deepEqual(new Set([1, 2]), new Set([2, 1]))).toBe(true);
         expect(deepEqual(new Set([1]), new Set([2]))).toBe(false);
         expect(deepEqual(new Set([value]), new Set([value]))).toBe(true);
-        expect(deepEqual(new Set([{}]), new Set([{}]))).toBe(false);
+        expect(deepEqual(new Set([{}]), new Set([{}]))).toBe(true);
+        expect(deepEqual(new Set([{ a: 1 }]), new Set([{ a: 2 }]))).toBe(false);
     });
 
     test('treats distinct weak collections as unequal', () => {
