@@ -1311,99 +1311,133 @@ function addChangedPendingHistory(
             if (entry.h?.length === historyLength) keys = markPendingHistory(entry, path, keys);
             return keys;
         }
-        let a: Map<string | number, any>;
-        let b: Map<string | number, any>;
-        if (prototype === Array.prototype) {
-            const idKey = fieldId || findIDKey(before[0] || overwritten[0], node);
-            if (!idKey) return markPendingHistory(entry, path, keys);
-            const getId = isFunction(idKey) ? idKey : (value: any) => value?.[idKey];
-            const index = (rows: any[]) => {
-                const out = new Map<string | number, any>();
-                for (const row of rows) {
-                    const id = getId(row);
-                    if ((typeof id !== 'string' && typeof id !== 'number') || out.has(id)) return;
-                    out.set(id, row);
-                }
-                return out;
-            };
-            const indexedA = index(before);
-            const ids = indexedA ? Array.from(indexedA.keys()) : [];
-            let indexedB: Map<string | number, any> | undefined;
-            const rows: any[] = [];
-            let aligned = !!indexedA;
-            for (const row of overwritten) {
-                const i = rows.length;
-                rows.push(row);
-                const id = getId(row);
-                if (typeof id !== 'string' && typeof id !== 'number') {
-                    entry.h = undefined;
-                    return keys;
-                }
-                if (!indexedB && aligned && id === ids[i]) continue;
-                if (!indexedB) {
-                    indexedB = new Map();
-                    for (let j = 0; j < i; j++) indexedB.set(ids[j], rows[j]);
-                }
-                aligned = false;
-                if (indexedB.has(id)) {
-                    entry.h = undefined;
-                    return keys;
-                }
-                indexedB.set(id, row);
-            }
-            if (!indexedA) {
+        if (prototype === Array.prototype)
+            return addArrayPendingHistory(entry, before, overwritten, path, node, fieldId, keys, depth);
+        if (prototype === Map.prototype) {
+            if (
+                [...before.keys(), ...overwritten.keys()].some(
+                    (key) => typeof key !== 'string' && typeof key !== 'number',
+                )
+            ) {
                 entry.h = undefined;
                 return keys;
             }
-            if (aligned && rows.length === ids.length) {
-                for (let i = 0; i < ids.length; i++) {
-                    const beforeValue = indexedA.get(ids[i]);
-                    const overwrittenValue = rows[i];
-                    if (entry.h && beforeValue !== overwrittenValue && !deepEqual(beforeValue, overwrittenValue))
-                        keys = addChangedPendingHistory(
-                            entry,
-                            beforeValue,
-                            overwrittenValue,
-                            [...path, ids[i]],
-                            node,
-                            undefined,
-                            keys,
-                            depth + 1,
-                        );
-                }
-                return keys;
-            }
-            a = indexedA;
-            b = indexedB || new Map(ids.slice(0, rows.length).map((id, i) => [id, rows[i]]));
-            keys = markPendingHistory(entry, path, keys);
-        } else if (prototype === Map.prototype) {
-            a = before;
-            b = overwritten;
-            if ([...a.keys(), ...b.keys()].some((key) => typeof key !== 'string' && typeof key !== 'number')) {
-                entry.h = undefined;
-                return keys;
-            }
-        } else if (prototype === Object.prototype || prototype === null) {
-            return addPendingRecordHistory(entry, before, overwritten, path, node, keys, depth);
-        } else return markPendingHistory(entry, path, keys);
-        for (const key of new Set([...a.keys(), ...b.keys()])) {
-            const beforeValue = a.get(key);
-            const overwrittenValue = b.get(key);
-            keys = addPendingHistory(
-                entry,
-                beforeValue,
-                overwrittenValue,
-                [...path, key],
-                node,
-                undefined,
-                keys,
-                depth + 1,
-            );
-            if (a.has(key) !== b.has(key) && beforeValue === undefined && overwrittenValue === undefined)
-                keys = markPendingHistory(entry, [...path, key], keys);
+            return addKeyedPendingHistory(entry, before, overwritten, path, node, keys, depth);
         }
+        if (prototype === Object.prototype || prototype === null)
+            return addPendingRecordHistory(entry, before, overwritten, path, node, keys, depth);
+        return markPendingHistory(entry, path, keys);
     } catch {
         entry.h = undefined;
+    }
+    return keys;
+}
+
+function addArrayPendingHistory(
+    entry: PendingChanges[string],
+    before: any[],
+    overwritten: any[],
+    path: (string | number)[],
+    node: NodeInfo,
+    fieldId: string | undefined,
+    keys: Set<string> | undefined,
+    depth: number,
+): Set<string> | undefined {
+    const idKey = fieldId || findIDKey(before[0] || overwritten[0], node);
+    if (!idKey) return markPendingHistory(entry, path, keys);
+    const getId = isFunction(idKey) ? idKey : (value: any) => value?.[idKey];
+    const index = (rows: any[]) => {
+        const out = new Map<string | number, any>();
+        for (const row of rows) {
+            const id = getId(row);
+            if ((typeof id !== 'string' && typeof id !== 'number') || out.has(id)) return;
+            out.set(id, row);
+        }
+        return out;
+    };
+    const indexedA = index(before);
+    const ids = indexedA ? Array.from(indexedA.keys()) : [];
+    let indexedB: Map<string | number, any> | undefined;
+    const rows: any[] = [];
+    let aligned = !!indexedA;
+    for (const row of overwritten) {
+        const i = rows.length;
+        rows.push(row);
+        const id = getId(row);
+        if (typeof id !== 'string' && typeof id !== 'number') {
+            entry.h = undefined;
+            return keys;
+        }
+        if (!indexedB && aligned && id === ids[i]) continue;
+        if (!indexedB) {
+            indexedB = new Map();
+            for (let j = 0; j < i; j++) indexedB.set(ids[j], rows[j]);
+        }
+        aligned = false;
+        if (indexedB.has(id)) {
+            entry.h = undefined;
+            return keys;
+        }
+        indexedB.set(id, row);
+    }
+    if (!indexedA) {
+        entry.h = undefined;
+        return keys;
+    }
+    if (aligned && rows.length === ids.length) {
+        for (let i = 0; i < ids.length; i++) {
+            const beforeValue = indexedA.get(ids[i]);
+            const overwrittenValue = rows[i];
+            if (entry.h && beforeValue !== overwrittenValue && !deepEqual(beforeValue, overwrittenValue))
+                keys = addChangedPendingHistory(
+                    entry,
+                    beforeValue,
+                    overwrittenValue,
+                    [...path, ids[i]],
+                    node,
+                    undefined,
+                    keys,
+                    depth + 1,
+                );
+        }
+        return keys;
+    }
+    keys = markPendingHistory(entry, path, keys);
+    return addKeyedPendingHistory(
+        entry,
+        indexedA,
+        indexedB || new Map(ids.slice(0, rows.length).map((id, i) => [id, rows[i]])),
+        path,
+        node,
+        keys,
+        depth,
+    );
+}
+
+function addKeyedPendingHistory(
+    entry: PendingChanges[string],
+    a: Map<string | number, any>,
+    b: Map<string | number, any>,
+    path: (string | number)[],
+    node: NodeInfo,
+    keys: Set<string> | undefined,
+    depth: number,
+): Set<string> | undefined {
+    for (const key of new Set([...a.keys(), ...b.keys()])) {
+        const beforeValue = a.get(key);
+        const overwrittenValue = b.get(key);
+        keys = addPendingHistory(
+            entry,
+            beforeValue,
+            overwrittenValue,
+            [...path, key],
+            node,
+            undefined,
+            keys,
+            depth + 1,
+        );
+        if (a.has(key) !== b.has(key) && beforeValue === undefined && overwrittenValue === undefined)
+            keys = markPendingHistory(entry, [...path, key], keys);
     }
     return keys;
 }
@@ -1449,23 +1483,7 @@ function addPendingRecordHistory(
     }
     const a = new Map(beforeKeys.map((key, i) => [key, beforeValues[i]]));
     const b = new Map(overwrittenKeys.map((key, i) => [key, overwrittenValues[i]]));
-    for (const key of new Set([...a.keys(), ...b.keys()])) {
-        const beforeValue = a.get(key);
-        const overwrittenValue = b.get(key);
-        keys = addPendingHistory(
-            entry,
-            beforeValue,
-            overwrittenValue,
-            [...path, key],
-            node,
-            undefined,
-            keys,
-            depth + 1,
-        );
-        if (a.has(key) !== b.has(key) && beforeValue === undefined && overwrittenValue === undefined)
-            keys = markPendingHistory(entry, [...path, key], keys);
-    }
-    return keys;
+    return addKeyedPendingHistory(entry, a, b, path, node, keys, depth);
 }
 
 function pendingHistoryTree(history: PendingChanges[string]['h']): PendingHistoryTree | undefined {
@@ -1512,8 +1530,73 @@ function getPendingSnapshotKeys(
     return keys;
 }
 
+type DetachedSnapshot = { seen: Set<object>; supported: boolean };
+
+// The detached case of snapshotPendingLocal's visit, kept small because it visits every pending row.
+function snapshotDetachedValue(value: any, state: DetachedSnapshot): any {
+    if (!value || typeof value !== 'object') return value;
+    if (state.seen.has(value)) {
+        state.supported = false;
+        return;
+    }
+    state.seen.add(value);
+    try {
+        const prototype = Object.getPrototypeOf(value);
+        const descriptors: Record<PropertyKey, PropertyDescriptor> = Object.getOwnPropertyDescriptors(value);
+        const array = prototype === Array.prototype;
+        const map = prototype === Map.prototype;
+        const date = prototype === Date.prototype;
+        const record = prototype === Object.prototype || prototype === null;
+        if (!array && !map && !date && !record && prototype !== Set.prototype) {
+            state.supported = false;
+            return;
+        }
+        const length = array ? descriptors.length.value : 0;
+        const keys = getPendingSnapshotKeys(descriptors, array, length);
+        if (!keys) {
+            state.supported = false;
+            return;
+        }
+        const out = record
+            ? Object.create(null)
+            : array
+              ? new Array(length)
+              : date
+                ? new Date(Date.prototype.getTime.call(value))
+                : snapshotDetachedCollection(value, map, state);
+        for (const key of keys) {
+            const next = snapshotDetachedValue(descriptors[key as any].value, state);
+            if (record) out[key] = next;
+            else Object.defineProperty(out, key, { value: next, enumerable: true, configurable: true, writable: true });
+        }
+        if (array) out.length = length;
+        if (prototype === Object.prototype) Object.setPrototypeOf(out, prototype);
+        return out;
+    } catch {
+        state.supported = false;
+        return;
+    } finally {
+        state.seen.delete(value);
+    }
+}
+
+function snapshotDetachedCollection(value: any, map: boolean, state: DetachedSnapshot): Map<any, any> | Set<any> {
+    if (!map) {
+        return new Set(Array.from(Set.prototype.values.call(value), (item) => snapshotDetachedValue(item, state)));
+    }
+    const out = new Map();
+    for (const [key, item] of Map.prototype.entries.call(value)) {
+        Map.prototype.set.call(out, key, snapshotDetachedValue(item, state));
+    }
+    return out;
+}
+
 function snapshotPendingLocal(value: any, wire: any): any {
-    const detached = wire === undefined;
+    if (wire === undefined) {
+        const state: DetachedSnapshot = { seen: new Set(), supported: true };
+        const result = snapshotDetachedValue(value, state);
+        return state.supported ? result : undefined;
+    }
     let supported = true;
     const seen = new Set<object>();
     const visit = (value: any, wire: any): any => {
@@ -1537,7 +1620,6 @@ function snapshotPendingLocal(value: any, wire: any): any {
                 supported = false;
                 return wire;
             }
-            const record = detached && (prototype === Object.prototype || prototype === null);
             const length = array ? descriptors.length.value : 0;
             const valueKeys = getPendingSnapshotKeys(descriptors, array, length);
             const wireLength = array && wirePrototype === Array.prototype ? wireDescriptors.length.value : 0;
@@ -1557,7 +1639,7 @@ function snapshotPendingLocal(value: any, wire: any): any {
                           ? new Date(Date.prototype.getTime.call(value))
                           : array
                             ? new Array(length)
-                            : Object.create(record ? null : prototype);
+                            : Object.create(prototype);
             const copy = () => {
                 if (out === wire) {
                     out = map
@@ -1608,8 +1690,7 @@ function snapshotPendingLocal(value: any, wire: any): any {
                     ? wireDescriptors[key]
                     : undefined;
                 const next = visit(descriptors[key].value, previous?.value);
-                if (record) out[key] = next;
-                else if (!previous || next !== previous.value || out !== wire)
+                if (!previous || next !== previous.value || out !== wire)
                     Object.defineProperty(copy(), key, {
                         value: next,
                         enumerable: true,
@@ -1619,7 +1700,6 @@ function snapshotPendingLocal(value: any, wire: any): any {
             }
             for (const key of wireKeys) if (!Object.prototype.hasOwnProperty.call(descriptors, key)) delete copy()[key];
             if (array && out !== wire) out.length = length;
-            if (record && prototype === Object.prototype) Object.setPrototypeOf(out, prototype);
             return out;
         } catch {
             supported = false;
@@ -1644,9 +1724,36 @@ function clonePendingValue(value: any, seen?: Map<object, any>): any {
     } catch {
         return clone(value);
     }
-    let out: any;
     const array = isArray(value);
     const record = !array && (prototype === Object.prototype || prototype === null);
+    return record
+        ? clonePendingRecord(value, prototype, keys, seen)
+        : clonePendingOther(value, prototype, keys, seen, array);
+}
+
+function clonePendingRecord(value: any, prototype: any, keys: PropertyKey[], seen: Map<object, any>): any {
+    const out = Object.create(null);
+    seen.set(value, out);
+    for (let i = 0; i < keys.length; i++) {
+        const key = keys[i];
+        if (Object.prototype.propertyIsEnumerable.call(value, key)) {
+            let item = value[key];
+            if (item && typeof item === 'object') item = clonePendingValue(item, seen);
+            out[key] = item;
+        }
+    }
+    if (prototype === Object.prototype) Object.setPrototypeOf(out, prototype);
+    return out;
+}
+
+function clonePendingOther(
+    value: any,
+    prototype: any,
+    keys: PropertyKey[],
+    seen: Map<object, any>,
+    array: boolean,
+): any {
+    let out: any;
     let arrayPrototype: any;
     if (array) {
         out = new Array(value.length);
@@ -1655,7 +1762,6 @@ function clonePendingValue(value: any, seen?: Map<object, any>): any {
     } else if (prototype === Map.prototype) out = new Map();
     else if (prototype === Set.prototype) out = new Set();
     else if (prototype === Date.prototype) out = new Date(value);
-    else if (record) out = Object.create(null);
     else return clone(value);
     seen.set(value, out);
     let start = 0;
@@ -1680,7 +1786,7 @@ function clonePendingValue(value: any, seen?: Map<object, any>): any {
         ) {
             let item = value[key];
             if (item && typeof item === 'object') item = clonePendingValue(item, seen);
-            if (array || record) out[key] = item;
+            if (array) out[key] = item;
             else
                 Object.defineProperty(out, key, {
                     value: item,
@@ -1690,8 +1796,7 @@ function clonePendingValue(value: any, seen?: Map<object, any>): any {
                 });
         }
     }
-    if (array || (record && prototype === Object.prototype))
-        Object.setPrototypeOf(out, array ? arrayPrototype : prototype);
+    if (array) Object.setPrototypeOf(out, arrayPrototype);
     return out;
 }
 
@@ -1953,90 +2058,7 @@ function mergeChangedPendingValue(
 ): any {
     if (node && isArray(remote) && isArray(pending)) {
         const idKey = fieldId || findIDKey(pending[0], node);
-        if (idKey) {
-            const getId = isFunction(idKey) ? idKey : (value: any) => value?.[idKey];
-            let aligned = isArray(previous) && remote.length === pending.length && previous.length === pending.length;
-            let alignedValues: any[] | undefined;
-            for (let i = 0; aligned && i < pending.length; i++) {
-                const value = pending[i];
-                const id = isNullOrUndefined(value) ? undefined : getId(value);
-                aligned =
-                    !isNullOrUndefined(id) &&
-                    !isNullOrUndefined(remote[i]) &&
-                    !isNullOrUndefined(previous[i]) &&
-                    id === getId(remote[i]) &&
-                    id === getId(previous[i]);
-                if (aligned) {
-                    const mergedValue = mergePendingValue(
-                        remote[i],
-                        value,
-                        previous[i],
-                        undefined,
-                        undefined,
-                        history?.children?.get(id),
-                        complete,
-                    );
-                    if (!alignedValues && mergedValue !== value) alignedValues = pending.slice(0, i);
-                    alignedValues?.push(mergedValue);
-                }
-            }
-            if (aligned) return alignedValues || pending;
-            if (deepEqual(remote, previous)) return pending;
-            if (!history && deepEqual(pending, previous)) return remote;
-            const index = (values: any[]) => {
-                const out = new Map();
-                for (const value of values) {
-                    const id = isNullOrUndefined(value) ? undefined : getId(value);
-                    if (!isNullOrUndefined(id)) out.set(id, value);
-                }
-                return out;
-            };
-            const remoteById = index(remote);
-            const previousById = index(isArray(previous) ? previous : []);
-            const merged: any[] = [];
-            for (let i = 0; i < pending.length; i++) {
-                if (!(i in pending)) {
-                    merged.length++;
-                    continue;
-                }
-                const value = pending[i];
-                const id = isNullOrUndefined(value) ? undefined : getId(value);
-                if (
-                    complete &&
-                    !isNullOrUndefined(id) &&
-                    !remoteById.has(id) &&
-                    previousById.has(id) &&
-                    !history?.children?.has(id) &&
-                    deepEqual(value, previousById.get(id))
-                )
-                    continue;
-                merged.push(
-                    isNullOrUndefined(id)
-                        ? value
-                        : mergePendingValue(
-                              remoteById.get(id),
-                              value,
-                              previousById.get(id),
-                              undefined,
-                              undefined,
-                              history?.children?.get(id),
-                              complete,
-                          ),
-                );
-            }
-            const pendingById = index(pending);
-            for (const value of remote) {
-                const id = isNullOrUndefined(value) ? undefined : getId(value);
-                if (
-                    !isNullOrUndefined(id) &&
-                    !previousById.has(id) &&
-                    !pendingById.has(id) &&
-                    !history?.children?.has(id)
-                )
-                    merged.push(value);
-            }
-            return deepEqual(merged, pending) ? pending : merged;
-        }
+        if (idKey) return mergePendingArrayById(remote, pending, previous, idKey, history, complete);
     }
     let mergeRootObject = false;
     if (node) {
@@ -2053,56 +2075,164 @@ function mergeChangedPendingValue(
             mergeRootObject = false;
         }
     }
-    if (mergeRootObject) {
-        if (!history && deepEqual(pending, previous)) return deepEqual(remote, pending) ? pending : remote;
-        let merged: any;
-        const setKey = (key: string, value: any) => {
-            merged ||= { ...pending };
-            Object.defineProperty(merged, key, {
+    return mergeRootObject
+        ? mergePendingRootRecord(remote, pending, previous, history, complete)
+        : mergePendingRemainder(remote, pending, previous, node, history, complete);
+}
+
+// Separate shapes keep each hot merge loop small for the JIT.
+function mergePendingArrayById(
+    remote: any,
+    pending: any,
+    previous: any,
+    idKey: string | ((value: any) => string | number),
+    history: PendingHistoryTree | undefined,
+    complete: boolean | undefined,
+): any {
+    const getId = isFunction(idKey) ? idKey : (value: any) => value?.[idKey];
+    let aligned = isArray(previous) && remote.length === pending.length && previous.length === pending.length;
+    let alignedValues: any[] | undefined;
+    for (let i = 0; aligned && i < pending.length; i++) {
+        const value = pending[i];
+        const id = isNullOrUndefined(value) ? undefined : getId(value);
+        aligned =
+            !isNullOrUndefined(id) &&
+            !isNullOrUndefined(remote[i]) &&
+            !isNullOrUndefined(previous[i]) &&
+            id === getId(remote[i]) &&
+            id === getId(previous[i]);
+        if (aligned) {
+            const mergedValue = mergePendingValue(
+                remote[i],
                 value,
-                enumerable: true,
-                configurable: true,
-                writable: true,
-            });
-        };
-        for (const key of Object.keys(remote)) {
-            if (
-                !Object.prototype.hasOwnProperty.call(pending, key) &&
-                !Object.prototype.hasOwnProperty.call(previous, key) &&
-                !history?.children?.has(key)
-            ) {
-                setKey(key, remote[key]);
-            }
-        }
-        for (const key of Object.keys(pending)) {
-            if (
-                complete &&
-                (remote[key] === undefined || !Object.prototype.hasOwnProperty.call(remote, key)) &&
-                Object.prototype.hasOwnProperty.call(previous, key) &&
-                !history?.children?.has(key) &&
-                deepEqual(pending[key], previous[key])
-            ) {
-                if (Object.prototype.hasOwnProperty.call(remote, key)) {
-                    if (pending[key] !== undefined) setKey(key, undefined);
-                } else {
-                    merged ||= { ...pending };
-                    delete merged[key];
-                }
-                continue;
-            }
-            const value = mergePendingValue(
-                remote[key],
-                pending[key],
-                previous[key],
+                previous[i],
                 undefined,
                 undefined,
-                history?.children?.get(key),
+                history?.children?.get(id),
                 complete,
             );
-            if (value !== pending[key]) setKey(key, value);
+            if (!alignedValues && mergedValue !== value) alignedValues = pending.slice(0, i);
+            alignedValues?.push(mergedValue);
         }
-        return merged || pending;
     }
+    if (aligned) return alignedValues || pending;
+    if (deepEqual(remote, previous)) return pending;
+    if (!history && deepEqual(pending, previous)) return remote;
+    const index = (values: any[]) => {
+        const out = new Map();
+        for (const value of values) {
+            const id = isNullOrUndefined(value) ? undefined : getId(value);
+            if (!isNullOrUndefined(id)) out.set(id, value);
+        }
+        return out;
+    };
+    const remoteById = index(remote);
+    const previousById = index(isArray(previous) ? previous : []);
+    const merged: any[] = [];
+    for (let i = 0; i < pending.length; i++) {
+        if (!(i in pending)) {
+            merged.length++;
+            continue;
+        }
+        const value = pending[i];
+        const id = isNullOrUndefined(value) ? undefined : getId(value);
+        if (
+            complete &&
+            !isNullOrUndefined(id) &&
+            !remoteById.has(id) &&
+            previousById.has(id) &&
+            !history?.children?.has(id) &&
+            deepEqual(value, previousById.get(id))
+        )
+            continue;
+        merged.push(
+            isNullOrUndefined(id)
+                ? value
+                : mergePendingValue(
+                      remoteById.get(id),
+                      value,
+                      previousById.get(id),
+                      undefined,
+                      undefined,
+                      history?.children?.get(id),
+                      complete,
+                  ),
+        );
+    }
+    const pendingById = index(pending);
+    for (const value of remote) {
+        const id = isNullOrUndefined(value) ? undefined : getId(value);
+        if (!isNullOrUndefined(id) && !previousById.has(id) && !pendingById.has(id) && !history?.children?.has(id))
+            merged.push(value);
+    }
+    return deepEqual(merged, pending) ? pending : merged;
+}
+
+function mergePendingRootRecord(
+    remote: any,
+    pending: any,
+    previous: any,
+    history: PendingHistoryTree | undefined,
+    complete: boolean | undefined,
+): any {
+    if (!history && deepEqual(pending, previous)) return deepEqual(remote, pending) ? pending : remote;
+    let merged: any;
+    const setKey = (key: string, value: any) => {
+        merged ||= { ...pending };
+        Object.defineProperty(merged, key, {
+            value,
+            enumerable: true,
+            configurable: true,
+            writable: true,
+        });
+    };
+    for (const key of Object.keys(remote)) {
+        if (
+            !Object.prototype.hasOwnProperty.call(pending, key) &&
+            !Object.prototype.hasOwnProperty.call(previous, key) &&
+            !history?.children?.has(key)
+        ) {
+            setKey(key, remote[key]);
+        }
+    }
+    for (const key of Object.keys(pending)) {
+        if (
+            complete &&
+            (remote[key] === undefined || !Object.prototype.hasOwnProperty.call(remote, key)) &&
+            Object.prototype.hasOwnProperty.call(previous, key) &&
+            !history?.children?.has(key) &&
+            deepEqual(pending[key], previous[key])
+        ) {
+            if (Object.prototype.hasOwnProperty.call(remote, key)) {
+                if (pending[key] !== undefined) setKey(key, undefined);
+            } else {
+                merged ||= { ...pending };
+                delete merged[key];
+            }
+            continue;
+        }
+        const value = mergePendingValue(
+            remote[key],
+            pending[key],
+            previous[key],
+            undefined,
+            undefined,
+            history?.children?.get(key),
+            complete,
+        );
+        if (value !== pending[key]) setKey(key, value);
+    }
+    return merged || pending;
+}
+
+function mergePendingRemainder(
+    remote: any,
+    pending: any,
+    previous: any,
+    node: NodeInfo | undefined,
+    history: PendingHistoryTree | undefined,
+    complete: boolean | undefined,
+): any {
     if ((node && deepEqual(remote, previous)) || deepEqual(remote, pending)) return pending;
     if (!history && deepEqual(pending, previous)) return remote;
     const remotePrototype = getPendingRecordPrototype(remote);
@@ -2366,6 +2496,80 @@ function acknowledgePendingRoot(
         return true;
     } catch {
         return false;
+    }
+}
+
+// Applies a save response while keeping pending edits; kept out of the async save path.
+function overlayPendingResponse(
+    obs$: ObservableParam<any>,
+    patch: object | undefined,
+    pendingToOverlay: Set<string>,
+    pending: PendingChanges | undefined,
+    pendingClears: PendingChanges | undefined,
+    valueLocal: any,
+    changesWithPath: ChangeWithPathStr[] | undefined,
+) {
+    let updatePatch = patch;
+    if (typeof updatePatch === 'object' && updatePatch !== null) {
+        const currentValue = obs$.peek();
+        if (pendingToOverlay.has('')) {
+            const patchMap = updatePatch instanceof Map ? updatePatch : undefined;
+            const keys = patchMap ? patchMap.keys() : Object.keys(updatePatch);
+            for (const key of keys) {
+                const savedValue = patchMap ? patchMap.get(key) : (updatePatch as any)[key];
+                const mergedValue = mergePendingValue(
+                    savedValue,
+                    getValueAtPath(currentValue as any, [key]),
+                    getValueAtPath(valueLocal, [key]),
+                );
+                if (patchMap) patchMap.set(key, mergedValue);
+                else
+                    Object.defineProperty(updatePatch, key, {
+                        value: mergedValue,
+                        enumerable: true,
+                        configurable: true,
+                        writable: true,
+                    });
+            }
+        }
+        for (const pathStr of pendingToOverlay) {
+            if (!pathStr) {
+                continue;
+            }
+            const pendingEntry = pending?.[pathStr] || pendingClears?.[pathStr];
+            if (!pendingEntry) {
+                continue;
+            }
+            const resolved = readPendingEntry(currentValue, pathStr, pendingEntry);
+            if (!resolved) {
+                updatePatch = undefined;
+                break;
+            }
+            const { path, value: currentAtPath } = resolved;
+            updatePatch = overlayPendingPath(updatePatch, path, pendingEntry.t, currentAtPath, pendingEntry);
+            if (updatePatch === undefined) break;
+        }
+        if (updatePatch !== undefined && changesWithPath) {
+            for (let i = 0; i < changesWithPath.length; i++) {
+                const change = changesWithPath[i];
+                if (!change.pathStr || !pendingToOverlay.has(change.pathStr)) {
+                    continue;
+                }
+                const currentAtPath = getValueAtPath(currentValue as any, change.path as string[]);
+                const entry = pending?.[change.pathStr] || pendingClears?.[change.pathStr];
+                updatePatch = overlayPendingPath(
+                    updatePatch,
+                    (entry?.k || change.path) as string[],
+                    entry?.k ? entry.t : change.pathTypes,
+                    currentAtPath,
+                    entry,
+                );
+                if (updatePatch === undefined) break;
+            }
+        }
+        if (updatePatch !== undefined) {
+            onChangeRemote(() => mergeIntoObservable(obs$, updatePatch));
+        }
     }
 }
 
@@ -2764,79 +2968,15 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
                         if (pendingToOverlay.size === 0) {
                             onChangeRemote(() => mergeIntoObservable(obs$, transformedChanges));
                         } else if (!pendingToOverlay.has('') || failedPathStrs.has('') || rootAcknowledged) {
-                            let updatePatch: object | undefined = rootPending
-                                ? rootResponse
-                                : clone(transformedChanges);
-                            if (typeof updatePatch === 'object' && updatePatch !== null) {
-                                const currentValue = obs$.peek();
-                                if (pendingToOverlay.has('')) {
-                                    const patchMap = updatePatch instanceof Map ? updatePatch : undefined;
-                                    const keys = patchMap ? patchMap.keys() : Object.keys(updatePatch);
-                                    for (const key of keys) {
-                                        const savedValue = patchMap ? patchMap.get(key) : (updatePatch as any)[key];
-                                        const mergedValue = mergePendingValue(
-                                            savedValue,
-                                            getValueAtPath(currentValue as any, [key]),
-                                            getValueAtPath(valueLocal, [key]),
-                                        );
-                                        if (patchMap) patchMap.set(key, mergedValue);
-                                        else
-                                            Object.defineProperty(updatePatch, key, {
-                                                value: mergedValue,
-                                                enumerable: true,
-                                                configurable: true,
-                                                writable: true,
-                                            });
-                                    }
-                                }
-                                for (const pathStr of pendingToOverlay) {
-                                    if (!pathStr) {
-                                        continue;
-                                    }
-                                    const pendingEntry = pending?.[pathStr] || pendingClears?.[pathStr];
-                                    if (!pendingEntry) {
-                                        continue;
-                                    }
-                                    const resolved = readPendingEntry(currentValue, pathStr, pendingEntry);
-                                    if (!resolved) {
-                                        updatePatch = undefined;
-                                        break;
-                                    }
-                                    const { path, value: currentAtPath } = resolved;
-                                    updatePatch = overlayPendingPath(
-                                        updatePatch,
-                                        path,
-                                        pendingEntry.t,
-                                        currentAtPath,
-                                        pendingEntry,
-                                    );
-                                    if (updatePatch === undefined) break;
-                                }
-                                if (updatePatch !== undefined && hadPendingSets) {
-                                    for (let i = 0; i < changesWithPath.length; i++) {
-                                        const change = changesWithPath[i];
-                                        if (!change.pathStr || !pendingToOverlay.has(change.pathStr)) {
-                                            continue;
-                                        }
-                                        const currentAtPath = getValueAtPath(
-                                            currentValue as any,
-                                            change.path as string[],
-                                        );
-                                        const entry = pending?.[change.pathStr] || pendingClears?.[change.pathStr];
-                                        updatePatch = overlayPendingPath(
-                                            updatePatch,
-                                            (entry?.k || change.path) as string[],
-                                            entry?.k ? entry.t : change.pathTypes,
-                                            currentAtPath,
-                                            entry,
-                                        );
-                                        if (updatePatch === undefined) break;
-                                    }
-                                }
-                                if (updatePatch !== undefined) {
-                                    onChangeRemote(() => mergeIntoObservable(obs$, updatePatch));
-                                }
-                            }
+                            overlayPendingResponse(
+                                obs$,
+                                rootPending ? rootResponse : clone(transformedChanges),
+                                pendingToOverlay,
+                                pending,
+                                pendingClears,
+                                valueLocal,
+                                hadPendingSets ? changesWithPath : undefined,
+                            );
                         }
                     }
 

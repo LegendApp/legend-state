@@ -37,23 +37,28 @@ export function diffObjects<T extends Record<string, any>>(obj1: T, obj2: T, dee
     return diff;
 }
 // Read native state through intrinsics so own properties cannot mask it.
-const intrinsic = (prototype: object, key: string) => Object.getOwnPropertyDescriptor(prototype, key)!.get!;
-const typedArrayPrototype = Object.getPrototypeOf(Uint8Array.prototype);
-// The flags getter reads overridable instance properties, so compare each native flag instead.
-const regExpFlags = ['hasIndices', 'global', 'ignoreCase', 'multiline', 'dotAll', 'unicode', 'unicodeSets', 'sticky']
-    .map((key) => Object.getOwnPropertyDescriptor(RegExp.prototype, key)?.get)
-    .filter((get) => !!get) as (() => boolean)[];
-const nativeGetters = {
-    source: intrinsic(RegExp.prototype, 'source'),
-    mapSize: intrinsic(Map.prototype, 'size'),
-    setSize: intrinsic(Set.prototype, 'size'),
-    buffer: intrinsic(typedArrayPrototype, 'buffer'),
-    byteOffset: intrinsic(typedArrayPrototype, 'byteOffset'),
-    byteLength: intrinsic(typedArrayPrototype, 'byteLength'),
-    viewBuffer: intrinsic(DataView.prototype, 'buffer'),
-    viewByteOffset: intrinsic(DataView.prototype, 'byteOffset'),
-    viewByteLength: intrinsic(DataView.prototype, 'byteLength'),
-};
+// Resolved on first native comparison to keep module load from materializing these prototypes.
+let nativeGetters: ReturnType<typeof getNativeGetters> | undefined;
+function getNativeGetters() {
+    const intrinsic = (prototype: object, key: string) => Object.getOwnPropertyDescriptor(prototype, key)!.get!;
+    const typedArrayPrototype = Object.getPrototypeOf(Uint8Array.prototype);
+    return {
+        typedArrayPrototype,
+        // The flags getter reads overridable instance properties, so compare each native flag instead.
+        regExpFlags: ['hasIndices', 'global', 'ignoreCase', 'multiline', 'dotAll', 'unicode', 'unicodeSets', 'sticky']
+            .map((key) => Object.getOwnPropertyDescriptor(RegExp.prototype, key)?.get)
+            .filter((get) => !!get) as (() => boolean)[],
+        source: intrinsic(RegExp.prototype, 'source'),
+        mapSize: intrinsic(Map.prototype, 'size'),
+        setSize: intrinsic(Set.prototype, 'size'),
+        buffer: intrinsic(typedArrayPrototype, 'buffer'),
+        byteOffset: intrinsic(typedArrayPrototype, 'byteOffset'),
+        byteLength: intrinsic(typedArrayPrototype, 'byteLength'),
+        viewBuffer: intrinsic(DataView.prototype, 'buffer'),
+        viewByteOffset: intrinsic(DataView.prototype, 'byteOffset'),
+        viewByteLength: intrinsic(DataView.prototype, 'byteLength'),
+    };
+}
 
 function getDeepEqualKeys(value: any, ignoreFields?: string[], nullVsUndefined?: boolean): (string | symbol)[] {
     let keys: (string | symbol)[] = Object.keys(value);
@@ -114,64 +119,49 @@ function compareDeepEqualArray(
     return true;
 }
 
-function compareDeepEqual(
+function compareDeepEqualNative(
     a: any,
     b: any,
+    prototype: any,
     ignoreFields: string[] | undefined,
     nullVsUndefined: boolean | undefined,
     depth: number,
 ): boolean | undefined {
-    if (a === b) return true;
-    if (typeof a !== 'object' || !a || typeof b !== 'object' || !b) {
-        return Number.isNaN(a) && Number.isNaN(b);
-    }
-    const prototype = Object.getPrototypeOf(a);
-    if (prototype !== Object.getPrototypeOf(b)) return false;
-    // Bound deep/cyclic graphs without per-node visited-pair allocations.
-    if (depth > 100) {
-        return undefined;
-    }
+    const getters = (nativeGetters ||= getNativeGetters());
     let map = false;
     let set = false;
-    if (prototype === Array.prototype) {
-        return compareDeepEqualArray(a, b, ignoreFields, nullVsUndefined, depth);
-    } else if (prototype !== Object.prototype && prototype !== null) {
-        if (prototype === Date.prototype) {
-            if (!Object.is(Date.prototype.getTime.call(a), Date.prototype.getTime.call(b))) return false;
-        } else if (prototype === RegExp.prototype) {
-            if (
-                nativeGetters.source.call(a) !== nativeGetters.source.call(b) ||
-                regExpFlags.some((flag) => flag.call(a) !== flag.call(b)) ||
-                a.lastIndex !== b.lastIndex
-            )
-                return false;
-        } else if (prototype === Map.prototype || prototype === Set.prototype) {
-            map = prototype === Map.prototype;
-            set = !map;
-            const size = map ? nativeGetters.mapSize : nativeGetters.setSize;
-            if (size.call(a) !== size.call(b)) return false;
-        } else if (ArrayBuffer.isView(a) && ArrayBuffer.isView(b)) {
-            if (
-                prototype !== DataView.prototype &&
-                Object.getPrototypeOf(prototype) !== Object.getPrototypeOf(Uint8Array.prototype)
-            )
-                return false;
-            const view = prototype === DataView.prototype;
-            const bytes = (value: any) =>
-                new Uint8Array(
-                    (view ? nativeGetters.viewBuffer : nativeGetters.buffer).call(value),
-                    (view ? nativeGetters.viewByteOffset : nativeGetters.byteOffset).call(value),
-                    (view ? nativeGetters.viewByteLength : nativeGetters.byteLength).call(value),
-                );
-            const bytesA = bytes(a);
-            const bytesB = bytes(b);
-            if (bytesA.length !== bytesB.length) return false;
-            for (let i = 0; i < bytesA.length; i++) {
-                if (bytesA[i] !== bytesB[i]) return false;
-            }
-        } else {
+    if (prototype === Date.prototype) {
+        if (!Object.is(Date.prototype.getTime.call(a), Date.prototype.getTime.call(b))) return false;
+    } else if (prototype === RegExp.prototype) {
+        if (
+            getters.source.call(a) !== getters.source.call(b) ||
+            getters.regExpFlags.some((flag) => flag.call(a) !== flag.call(b)) ||
+            a.lastIndex !== b.lastIndex
+        )
             return false;
+    } else if (prototype === Map.prototype || prototype === Set.prototype) {
+        map = prototype === Map.prototype;
+        set = !map;
+        const size = map ? getters.mapSize : getters.setSize;
+        if (size.call(a) !== size.call(b)) return false;
+    } else if (ArrayBuffer.isView(a) && ArrayBuffer.isView(b)) {
+        if (prototype !== DataView.prototype && Object.getPrototypeOf(prototype) !== getters.typedArrayPrototype)
+            return false;
+        const view = prototype === DataView.prototype;
+        const bytes = (value: any) =>
+            new Uint8Array(
+                (view ? getters.viewBuffer : getters.buffer).call(value),
+                (view ? getters.viewByteOffset : getters.byteOffset).call(value),
+                (view ? getters.viewByteLength : getters.byteLength).call(value),
+            );
+        const bytesA = bytes(a);
+        const bytesB = bytes(b);
+        if (bytesA.length !== bytesB.length) return false;
+        for (let i = 0; i < bytesA.length; i++) {
+            if (bytesA[i] !== bytesB[i]) return false;
         }
+    } else {
+        return false;
     }
     if (map || set) {
         // Native lookup keeps primitive collections linear; structural matching handles cloned entries.
@@ -211,8 +201,45 @@ function compareDeepEqual(
             unmatched.delete(match);
         }
     }
-    const keysA = getDeepEqualKeys(a, ignoreFields, nullVsUndefined);
-    const keysB = getDeepEqualKeys(b, ignoreFields, nullVsUndefined);
+    return true;
+}
+
+function compareDeepEqual(
+    a: any,
+    b: any,
+    ignoreFields: string[] | undefined,
+    nullVsUndefined: boolean | undefined,
+    depth: number,
+): boolean | undefined {
+    if (a === b) return true;
+    if (typeof a !== 'object' || !a || typeof b !== 'object' || !b) {
+        return Number.isNaN(a) && Number.isNaN(b);
+    }
+    const prototype = Object.getPrototypeOf(a);
+    if (prototype !== Object.getPrototypeOf(b)) return false;
+    // Bound deep/cyclic graphs without per-node visited-pair allocations.
+    if (depth > 100) {
+        return undefined;
+    }
+    if (prototype === Array.prototype) {
+        return compareDeepEqualArray(a, b, ignoreFields, nullVsUndefined, depth);
+    }
+    // Keep native contents out of the hot plain-object path.
+    if (prototype !== Object.prototype && prototype !== null) {
+        const equal = compareDeepEqualNative(a, b, prototype, ignoreFields, nullVsUndefined, depth);
+        if (!equal) return equal;
+    }
+    let keysA: (string | symbol)[] = Object.keys(a);
+    let keysB: (string | symbol)[] = Object.keys(b);
+    if (
+        ignoreFields ||
+        nullVsUndefined ||
+        Object.getOwnPropertySymbols(a).length ||
+        Object.getOwnPropertySymbols(b).length
+    ) {
+        keysA = getDeepEqualKeys(a, ignoreFields, nullVsUndefined);
+        keysB = getDeepEqualKeys(b, ignoreFields, nullVsUndefined);
+    }
     if (keysA.length !== keysB.length) return false;
     for (let i = 0; i < keysA.length; i++) {
         const key = keysA[i];
