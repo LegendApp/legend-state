@@ -7,6 +7,8 @@ jobs:
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v4
+            - name: Fetch downgrade test baseline
+              run: git fetch --no-tags --depth=1 origin 4818e7f4417b44a6c1645dce2ab64ae1aa5f054c
             - uses: actions/setup-node@v4
               with:
                   node-version: '20'
