@@ -1535,7 +1535,7 @@ function getPendingSnapshotKeys(
 type DetachedSnapshot = { seen: Set<object>; supported: boolean };
 
 // The detached case of snapshotPendingLocal's visit, kept small because it visits every pending row.
-function snapshotDetachedValue(value: any, state: DetachedSnapshot): any {
+export function snapshotDetachedValue(value: any, state: DetachedSnapshot): any {
     if (!value || typeof value !== 'object') return value;
     if (state.seen.has(value)) {
         state.supported = false;
