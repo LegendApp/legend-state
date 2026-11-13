@@ -104,7 +104,18 @@ export function notify(node: NodeInfo, value: any, prev: any, level: number, whe
     }
 
     if (changesInBatch.size) {
-        batchNotifyChanges(changesInBatch, /*immediate*/ true);
+        try {
+            batchNotifyChanges(changesInBatch, /*immediate*/ true);
+        } catch (error) {
+            if (numInBatch <= 0) {
+                try {
+                    runBatch();
+                } catch {
+                    // Preserve the earlier immediate-listener error.
+                }
+            }
+            throw error;
+        }
     }
 
     // If not in a batch run it immediately
@@ -234,6 +245,8 @@ function computeChangesRecursive(
 
 function batchNotifyChanges(changesInBatch: Map<NodeInfo, ChangeInBatch>, immediate: boolean) {
     const listenersNotified = new Set<ListenerFn>();
+    let didError = false;
+    let firstError: unknown;
     // For each change in the batch, notify all of the listeners
     changesInBatch.forEach(({ changes, level, value, isFromPersist, isFromSync, whenOptimizedOnlyIf }, node) => {
         const listeners = immediate ? node.listenersImmediate : node.listeners;
@@ -265,12 +278,23 @@ function batchNotifyChanges(changesInBatch: Map<NodeInfo, ChangeInBatch>, immedi
                             listenersNotified.add(listener);
                         }
 
-                        listener(listenerParams!);
+                        try {
+                            listener(listenerParams!);
+                        } catch (error) {
+                            if (!didError) {
+                                didError = true;
+                                firstError = error;
+                            }
+                        }
                     }
                 }
             }
         }
     });
+
+    if (didError) {
+        throw firstError;
+    }
 }
 
 export function runBatch() {
@@ -318,9 +342,10 @@ export function batch(fn: () => void) {
     beginBatch();
     try {
         fn();
-    } finally {
-        endBatch();
+    } catch (error) {
+        endBatchAndThrow(error);
     }
+    endBatch();
 }
 export function beginBatch() {
     numInBatch++;
@@ -344,9 +369,16 @@ export function endBatch(force?: boolean) {
             numInBatch = 0;
 
             isRunningBatch = true;
-
-            runBatch();
-
+            try {
+                runBatch();
+            } catch (error) {
+                isRunningBatch = false;
+                if (didDelayEndBatch) {
+                    didDelayEndBatch = false;
+                    endBatchAndThrow(error, true);
+                }
+                throw error;
+            }
             isRunningBatch = false;
 
             // If an endBatch was delayed run it now
@@ -356,6 +388,15 @@ export function endBatch(force?: boolean) {
             }
         }
     }
+}
+
+export function endBatchAndThrow(error: unknown, force?: boolean): never {
+    try {
+        endBatch(force);
+    } catch {
+        // Preserve the error that interrupted the batched operation.
+    }
+    throw error;
 }
 
 function getNodeAtPath(obj: NodeInfo, path: string[]): NodeInfo {

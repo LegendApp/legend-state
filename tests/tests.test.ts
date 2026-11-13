@@ -3013,6 +3013,121 @@ describe('Promise values', () => {
     });
 });
 describe('Batching', () => {
+    function expectImmediateErrorRecovery(
+        subscribe: (listener: () => void, options?: { immediate?: boolean }) => () => void,
+        mutate: () => void,
+        mutateLater: () => void,
+    ) {
+        const error = new Error('immediate listener failed');
+        const disposeThrowingListener = subscribe(
+            () => {
+                throw error;
+            },
+            { immediate: true },
+        );
+        const handler = jest.fn();
+        subscribe(handler);
+
+        expect(mutate).toThrow(error);
+        expect(handler).toHaveBeenCalledTimes(1);
+
+        disposeThrowingListener();
+        batch(mutateLater);
+
+        expect(handler).toHaveBeenCalledTimes(2);
+    }
+
+    test('Listener errors do not skip other listeners or poison later batches', () => {
+        const obs = observable(0);
+        const nested = observable(0);
+        const error = new Error('listener failed');
+        const nestedHandler = jest.fn();
+        nested.onChange(nestedHandler);
+        const disposeThrowingListener = obs.onChange(() => {
+            batch(() => nested.set(1));
+            throw error;
+        });
+        const handler = jest.fn();
+        obs.onChange(handler);
+
+        expect(() => {
+            batch(() => obs.set(1));
+        }).toThrow(error);
+        expect(handler).toHaveBeenCalledTimes(1);
+        expect(nestedHandler).toHaveBeenCalledTimes(1);
+
+        disposeThrowingListener();
+        batch(() => obs.set(2));
+
+        expect(handler).toHaveBeenCalledTimes(2);
+    });
+    test('Immediate listener errors do not skip batched listeners or poison later batches', () => {
+        const obs = observable(0);
+        const error = new Error('immediate listener failed');
+        const laterError = new Error('batched listener failed');
+        const disposeThrowingListener = obs.onChange(
+            () => {
+                throw error;
+            },
+            { immediate: true },
+        );
+        const disposeLaterThrowingListener = obs.onChange(() => {
+            throw laterError;
+        });
+        const handler = jest.fn();
+        obs.onChange(handler);
+
+        expect(() => obs.set(1)).toThrow(error);
+        expect(handler).toHaveBeenCalledTimes(1);
+
+        disposeThrowingListener();
+        disposeLaterThrowingListener();
+        batch(() => obs.set(2));
+
+        expect(handler).toHaveBeenCalledTimes(2);
+    });
+    test('Batch preserves an immediate listener error when batched delivery also fails', () => {
+        const obs = observable(0);
+        const immediateError = new Error('immediate listener failed');
+        const batchedError = new Error('batched listener failed');
+        const batchedListener = jest.fn(() => {
+            throw batchedError;
+        });
+        obs.onChange(
+            () => {
+                throw immediateError;
+            },
+            { immediate: true },
+        );
+        obs.onChange(batchedListener);
+
+        expect(() => batch(() => obs.set(1))).toThrow(immediateError);
+        expect(batchedListener).toHaveBeenCalledTimes(1);
+    });
+    test('Immediate listener errors during object replacement do not poison batching', () => {
+        const obs = observable({ child: 0 });
+        expectImmediateErrorRecovery(
+            (listener, options) => obs.child.onChange(listener, options),
+            () => obs.set({ child: 1 }),
+            () => obs.child.set(2),
+        );
+    });
+    test('Immediate listener errors during assign do not poison batching', () => {
+        const obs = observable({ child: 0 });
+        expectImmediateErrorRecovery(
+            (listener, options) => obs.child.onChange(listener, options),
+            () => obs.assign({ child: 1 }),
+            () => obs.child.set(2),
+        );
+    });
+    test('Immediate listener errors during Set.add do not skip batched listeners', () => {
+        const obs = observable(new Set<string>());
+        expectImmediateErrorRecovery(
+            (listener, options) => obs.onChange(listener, options),
+            () => obs.add('a'),
+            () => obs.add('b'),
+        );
+    });
     test('Assign is batched', async () => {
         const obs = observable({ num1: 1, num2: 2, num3: 3, obj: { text: 'hi' } });
         const handler = jest.fn();

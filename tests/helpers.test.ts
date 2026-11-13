@@ -2,12 +2,32 @@ import fc from 'fast-check';
 import { isDeepStrictEqual } from 'node:util';
 import { deepEqual, diffObjects } from '../src/sync/syncHelpers';
 import { getValueAtPath } from '../src/helpers';
-import { observe, symbolDelete } from '@legendapp/state';
+import { batch, observe, symbolDelete } from '@legendapp/state';
 import { isObservable } from '../src/globals';
 import { deepMerge, isObservableValueReady, mergeIntoObservable } from '../src/helpers';
 import { observable } from '../src/observable';
 
 describe('mergeIntoObservable', () => {
+    test('listener errors do not leave the merge batch open', () => {
+        const target = observable({ child: 0 });
+        const error = new Error('immediate listener failed');
+        const disposeThrowingListener = target.child.onChange(
+            () => {
+                throw error;
+            },
+            { immediate: true },
+        );
+        const handler = jest.fn();
+        target.child.onChange(handler);
+
+        expect(() => mergeIntoObservable(target, { child: 1 })).toThrow(error);
+        expect(handler).toHaveBeenCalledTimes(1);
+
+        disposeThrowingListener();
+        batch(() => target.child.set(2));
+
+        expect(handler).toHaveBeenCalledTimes(2);
+    });
     test('merge onto empty object', () => {
         const target = observable({});
         const source = { a: { b: { c: { d: 5 } } } };

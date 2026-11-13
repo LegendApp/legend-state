@@ -1,5 +1,5 @@
 import { checkPlain } from './checkPlain';
-import { beginBatch, createPreviousHandler, endBatch, isArraySubset, notify } from './batching';
+import { beginBatch, createPreviousHandler, endBatch, endBatchAndThrow, isArraySubset, notify } from './batching';
 import { createObservable } from './createObservable';
 import {
     equals,
@@ -773,29 +773,31 @@ function assign(node: NodeInfo, value: any) {
     const proxy = getProxy(node);
 
     beginBatch();
+    try {
+        if (isPrimitive(node.root._)) {
+            node.root._ = {};
+        }
 
-    if (isPrimitive(node.root._)) {
-        node.root._ = {};
-    }
-
-    if (isMap(value)) {
-        const currentValue = getNodeValue(node);
-        if (isMap(currentValue)) {
-            value.forEach((value, key) => currentValue.set(key, value));
+        if (isMap(value)) {
+            const currentValue = getNodeValue(node);
+            if (isMap(currentValue)) {
+                value.forEach((value, key) => currentValue.set(key, value));
+            } else {
+                set(node, value);
+            }
         } else {
-            set(node, value);
+            // Set inAssign to allow setting on safe observables
+            node.isAssigning = (node.isAssigning || 0) + 1;
+            try {
+                // TODO: If current value is a Map how to assign into the Map?
+                Object.assign(proxy, value);
+            } finally {
+                node.isAssigning--;
+            }
         }
-    } else {
-        // Set inAssign to allow setting on safe observables
-        node.isAssigning = (node.isAssigning || 0) + 1;
-        try {
-            // TODO: If current value is a Map how to assign into the Map?
-            Object.assign(proxy, value);
-        } finally {
-            node.isAssigning--;
-        }
+    } catch (error) {
+        endBatchAndThrow(error);
     }
-
     endBatch();
 
     return proxy;
@@ -899,72 +901,74 @@ function updateNodesAndNotify(
     if (!childNode) childNode = node;
     // Make sure we don't call too many listeners for every property set
     beginBatch();
+    try {
+        if (isPrim === undefined) {
+            isPrim = isPrimitive(newValue);
+        }
 
-    if (isPrim === undefined) {
-        isPrim = isPrimitive(newValue);
-    }
+        let hasADiff = forceNotify || isPrim;
+        let whenOptimizedOnlyIf = false;
+        let valueAsArr: any[] | undefined;
+        let valueAsMap: Map<any, any> | undefined;
+        let valueAsObj: Record<any, any> | undefined;
+        // If new value is an object or array update notify down the tree
+        if (!isPrim || (prevValue && !isPrimitive(prevValue))) {
+            if (
+                (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') &&
+                typeof __devUpdateNodes !== 'undefined'
+            ) {
+                __devUpdateNodes.clear();
+            }
+            hasADiff = hasADiff || updateNodes(childNode, newValue, prevValue);
 
-    let hasADiff = forceNotify || isPrim;
-    let whenOptimizedOnlyIf = false;
-    let valueAsArr: any[] | undefined;
-    let valueAsMap: Map<any, any> | undefined;
-    let valueAsObj: Record<any, any> | undefined;
-    // If new value is an object or array update notify down the tree
-    if (!isPrim || (prevValue && !isPrimitive(prevValue))) {
+            // Check if value is an array, Map, or Set so we can optimize the notification
+            if (isArray(newValue)) {
+                valueAsArr = newValue as any[];
+            } else if (isMap(newValue) || isSet(newValue)) {
+                valueAsMap = newValue as Map<any, any>;
+            } else if (isObject(newValue)) {
+                valueAsObj = newValue;
+            }
+        }
+
+        // Check if parent value is an array, Map, Set, or object so we can optimize the notification
+        if (isArray(parentValue)) {
+            valueAsArr = parentValue as any[];
+        } else if (isMap(parentValue) || isSet(parentValue)) {
+            valueAsMap = parentValue as Map<any, any>;
+        }
+
+        // If collection membership changed it should notify optimized listeners
+        if (valueAsArr) {
+            whenOptimizedOnlyIf = valueAsArr?.length !== prevValue?.length;
+        } else if (valueAsMap) {
+            whenOptimizedOnlyIf = !!parentKeyChanged || valueAsMap?.size !== prevValue?.size;
+        } else if (valueAsObj) {
+            const keys = Object.keys(valueAsObj);
+            const prevValueAsObj = isObject(prevValue) ? prevValue : {};
+            const prevKeys = Object.keys(prevValueAsObj);
+            whenOptimizedOnlyIf =
+                keys.length !== prevKeys.length || keys.some((key) => !hasOwnProperty.call(prevValueAsObj, key));
+        } else if (isObject(parentValue)) {
+            whenOptimizedOnlyIf = !!parentKeyChanged;
+        }
+
         if (
-            (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') &&
-            typeof __devUpdateNodes !== 'undefined'
+            parentKeyChanged ||
+            (isPrim || !newValue || (isEmpty(newValue) && !isEmpty(prevValue)) ? newValue !== prevValue : hasADiff)
         ) {
-            __devUpdateNodes.clear();
+            // Notify for this element if something inside it has changed
+            notify(
+                isPrim && isRoot ? node : childNode,
+                newValue,
+                prevValue,
+                (level ?? prevValue === undefined) ? -1 : hasADiff ? 0 : 1,
+                whenOptimizedOnlyIf,
+            );
         }
-        hasADiff = hasADiff || updateNodes(childNode, newValue, prevValue);
-
-        // Check if value is an array, Map, or Set so we can optimize the notification
-        if (isArray(newValue)) {
-            valueAsArr = newValue as any[];
-        } else if (isMap(newValue) || isSet(newValue)) {
-            valueAsMap = newValue as Map<any, any>;
-        } else if (isObject(newValue)) {
-            valueAsObj = newValue;
-        }
+    } catch (error) {
+        endBatchAndThrow(error);
     }
-
-    // Check if parent value is an array, Map, Set, or object so we can optimize the notification
-    if (isArray(parentValue)) {
-        valueAsArr = parentValue as any[];
-    } else if (isMap(parentValue) || isSet(parentValue)) {
-        valueAsMap = parentValue as Map<any, any>;
-    }
-
-    // If collection membership changed it should notify optimized listeners
-    if (valueAsArr) {
-        whenOptimizedOnlyIf = valueAsArr?.length !== prevValue?.length;
-    } else if (valueAsMap) {
-        whenOptimizedOnlyIf = !!parentKeyChanged || valueAsMap?.size !== prevValue?.size;
-    } else if (valueAsObj) {
-        const keys = Object.keys(valueAsObj);
-        const prevValueAsObj = isObject(prevValue) ? prevValue : {};
-        const prevKeys = Object.keys(prevValueAsObj);
-        whenOptimizedOnlyIf =
-            keys.length !== prevKeys.length || keys.some((key) => !hasOwnProperty.call(prevValueAsObj, key));
-    } else if (isObject(parentValue)) {
-        whenOptimizedOnlyIf = !!parentKeyChanged;
-    }
-
-    if (
-        parentKeyChanged ||
-        (isPrim || !newValue || (isEmpty(newValue) && !isEmpty(prevValue)) ? newValue !== prevValue : hasADiff)
-    ) {
-        // Notify for this element if something inside it has changed
-        notify(
-            isPrim && isRoot ? node : childNode,
-            newValue,
-            prevValue,
-            (level ?? prevValue === undefined) ? -1 : hasADiff ? 0 : 1,
-            whenOptimizedOnlyIf,
-        );
-    }
-
     endBatch();
 }
 

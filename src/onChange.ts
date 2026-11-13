@@ -47,20 +47,25 @@ export function onChange(
 
     if (initial) {
         const value = getNodeValue(node);
-        callback({
-            value,
-            isFromPersist: true,
-            isFromSync: false,
-            changes: [
-                {
-                    path: [],
-                    pathTypes: [],
-                    prevAtPath: value,
-                    valueAtPath: value,
-                },
-            ],
-            getPrevious: () => undefined,
-        });
+        try {
+            callback({
+                value,
+                isFromPersist: true,
+                isFromSync: false,
+                changes: [
+                    {
+                        path: [],
+                        pathTypes: [],
+                        prevAtPath: value,
+                        valueAtPath: value,
+                    },
+                ],
+                getPrevious: () => undefined,
+            });
+        } catch (error) {
+            listeners.delete(listener);
+            throw error;
+        }
     }
 
     let extraDisposes: (() => void)[];
@@ -74,6 +79,7 @@ export function onChange(
             const childOptions: Parameters<typeof onChange>[2] = {
                 trackingType: true,
                 ...options,
+                initial: false,
             };
             // onChange for the linked node
             extraDisposes = [...(extraDisposes || []), onChange(childNode, cb as ListenerFn, childOptions, fromLinks)];
@@ -116,33 +122,34 @@ export function onChange(
     dispatchMiddlewareEvent(node, listener, 'listener-added');
 
     return () => {
-        // Remove the listener from the set
-        listeners.delete(listener);
+        // The listener set owns the recursive count increment, so release it only when
+        // this call actually removes the listener.
+        if (listeners.delete(listener)) {
+            // Clean up linked node listeners
+            extraDisposes?.forEach((fn) => fn());
 
-        // Clean up linked node listeners
-        extraDisposes?.forEach((fn) => fn());
-
-        // Update listener counts up the tree and track nodes that became fully cleared
-        const clearedRecursive: NodeInfo[] = [];
-        let parent: NodeInfo | undefined = node;
-        while (parent) {
-            parent.numListenersRecursive--;
-            if (parent.numListenersRecursive === 0) {
-                clearedRecursive.push(parent);
+            // Update listener counts up the tree and track nodes that became fully cleared
+            const clearedRecursive: NodeInfo[] = [];
+            let parent: NodeInfo | undefined = node;
+            while (parent) {
+                parent.numListenersRecursive--;
+                if (parent.numListenersRecursive === 0) {
+                    clearedRecursive.push(parent);
+                }
+                parent = parent.parent!;
             }
-            parent = parent.parent!;
-        }
-        // Queue middleware event for listener removed
-        dispatchMiddlewareEvent(node, listener, 'listener-removed');
-        // If there are no more listeners in this set, queue the listeners-cleared event
-        if (listeners.size === 0) {
-            dispatchMiddlewareEvent(node, undefined, 'listeners-cleared');
-        }
+            // Queue middleware event for listener removed
+            dispatchMiddlewareEvent(node, listener, 'listener-removed');
+            // If there are no more listeners in this set, queue the listeners-cleared event
+            if (listeners.size === 0) {
+                dispatchMiddlewareEvent(node, undefined, 'listeners-cleared');
+            }
 
-        for (const clearedNode of clearedRecursive) {
-            // Dispatch listeners-cleared for all cleared nodes
-            if (clearedNode !== node && shouldDispatchParentMiddlewareEvent(clearedNode)) {
-                dispatchMiddlewareEvent(clearedNode, undefined, 'listeners-cleared');
+            for (const clearedNode of clearedRecursive) {
+                // Dispatch listeners-cleared for all cleared nodes
+                if (clearedNode !== node && shouldDispatchParentMiddlewareEvent(clearedNode)) {
+                    dispatchMiddlewareEvent(clearedNode, undefined, 'listeners-cleared');
+                }
             }
         }
     };

@@ -1,4 +1,4 @@
-import { beginBatch, endBatch } from './batching';
+import { beginBatch, endBatch, endBatchAndThrow } from './batching';
 import { isEvent } from './globals';
 import { isFunction } from './is';
 import type { ObserveEvent, ObserveEventCallback, ObserveOptions, Selector } from './observableInterfaces';
@@ -40,32 +40,32 @@ export function observe<T>(
 
         // Run in a batch so changes don't happen until we're done tracking here
         beginBatch();
+        try {
+            try {
+                // Run the function/selector
+                delete e.value;
 
-        // Run the function/selector
-        delete e.value;
+                const tracked = trackSelector(selectorOrRun as Selector<T>, update, undefined, e, options);
 
-        // Dispose listeners from previous run
-        dispose?.();
+                // Keep the previous subscription active until its replacement succeeds.
+                dispose?.();
+                dispose = tracked.dispose;
 
-        const {
-            dispose: _dispose,
-            value,
-            nodes,
-        } = trackSelector(selectorOrRun as Selector<T>, update, undefined, e, options);
-        dispose = _dispose;
+                e.value = tracked.value;
+                e.nodes = tracked.nodes;
+                e.refresh = update;
 
-        e.value = value;
-        e.nodes = nodes;
-        e.refresh = update;
-
-        if (e.onCleanupReaction) {
-            e.onCleanupReaction();
-            e.onCleanupReaction = undefined;
+                if (e.onCleanupReaction) {
+                    e.onCleanupReaction();
+                    e.onCleanupReaction = undefined;
+                }
+            } catch (error) {
+                endBatchAndThrow(error);
+            }
+            endBatch();
+        } finally {
+            isRunning = false;
         }
-
-        endBatch();
-
-        isRunning = false;
 
         // Call the reaction if there is one and the value changed
         if (

@@ -139,7 +139,17 @@ export function onChangeRemote(cb: () => void) {
     globalState.isLoadingRemote = true;
 
     beginBatch();
-    cb();
+    try {
+        cb();
+    } catch (error) {
+        globalState.isLoadingRemote = false;
+        try {
+            endBatch(true);
+        } catch {
+            // Preserve the callback error.
+        }
+        throw error;
+    }
     // Reset isLoadingRemote before ending the batch so it doesn't
     // apply to any side effects
     globalState.isLoadingRemote = false;

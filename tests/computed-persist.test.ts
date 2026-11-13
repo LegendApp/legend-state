@@ -688,6 +688,25 @@ describe('subscribing to computeds', () => {
     });
 });
 describe('Remote changes', () => {
+    test('Remote callback errors restore sync and batching state', () => {
+        const obs$ = observable(0);
+        const syncFlags: boolean[] = [];
+        const error = new Error('remote callback failed');
+        obs$.onChange(({ isFromSync }) => syncFlags.push(isFromSync));
+
+        expect(() =>
+            onChangeRemote(() => {
+                obs$.set(1);
+                throw error;
+            }),
+        ).toThrow(error);
+
+        expect(syncFlags).toEqual([true]);
+
+        obs$.set(2);
+
+        expect(syncFlags).toEqual([true, false]);
+    });
     test('Remote changes dont trigger set', async () => {
         let sets = 0;
         let setTo: string | undefined = undefined;

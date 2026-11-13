@@ -1,5 +1,5 @@
 import { getProxy } from './ObservableObject';
-import { beginBatch, endBatch } from './batching';
+import { beginBatch, endBatch, endBatchAndThrow } from './batching';
 import { getChildNode, getNode, isObservable, setNodeValue, symbolDelete, symbolOpaque } from './globals';
 import {
     hasOwnProperty,
@@ -131,8 +131,12 @@ export function mergeIntoObservable<T extends ObservableParam<any>>(target: T, .
         }
     }
     beginBatch();
-    for (let i = 0; i < sources.length; i++) {
-        _mergeIntoObservable(target, sources[i], 0);
+    try {
+        for (let i = 0; i < sources.length; i++) {
+            _mergeIntoObservable(target, sources[i], 0);
+        }
+    } catch (error) {
+        endBatchAndThrow(error);
     }
     endBatch();
     return target;
