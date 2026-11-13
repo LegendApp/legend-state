@@ -3514,6 +3514,7 @@ export function syncObservable<T>(
     loadLocal(obs$, syncOptions, syncState$, localState);
 
     let latestGet = 0;
+    let lastSubscriptionGet = 0;
     let isWaitingForLoad = !!syncOptions.get;
     if (isWaitingForLoad) {
         syncStateValue.numPendingRemoteLoads = (syncStateValue.numPendingRemoteLoads || 0) + 1;
@@ -3602,11 +3603,17 @@ export function syncObservable<T>(
                     getNumber?: number,
                     onMetadataError?: (error: Error) => void,
                     onPendingMetadataError?: () => void,
+                    subscriptionNumber?: number,
                 ) => {
                     mode = mode || syncOptions.mode || 'set';
                     const hasValue = value !== undefined;
                     const apply = (value: any) => {
-                        if (getNumber !== undefined && getNumber < (node.getNumResolved || 0)) return;
+                        if (
+                            getNumber !== undefined &&
+                            (getNumber < (node.getNumResolved || 0) || getNumber <= lastSubscriptionGet)
+                        )
+                            return;
+                        if (subscriptionNumber !== undefined && subscriptionNumber < lastAppliedSnapshot) return;
                         let metadataSaved: void | Promise<void> = undefined;
                         if (hasValue) {
                             const originalPending = localState.pendingChanges;
@@ -4057,10 +4064,10 @@ export function syncObservable<T>(
                             update: (params) => {
                                 const updateNum = ++numSubscriptionUpdates;
                                 const applyUpdate = (complete = false) => {
-                                    if (!complete && updateNum <= lastAppliedSnapshot) return;
-                                    if (complete) lastAppliedSnapshot = updateNum;
+                                    if (updateNum < lastAppliedSnapshot) return;
                                     params.mode ||= syncOptions.mode || 'merge';
                                     const finish = () => {
+                                        if (updateNum < lastAppliedSnapshot) return;
                                         if (complete || !syncState$.isLoaded.peek()) {
                                             syncState$.assign({
                                                 isLoaded: (syncStateValue.numPendingRemoteLoads || 0) < 1,
@@ -4070,13 +4077,20 @@ export function syncObservable<T>(
                                         }
                                     };
                                     const changed = doInOrder(
-                                        onChange(params, undefined, onMetadataError, finish),
+                                        onChange(params, undefined, onMetadataError, finish, updateNum),
                                         finish,
                                     );
-                                    if (isPromise(changed)) changed.catch(onMetadataError);
+                                    if (isPromise(changed))
+                                        changed.catch((error) => {
+                                            if (updateNum >= lastAppliedSnapshot) onMetadataError(error);
+                                        });
                                 };
                                 if (params.isLoaded && !syncState$.isLoaded.peek()) {
+                                    const getNumAtUpdate = node.numGets || 0;
                                     when(waitFor || true, () => {
+                                        if (updateNum < lastAppliedSnapshot) return;
+                                        lastAppliedSnapshot = updateNum;
+                                        lastSubscriptionGet = Math.max(lastSubscriptionGet, getNumAtUpdate);
                                         if (isWaitingForLoad) {
                                             isWaitingForLoad = false;
                                             syncStateValue.numPendingRemoteLoads!--;
@@ -4084,8 +4098,11 @@ export function syncObservable<T>(
                                         if (syncStateValue.numPendingRemoteLoads! < 1) {
                                             // Publish the recovered data before releasing readiness listeners.
                                             applyUpdate(true);
+                                        } else {
+                                            when(syncState$.isLoaded, () => applyUpdate(true));
                                         }
                                     });
+                                    return;
                                 }
                                 when(
                                     () => !get || syncState$.isLoaded.get(),
@@ -4180,6 +4197,7 @@ export function syncObservable<T>(
                             let changed: void | Promise<void> = undefined;
                             const finish = () => {
                                 settle();
+                                if (numGets <= lastSubscriptionGet) return;
                                 if (numGets === latestGet && isWaitingForLoad) {
                                     isWaitingForLoad = false;
                                     syncStateValue.numPendingRemoteLoads!--;
@@ -4191,7 +4209,7 @@ export function syncObservable<T>(
                                 syncState$.isLoaded.set(syncStateValue.numPendingRemoteLoads! < 1);
                                 if (numGets >= (node.getNumResolved || 0)) syncState$.error.set(undefined);
                             };
-                            if (numGets >= (node.getNumResolved || 0)) {
+                            if (numGets > lastSubscriptionGet && numGets >= (node.getNumResolved || 0)) {
                                 node.getNumResolved = numGets;
                                 changed = onChange(
                                     { value, lastSync: getParams.lastSync, mode: getParams.mode! },
@@ -4205,7 +4223,7 @@ export function syncObservable<T>(
                         const onError = (error: Error) => {
                             latestGet = Math.max(latestGet, numGets);
                             settle();
-                            if (numGets >= (node.getNumResolved || 0)) {
+                            if (numGets > lastSubscriptionGet && numGets >= (node.getNumResolved || 0)) {
                                 node.getNumResolved = numGets;
                                 onGetError(
                                     error,

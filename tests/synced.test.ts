@@ -452,3 +452,112 @@ describe('complete subscription transforms', () => {
         },
     );
 });
+
+test('complete snapshots supersede an older asynchronous get transform', async () => {
+    let update!: SyncedSubscribeParams<string>['update'];
+    let start!: () => void;
+    let release!: (value: string) => void;
+    const started = new Promise<void>((resolve) => (start = resolve));
+    const gate = new Promise<string>((resolve) => (release = resolve));
+    const obs$ = observable(
+        synced({
+            get: () => 'get',
+            subscribe: (params) => {
+                update = params.update;
+            },
+            transform: {
+                load: (value: string) => {
+                    if (value === 'get') {
+                        start();
+                        return gate;
+                    }
+                    return value;
+                },
+            },
+        }),
+    );
+    obs$.get();
+    const state$ = syncState(obs$);
+    await started;
+    update({ value: 'snapshot', isLoaded: true });
+    await promiseTimeout(0);
+    expect(state$.isLoaded.peek()).toBe(true);
+    expect(obs$.peek()).toBe('snapshot');
+    expect(state$.numPendingGets.peek()).toBe(1);
+    release('transformed get');
+    await when(() => !state$.isGetting.get());
+    await promiseTimeout(0);
+    expect(obs$.peek()).toBe('snapshot');
+    expect(state$.numPendingGets.peek()).toBe(0);
+});
+
+test('a rejected get from before reset cannot block complete snapshot recovery', async () => {
+    const rejects: ((error: Error) => void)[] = [];
+    let update!: SyncedSubscribeParams<string>['update'];
+    const obs$ = observable(
+        synced({
+            get: () => new Promise<string>((_resolve, reject) => rejects.push(reject)),
+            subscribe: (params) => {
+                update = params.update;
+            },
+        }),
+    );
+    obs$.get();
+    const state$ = syncState(obs$);
+    await state$.reset();
+    obs$.get();
+    expect(rejects).toHaveLength(2);
+    const error = new Error('current get failed');
+    rejects[1](error);
+    await when(state$.error);
+    rejects[0](new Error('obsolete get failed'));
+    await promiseTimeout(0);
+    expect(state$.isLoaded.peek()).toBe(false);
+    update({ value: 'recovered', isLoaded: true });
+    await when(state$.isLoaded);
+    expect(obs$.peek()).toBe('recovered');
+});
+
+test.each([false, true])(
+    'superseded complete snapshots cannot publish old transforms or errors (reject=%s)',
+    async (reject) => {
+        let update!: SyncedSubscribeParams<string>['update'];
+        let finishOld!: () => void;
+        const staleError = new Error('obsolete transform');
+        const old = new Promise<string>((resolve, rejectOld) => {
+            finishOld = () => (reject ? rejectOld(staleError) : resolve('obsolete'));
+        });
+        const onError = jest.fn();
+        const obs$ = observable(
+            synced({
+                get: async (): Promise<string> => {
+                    throw new Error('offline');
+                },
+                subscribe: (params) => {
+                    update = params.update;
+                },
+                transform: { load: (value: string) => (value === 'old' ? old : value) },
+                onError,
+            }),
+        );
+        obs$.get();
+        const state$ = syncState(obs$);
+        await when(state$.error);
+        const ready: string[] = [];
+        const dispose = state$.isLoaded.onChange(({ value }) => {
+            if (value) ready.push(obs$.peek());
+        });
+        update({ value: 'old', isLoaded: true });
+        expect(state$.isLoaded.peek()).toBe(false);
+        update({ value: 'current', isLoaded: true });
+        expect(state$.isLoaded.peek()).toBe(true);
+        expect(ready).toEqual(['current']);
+        finishOld();
+        await promiseTimeout(0);
+        expect(obs$.peek()).toBe('current');
+        expect(state$.error.peek()).toBeUndefined();
+        expect(onError).toHaveBeenCalledTimes(1);
+        expect(state$.numPendingRemoteLoads.peek()).toBe(0);
+        dispose();
+    },
+);
