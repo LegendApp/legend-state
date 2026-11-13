@@ -139,13 +139,11 @@ function updateNodes(parent: NodeInfo, obj: Record<any, any> | Array<any> | unde
         }
         __devUpdateNodes.add(obj);
     }
-    if ((isObject(obj) && isHintOpaque(obj)) || (isObject(prevValue) && isHintOpaque(prevValue))) {
+    if (
+        ((isObject(obj) || isArray(obj)) && isHintOpaque(obj)) ||
+        ((isObject(prevValue) || isArray(prevValue)) && isHintOpaque(prevValue))
+    ) {
         const isDiff = obj !== prevValue;
-        if (isDiff) {
-            if (parent.listeners || parent.listenersImmediate) {
-                notify(parent, obj, prevValue, 0);
-            }
-        }
         if (
             (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') &&
             typeof __devUpdateNodes !== 'undefined' &&
@@ -484,8 +482,8 @@ const proxyHandler: ProxyHandler<any> = {
         // Get raw value of the property
         let vProp = value?.[p];
 
-        // If it's an opaque object, can skip the rest of the logic
-        if (isObject(value) && isHintOpaque(value)) {
+        // If it's an opaque object or array, can skip the rest of the logic
+        if ((isObject(value) || isArray(value)) && isHintOpaque(value)) {
             return vProp;
         }
 

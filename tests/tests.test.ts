@@ -4,7 +4,7 @@ import { configureLegendState } from '../src/config/configureLegendState';
 import { enable$GetSet } from '../src/config/enable$GetSet';
 import { enable_PeekAssign } from '../src/config/enable_PeekAssign';
 import { event } from '../src/event';
-import { clone, getNodeValue, isEvent, isObservable, optimized, symbolGetNode } from '../src/globals';
+import { clone, getNode, getNodeValue, isEvent, isObservable, optimized, symbolGetNode } from '../src/globals';
 import { getValueAtPath, setAtPath } from '../src/helpers';
 import { linked } from '../src/linked';
 import { observable, observablePrimitive } from '../src/observable';
@@ -1081,7 +1081,76 @@ describe('Primitives', () => {
         const val /* infered: ObservablePrimitive<OpaqueObject<BigNumber> | null> */ = obs.val;
         const raw /* infered: BigNumber | null */ = val.get();
         expect(raw?.c).toBeNull();
-    })
+    });
+    test('opaque array should be handled like primitives', () => {
+        const obs = observable({
+            arr: ObservableHint.opaque([{ id: 'a', nested: { value: 1 } }]),
+        });
+        const handler = expectChangeHandler(obs.arr);
+
+        obs.arr.set(ObservableHint.opaque([{ id: 'b', nested: { value: 2 } }]));
+
+        expect(handler).toHaveBeenCalledTimes(1);
+        expect(obs.arr.get()[0].nested.value).toEqual(2);
+        expect(getNode(obs.arr).children).toBeUndefined();
+        expect(isObservable((obs.arr as any)[0])).toEqual(false);
+    });
+    test('opaque root replacement notifies immediate listeners once', () => {
+        const initial = ObservableHint.opaque([{ id: 'a' }]);
+        const obs = observable(initial);
+        const handler = jest.fn();
+        obs.onChange(handler, { immediate: true });
+        const next = ObservableHint.opaque([{ id: 'b' }]);
+        obs.set(next);
+        expect(handler).toHaveBeenCalledTimes(1);
+        expect(handler.mock.calls[0][0].value).toBe(next);
+        obs.set(next);
+        expect(handler).toHaveBeenCalledTimes(1);
+        expect(getNode(obs).children === undefined).toBe(true);
+    });
+    test.each(['child-set', 'parent-set', 'child-delete', 'parent-delete'])(
+        'opaque nested %s notifies immediate listeners once',
+        (operation) => {
+            const initial = ObservableHint.opaque([{ id: 'a' }]);
+            const obs = observable<{ arr?: typeof initial }>({ arr: initial });
+            const arr = obs.arr;
+            const handler = jest.fn();
+            arr.onChange(handler, { immediate: true });
+            const next = ObservableHint.opaque([{ id: 'b' }]);
+            if (operation === 'child-set') arr.set(next);
+            else if (operation === 'parent-set') obs.set({ arr: next });
+            else if (operation === 'child-delete') arr.delete();
+            else obs.set({});
+            expect(handler).toHaveBeenCalledTimes(1);
+            expect(arr.peek()).toBe(operation.endsWith('delete') ? undefined : next);
+            expect(getNode(arr).children === undefined).toBe(true);
+        },
+    );
+    test('opaque object replacement and removal have one immediate notification', () => {
+        const obs = observable({ value: ObservableHint.opaque({ n: 1 }) });
+        const handler = jest.fn();
+        obs.value.onChange(handler, { immediate: true });
+        obs.set({ value: ObservableHint.opaque({ n: 2 }) });
+        expect(handler).toHaveBeenCalledTimes(1);
+        obs.value.delete();
+        expect(handler).toHaveBeenCalledTimes(2);
+    });
+    test.each([false, true])('optimized array tracking remains length-only (opaque %s)', (opaque) => {
+        const first = [{ id: 'a' }];
+        const obs = observable(opaque ? ObservableHint.opaque(first) : first);
+        const handler = jest.fn();
+        const normal = jest.fn();
+        obs.onChange(handler, { trackingType: optimized });
+        obs.onChange(normal);
+        const sameLength = [{ id: 'b' }];
+        obs.set(opaque ? ObservableHint.opaque(sameLength) : sameLength);
+        expect(handler).not.toHaveBeenCalled();
+        expect(normal).toHaveBeenCalledTimes(1);
+        const longer = [...sameLength, { id: 'c' }];
+        obs.set(opaque ? ObservableHint.opaque(longer) : longer);
+        expect(handler).toHaveBeenCalledTimes(1);
+        expect(normal).toHaveBeenCalledTimes(2);
+    });
 });
 describe('Array', () => {
     test('Basic array', () => {
