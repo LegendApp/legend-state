@@ -69,3 +69,30 @@ describe('observe error recovery', () => {
         expect(callsBeforeForcedCleanup).toBe(3);
     });
 });
+
+test('a failed dependency switch retains previous listeners until tracking succeeds', () => {
+    const chooseB$ = observable(false);
+    const a$ = observable(0);
+    const b$ = observable(0);
+    let fail = false;
+    let runs = 0;
+    const dispose = observe(() => {
+        runs++;
+        const value = chooseB$.get() ? b$.get() : a$.get();
+        if (fail) throw new Error('switch failed');
+        return value;
+    });
+    fail = true;
+    expect(() => chooseB$.set(true)).toThrow('switch failed');
+    const afterFailure = runs;
+    b$.set(1);
+    expect(runs).toBe(afterFailure);
+    fail = false;
+    a$.set(1);
+    expect(runs).toBe(afterFailure + 1);
+    a$.set(2);
+    expect(runs).toBe(afterFailure + 1);
+    b$.set(2);
+    expect(runs).toBe(afterFailure + 2);
+    dispose();
+});

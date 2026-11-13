@@ -45,10 +45,15 @@ export function observe<T>(
                 // Run the function/selector
                 delete e.value;
 
-                const tracked = trackSelector(selectorOrRun as Selector<T>, update, undefined, e, options);
-
-                // Keep the previous subscription active until its replacement succeeds.
-                dispose?.();
+                const tracked = trackSelector(
+                    selectorOrRun as Selector<T>,
+                    update,
+                    undefined,
+                    e,
+                    options,
+                    undefined,
+                    dispose,
+                );
                 dispose = tracked.dispose;
 
                 e.value = tracked.value;

@@ -10,6 +10,7 @@ export function trackSelector<T>(
     observeEvent?: ObserveEvent<T>,
     observeOptions?: ObserveOptions,
     createResubscribe?: boolean,
+    disposePrevious?: () => void,
 ) {
     let dispose: undefined | (() => void);
     let resubscribe: (() => () => void) | undefined;
@@ -34,6 +35,9 @@ export function trackSelector<T>(
         tracker.traceListeners = undefined;
         tracker.traceUpdates = undefined;
     }
+
+    // Keep previous listeners if tracking throws, then replace them without overlapping subscriptions.
+    disposePrevious?.();
 
     if (!observeEvent?.cancel) {
         // Do tracing if it was requested
