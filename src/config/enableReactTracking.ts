@@ -54,11 +54,11 @@ export function enableReactTracking({ auto, warnUnobserved, warnMissingUse }: Re
                         if (isInRender()) {
                             if (isObserved()) {
                                 console.warn(
-                                    '[legend-state] Detected a `get()` call in an observer component. It is recommended to use the `use$` hook instead to be compatible with React Compiler: https://legendapp.com/open-source/state/v3/react/react-api/#use$',
+                                    '[legend-state] Detected a `get()` call in an observer component. It is recommended to use the `useValue` hook instead to be compatible with React Compiler: https://legendapp.com/open-source/state/v3/react/react-api/#usevalue',
                                 );
                             } else {
                                 console.warn(
-                                    '[legend-state] Detected a `get()` call in a component. You likely want to use the `use$` hook to be reactive to it changing, or change `get()` to `peek()` to get the value without tracking: https://legendapp.com/open-source/state/v3/react/react-api/#use$',
+                                    '[legend-state] Detected a `get()` call in a component. You likely want to use the `useValue` hook to be reactive to it changing, or change `get()` to `peek()` to get the value without tracking: https://legendapp.com/open-source/state/v3/react/react-api/#usevalue',
                                 );
                             }
                         }

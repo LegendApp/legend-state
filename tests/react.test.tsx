@@ -1,3 +1,6 @@
+import { internal } from '../index';
+import { configureLegendState } from '../src/config/configureLegendState';
+import { enableReactTracking } from '../src/config/enableReactTracking';
 import { act, render, renderHook, waitFor } from '@testing-library/react';
 import React, { StrictMode, Suspense, createElement, useReducer, useState } from 'react';
 import { getObservableIndex } from '../src/helpers';
@@ -2895,5 +2898,27 @@ describe('$React', () => {
         const { container } = render(createElement(App));
 
         expect(container.querySelector('div')?.textContent).toEqual('test');
+    });
+});
+
+describe('React tracking diagnostics', () => {
+    test.each([false, true])('recommends useValue for render reads (observed=%s)', (observed) => {
+        const originalEnv = process.env.NODE_ENV;
+        const originalGet = internal.observableFns.get('get')!;
+        const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+        try {
+            process.env.NODE_ENV = 'development';
+            enableReactTracking({ warnMissingUse: true });
+            const value$ = observable({ text: 'hello' });
+            const Item = () => <div>{value$.text.get()}</div>;
+            const { unmount } = render(createElement(observed ? observer(Item) : Item));
+            expect(warn).toHaveBeenCalledWith(expect.stringContaining('`useValue`'));
+            expect(warn).toHaveBeenCalledWith(expect.stringContaining('#usevalue'));
+            unmount();
+        } finally {
+            process.env.NODE_ENV = originalEnv;
+            configureLegendState({ observableFunctions: { get: originalGet } });
+            warn.mockRestore();
+        }
     });
 });
