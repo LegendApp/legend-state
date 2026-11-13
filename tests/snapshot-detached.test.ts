@@ -111,3 +111,67 @@ describe('snapshotDetachedValue', () => {
         expect(getterCalls).toBe(0);
     });
 });
+
+test('detached arrays preserve own sparse slots and metadata without invoking inherited setters', () => {
+    const tag = Symbol('tag');
+    const value: any[] = new Array(4);
+    Object.defineProperty(value, '1', { value: { count: 1 }, enumerable: false });
+    Object.defineProperty(value, '__proto__', { value: { count: 2 }, enumerable: true });
+    Object.defineProperty(value, tag, { value: { count: 3 }, enumerable: true });
+    const state = { seen: new Set<object>(), supported: true };
+    const previous = Object.getOwnPropertyDescriptor(Array.prototype, '1');
+    let writes = 0;
+    let snapshot: any;
+    try {
+        Object.defineProperty(Array.prototype, '1', {
+            configurable: true,
+            get: () => 'inherited',
+            set: () => writes++,
+        });
+        snapshot = snapshotDetachedValue(value, state);
+    } finally {
+        if (previous) Object.defineProperty(Array.prototype, '1', previous);
+        else delete Array.prototype[1];
+    }
+    expect(state.supported).toBe(true);
+    expect(writes).toBe(0);
+    expect(snapshot.length).toBe(4);
+    expect(0 in snapshot).toBe(false);
+    expect(2 in snapshot).toBe(false);
+    expect(3 in snapshot).toBe(false);
+    expect(snapshot[1]).toEqual({ count: 1 });
+    expect(snapshot[1]).not.toBe(value[1]);
+    expect(Object.getPrototypeOf(snapshot)).toBe(Array.prototype);
+    expect(Object.getOwnPropertyDescriptor(snapshot, '__proto__')?.value).toEqual({ count: 2 });
+    expect(snapshot[tag]).toEqual({ count: 3 });
+    expect(snapshot[tag]).not.toBe((value as any)[tag]);
+});
+
+test('array snapshots retain the own length descriptor and ignore missing proxy descriptors', () => {
+    for (const extra of [false, true])
+        for (const rejectLength of [false, true]) {
+            let reads = 0;
+            const value = new Proxy([1], {
+                ownKeys: (target) => [...Reflect.ownKeys(target), '4'],
+                getOwnPropertyDescriptor: (target, key) =>
+                    key === '4'
+                        ? extra
+                            ? { value: 2, enumerable: true, configurable: true, writable: true }
+                            : undefined
+                        : Reflect.getOwnPropertyDescriptor(target, key),
+                get: (target, key) => {
+                    if (key === 'length') {
+                        reads++;
+                        if (rejectLength) throw Error('must read the descriptor');
+                    }
+                    return Reflect.get(target, key);
+                },
+            });
+            const state = { seen: new Set<object>(), supported: true };
+            const snapshot = snapshotDetachedValue(value, state);
+            expect(state.supported).toBe(true);
+            expect(reads).toBe(0);
+            expect(snapshot).toEqual([1]);
+            expect(4 in snapshot).toBe(false);
+        }
+});

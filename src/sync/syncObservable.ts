@@ -1532,28 +1532,6 @@ function pendingHistoryTree(history: PendingChanges[string]['h']): PendingHistor
     return root;
 }
 
-function getPendingSnapshotKeys(
-    descriptors: PropertyDescriptorMap,
-    array: boolean,
-    length: number,
-): PropertyKey[] | undefined {
-    const keys = Reflect.ownKeys(descriptors);
-    let count = 0;
-    for (let i = 0; i < keys.length; i++) {
-        const key = keys[i];
-        const descriptor = descriptors[key];
-        if (
-            descriptor.enumerable ||
-            (array && typeof key === 'string' && key === String(parseInt(key, 10)) && +key >= 0 && +key < length)
-        ) {
-            if (!('value' in descriptor)) return;
-            keys[count++] = key;
-        }
-    }
-    keys.length = count;
-    return keys;
-}
-
 type DetachedSnapshot = { seen: Set<object>; supported: boolean };
 
 // The detached case of snapshotPendingLocal's visit, kept small because it visits every pending row.
@@ -1566,7 +1544,6 @@ export function snapshotDetachedValue(value: any, state: DetachedSnapshot): any 
     state.seen.add(value);
     try {
         const prototype = Object.getPrototypeOf(value);
-        const descriptors: Record<PropertyKey, PropertyDescriptor> = Object.getOwnPropertyDescriptors(value);
         const array = prototype === Array.prototype;
         const map = prototype === Map.prototype;
         const date = prototype === Date.prototype;
@@ -1575,12 +1552,8 @@ export function snapshotDetachedValue(value: any, state: DetachedSnapshot): any 
             state.supported = false;
             return;
         }
-        const length = array ? descriptors.length.value : 0;
-        const keys = getPendingSnapshotKeys(descriptors, array, length);
-        if (!keys) {
-            state.supported = false;
-            return;
-        }
+        const length = array ? Object.getOwnPropertyDescriptor(value, 'length')!.value : 0;
+        const keys = Reflect.ownKeys(value);
         const out = record
             ? Object.create(null)
             : array
@@ -1588,13 +1561,37 @@ export function snapshotDetachedValue(value: any, state: DetachedSnapshot): any 
               : date
                 ? new Date(Date.prototype.getTime.call(value))
                 : snapshotDetachedCollection(value, map, state);
+        // Copy without inherited setters, including numeric setters installed on Array.prototype.
+        if (array) Object.setPrototypeOf(out, null);
         for (const key of keys) {
-            const next = snapshotDetachedValue(descriptors[key as any].value, state);
-            if (record) out[key] = next;
-            else Object.defineProperty(out, key, { value: next, enumerable: true, configurable: true, writable: true });
+            const descriptor = Object.getOwnPropertyDescriptor(value, key);
+            if (
+                descriptor &&
+                (descriptor.enumerable ||
+                    (array &&
+                        typeof key === 'string' &&
+                        key === String(parseInt(key, 10)) &&
+                        +key >= 0 &&
+                        +key < length))
+            ) {
+                if (!('value' in descriptor)) {
+                    state.supported = false;
+                    return;
+                }
+                let next = descriptor.value;
+                if (next && typeof next === 'object') next = snapshotDetachedValue(next, state);
+                if (record || array) out[key] = next;
+                else
+                    Object.defineProperty(out, key, {
+                        value: next,
+                        enumerable: true,
+                        configurable: true,
+                        writable: true,
+                    });
+            }
         }
         if (array) out.length = length;
-        if (prototype === Object.prototype) Object.setPrototypeOf(out, prototype);
+        if (array || prototype === Object.prototype) Object.setPrototypeOf(out, prototype);
         return out;
     } catch {
         state.supported = false;
@@ -1615,125 +1612,16 @@ function snapshotDetachedCollection(value: any, map: boolean, state: DetachedSna
     return out;
 }
 
+// Wire callers only test equality; no reconciled copy escapes.
 function snapshotPendingLocal(value: any, wire: any): any {
-    if (wire === undefined) {
-        const state: DetachedSnapshot = { seen: new Set(), supported: true };
-        const result = snapshotDetachedValue(value, state);
-        return state.supported ? result : undefined;
-    }
-    let supported = true;
-    const seen = new Set<object>();
-    const visit = (value: any, wire: any): any => {
-        if (Object.is(value, wire) || !value || typeof value !== 'object') return value;
-        if (seen.has(value)) {
-            supported = false;
-            return wire;
-        }
-        seen.add(value);
-        try {
-            const prototype = Object.getPrototypeOf(value);
-            const wirePrototype = wire && typeof wire === 'object' ? Object.getPrototypeOf(wire) : undefined;
-            const descriptors: Record<PropertyKey, PropertyDescriptor> = Object.getOwnPropertyDescriptors(value);
-            const wireDescriptors: Record<PropertyKey, PropertyDescriptor> =
-                wire && typeof wire === 'object' ? Object.getOwnPropertyDescriptors(wire) : {};
-            const array = prototype === Array.prototype;
-            const map = prototype === Map.prototype;
-            const set = prototype === Set.prototype;
-            const date = prototype === Date.prototype;
-            if (!array && !map && !set && !date && prototype !== Object.prototype && prototype !== null) {
-                supported = false;
-                return wire;
-            }
-            const length = array ? descriptors.length.value : 0;
-            const valueKeys = getPendingSnapshotKeys(descriptors, array, length);
-            const wireLength = array && wirePrototype === Array.prototype ? wireDescriptors.length.value : 0;
-            const wireKeys = getPendingSnapshotKeys(wireDescriptors, array, wireLength);
-            if (!valueKeys || !wireKeys) {
-                supported = false;
-                return wire;
-            }
-            let out =
-                wirePrototype === prototype && (!array || wireLength === length)
-                    ? wire
-                    : map
-                      ? new Map()
-                      : set
-                        ? new Set()
-                        : date
-                          ? new Date(Date.prototype.getTime.call(value))
-                          : array
-                            ? new Array(length)
-                            : Object.create(prototype);
-            const copy = () => {
-                if (out === wire) {
-                    out = map
-                        ? new Map(Map.prototype.entries.call(wire))
-                        : set
-                          ? new Set(Set.prototype.values.call(wire))
-                          : date
-                            ? new Date(Date.prototype.getTime.call(wire))
-                            : array
-                              ? new Array(length)
-                              : Object.create(prototype);
-                    for (const key of wireKeys)
-                        Object.defineProperty(out, key, {
-                            value: wireDescriptors[key].value,
-                            enumerable: true,
-                            configurable: true,
-                            writable: true,
-                        });
-                }
-                return out;
-            };
-            if (map) {
-                for (const [key, item] of Map.prototype.entries.call(value)) {
-                    const has = wirePrototype === Map.prototype && Map.prototype.has.call(wire, key);
-                    const previous = has ? Map.prototype.get.call(wire, key) : undefined;
-                    const next = visit(item, previous);
-                    if (!has || next !== previous) Map.prototype.set.call(copy(), key, next);
-                }
-                if (wirePrototype === Map.prototype)
-                    for (const key of Map.prototype.keys.call(wire))
-                        if (!Map.prototype.has.call(value, key)) Map.prototype.delete.call(copy(), key);
-            } else if (set) {
-                const previous = wirePrototype === Set.prototype ? Array.from(Set.prototype.values.call(wire)) : [];
-                const next = Array.from(Set.prototype.values.call(value), (item, i) =>
-                    visit(item, i < previous.length ? previous[i] : undefined),
-                );
-                if (next.length !== previous.length || next.some((item, i) => item !== previous[i]))
-                    out = new Set(next);
-            } else if (
-                date &&
-                (wirePrototype !== Date.prototype ||
-                    Date.prototype.getTime.call(value) !== Date.prototype.getTime.call(wire))
-            ) {
-                out = new Date(Date.prototype.getTime.call(value));
-            }
-            for (const key of valueKeys) {
-                const previous = Object.prototype.hasOwnProperty.call(wireDescriptors, key)
-                    ? wireDescriptors[key]
-                    : undefined;
-                const next = visit(descriptors[key].value, previous?.value);
-                if (!previous || next !== previous.value || out !== wire)
-                    Object.defineProperty(copy(), key, {
-                        value: next,
-                        enumerable: true,
-                        configurable: true,
-                        writable: true,
-                    });
-            }
-            for (const key of wireKeys) if (!Object.prototype.hasOwnProperty.call(descriptors, key)) delete copy()[key];
-            if (array && out !== wire) out.length = length;
-            return out;
-        } catch {
-            supported = false;
-            return wire;
-        } finally {
-            seen.delete(value);
-        }
-    };
-    const result = visit(value, wire);
-    return supported ? result : undefined;
+    if (wire !== undefined && Object.is(value, wire)) return wire;
+    const state: DetachedSnapshot = { seen: new Set(), supported: true };
+    const snapshot = snapshotDetachedValue(value, state);
+    return state.supported
+        ? wire !== undefined && equalPendingSnapshot(snapshot, wire, false)
+            ? wire
+            : snapshot
+        : undefined;
 }
 
 function clonePendingValue(value: any, seen?: Map<object, any>): any {
@@ -2597,6 +2485,77 @@ function overlayPendingResponse(
     }
 }
 
+// Reusing an equal root response avoids replacing arrays and reactivating all their children.
+// Compare data descriptors so accessors, sparse slots and non-JSON fields cannot hide a change.
+function equalPendingSnapshot(local: any, remote: any, reuse: boolean, depth = 0): boolean {
+    if (!local || typeof local !== 'object') {
+        return Object.is(local, remote) && (!reuse || (typeof local !== 'function' && local !== internal.symbolDelete));
+    }
+    if (!remote || typeof remote !== 'object' || (reuse && depth > 100)) return false;
+    const prototype = Object.getPrototypeOf(local);
+    if (
+        prototype !== Object.getPrototypeOf(remote) ||
+        (prototype !== Object.prototype &&
+            prototype !== null &&
+            prototype !== Array.prototype &&
+            prototype !== Map.prototype &&
+            prototype !== Set.prototype &&
+            prototype !== Date.prototype)
+    )
+        return false;
+    // Set merging unions member identities, so structural equality cannot suppress that merge.
+    if (reuse && prototype === Set.prototype) return false;
+    if (reuse && Object.isExtensible(local) !== Object.isExtensible(remote)) return false;
+    if (prototype === Map.prototype) {
+        const size = Object.getOwnPropertyDescriptor(Map.prototype, 'size')!.get!;
+        if (size.call(local) !== size.call(remote)) return false;
+        for (const [key, value] of Map.prototype.entries.call(local)) {
+            if (
+                !Map.prototype.has.call(remote, key) ||
+                !equalPendingSnapshot(value, Map.prototype.get.call(remote, key), reuse, depth + 1)
+            )
+                return false;
+        }
+    } else if (prototype === Set.prototype) {
+        const a = Array.from(Set.prototype.values.call(local));
+        const b = Array.from(Set.prototype.values.call(remote));
+        if (a.length !== b.length) return false;
+        for (let i = 0; i < a.length; i++) if (!equalPendingSnapshot(a[i], b[i], reuse, depth + 1)) return false;
+    } else if (
+        prototype === Date.prototype &&
+        Date.prototype.getTime.call(local) !== Date.prototype.getTime.call(remote)
+    ) {
+        return false;
+    }
+    const keys = Reflect.ownKeys(local);
+    if (keys.length !== Reflect.ownKeys(remote).length) return false;
+    for (const key of keys) {
+        const a = Object.getOwnPropertyDescriptor(local, key)!;
+        const b = Object.getOwnPropertyDescriptor(remote, key);
+        if (
+            !b ||
+            !('value' in a) ||
+            !('value' in b) ||
+            a.enumerable !== b.enumerable ||
+            (reuse && (a.configurable !== b.configurable || a.writable !== b.writable)) ||
+            !equalPendingSnapshot(a.value, b.value, reuse, depth + 1)
+        )
+            return false;
+    }
+    return !reuse || !isHintOpaque(local);
+}
+
+function cloneTransportValue(value: any): any {
+    const json = internal.safeStringify(value);
+    // Escaped tags/dates and custom revivers retain the full JSON interpretation.
+    return json &&
+        !globalState.reviver &&
+        !('__LSType' in Object.prototype || '__LSType' in Array.prototype) &&
+        !/\\|__LSType|\d{4}-\d{2}-\d{2}T/.test(json)
+        ? JSON.parse(json)
+        : internal.safeParse(json);
+}
+
 async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
     if (!changeInfo) return;
 
@@ -2653,7 +2612,7 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
         }
 
         // Clone value to ensure it doesn't change observable value
-        let value = clone(obs$.peek());
+        let value = cloneTransportValue(obs$.peek());
         const transformSave = syncOptions?.transform?.save;
         const rawLocal = obs$.peek();
         const needsLocalSnapshot =
@@ -2993,7 +2952,15 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
                         );
                     if (transformedChanges !== undefined) {
                         if (pendingToOverlay.size === 0) {
-                            onChangeRemote(() => mergeIntoObservable(obs$, transformedChanges));
+                            let unchanged = false;
+                            if (changesByPath.has('')) {
+                                try {
+                                    unchanged = equalPendingSnapshot(obs$.peek(), transformedChanges, true);
+                                } catch {
+                                    // Inaccessible objects retain the normal merge path.
+                                }
+                            }
+                            if (!unchanged) onChangeRemote(() => mergeIntoObservable(obs$, transformedChanges));
                         } else if (!pendingToOverlay.has('') || failedPathStrs.has('') || rootAcknowledged) {
                             overlayPendingResponse(
                                 obs$,

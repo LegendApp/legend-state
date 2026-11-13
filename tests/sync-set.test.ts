@@ -11099,3 +11099,177 @@ describe('row baseline ownership across omitted snapshots', () => {
             5000,
         );
 });
+
+describe('unchanged root responses', () => {
+    for (const map of [false, true])
+        test(`an exact echo preserves existing array identities map=${map}`, async () => {
+            const data = (n: number): any => (map ? new Map<string, any>([['rows', [{ n }]]]) : { rows: [{ n }] });
+            const obs: any = observable(data(0));
+            let started!: () => void;
+            const sent = new Promise<void>((resolve) => (started = resolve));
+            const state = syncObservable(obs, {
+                set: async (p) => {
+                    p.update({ value: p.value, changes: p.changes });
+                    started();
+                },
+            });
+            const next = data(1);
+            const rows = map ? next.get('rows') : next.rows;
+            obs.set(next);
+            await sent;
+            await when(() => !state.isSetting.get());
+            expect(map ? obs.peek().get('rows') : obs.peek().rows).toBe(rows);
+            expect(state.getPendingChanges()).toEqual({});
+            expect(state.error.peek()).toBeUndefined();
+        });
+
+    for (const kind of ['value', 'metadata', 'sparse', 'frozen', 'accessor'] as const)
+        test(`root reuse still applies a ${kind} canonical response`, async () => {
+            const rows = [{ n: 1 }, { n: 2 }];
+            if (kind === 'sparse') delete rows[0];
+            const obs = observable({ rows: [{ n: 0 }], n: 0 });
+            let reads = 0;
+            let started!: () => void;
+            const sent = new Promise<void>((resolve) => (started = resolve));
+            const state = syncObservable(obs, {
+                set: async (p) => {
+                    const value: any = p.value;
+                    if (kind === 'value') value.rows[0].n = 9;
+                    if (kind === 'metadata') value.rows.extra = 'server';
+                    if (kind === 'frozen') Object.freeze(value.rows);
+                    if (kind === 'accessor')
+                        Object.defineProperty(value, 'n', {
+                            enumerable: true,
+                            get() {
+                                reads++;
+                                return 9;
+                            },
+                        });
+                    p.update({ value, changes: p.changes });
+                    started();
+                },
+            });
+            obs.set({ rows, n: 1 });
+            await sent;
+            await when(() => !state.isSetting.get());
+            if (kind === 'value') expect(obs.rows[0].n.peek()).toBe(9);
+            if (kind === 'metadata') expect((obs.peek().rows as any).extra).toBe('server');
+            if (kind === 'sparse') {
+                expect(0 in obs.peek().rows).toBe(true);
+                expect(obs.peek().rows[0]).toBe(null);
+            }
+            if (kind === 'frozen') expect(Object.isFrozen(obs.peek().rows)).toBe(true);
+            if (kind === 'accessor') {
+                expect(obs.n.peek()).toBe(9);
+                expect(reads).toBe(1);
+            }
+            expect(state.getPendingChanges()).toEqual({});
+            expect(state.error.peek()).toBeUndefined();
+        });
+});
+
+test('an equal root response still unions distinct Set members', async () => {
+    const obs = observable({ members: new Set([{ n: 0 }]), n: 0 });
+    let started!: () => void;
+    const sent = new Promise<void>((resolve) => (started = resolve));
+    const state = syncObservable(obs, {
+        set: async (p) => {
+            p.update({ value: p.value, changes: p.changes });
+            started();
+        },
+    });
+    obs.set({ members: new Set([{ n: 1 }]), n: 1 });
+    await sent;
+    await when(() => !state.isSetting.get());
+    expect([...obs.peek().members]).toEqual([{ n: 1 }, { n: 1 }]);
+    expect(state.getPendingChanges()).toEqual({});
+});
+
+describe('transport JSON interpretation', () => {
+    for (const custom of [false, true])
+        test(`transport retains native conversion and configured revival custom=${custom}`, async () => {
+            const previous = internal.globalState.reviver;
+            const value: any = custom
+                ? { name: 'original' }
+                : {
+                      name: 'original',
+                      date: new Date(1234),
+                      map: new Map([['a', { n: 1 }]]),
+                      set: new Set([1, 2]),
+                      text: 'line\n\\u0032',
+                  };
+            let input: any;
+            let started!: () => void;
+            const sent = new Promise<void>((resolve) => (started = resolve));
+            internal.globalState.reviver = custom ? (key, item) => (key === 'name' ? 'revived' : item) : undefined;
+            try {
+                const obs = observable<any>({ name: 'old' });
+                const state = syncObservable(obs, {
+                    set: async (p) => {
+                        input = p.value;
+                        started();
+                    },
+                });
+                obs.set(value);
+                await sent;
+                await when(() => !state.isSetting.get());
+                expect(input).not.toBe(value);
+                expect(input.name).toBe(custom ? 'revived' : 'original');
+                if (!custom) {
+                    expect(input.date).toEqual(value.date);
+                    expect(input.date).not.toBe(value.date);
+                    expect(input.map).toEqual(value.map);
+                    expect(input.set).toEqual(value.set);
+                    expect(input.text).toBe(value.text);
+                }
+                expect(obs.peek()).toEqual(value);
+                expect(state.getPendingChanges()).toEqual({});
+            } finally {
+                internal.globalState.reviver = previous;
+            }
+        });
+});
+
+test('an opaque array echo retains identity-based replacement semantics', async () => {
+    const previous = internal.globalState.reviver;
+    internal.globalState.reviver = (key, value) => (key === 'rows' ? ObservableHint.opaque(value) : value);
+    try {
+        const obs = observable({ rows: ObservableHint.opaque([0]), n: 0 });
+        let started!: () => void;
+        const sent = new Promise<void>((resolve) => (started = resolve));
+        const state = syncObservable(obs, {
+            set: async (p) => {
+                p.update({ value: p.value, changes: p.changes });
+                started();
+            },
+        });
+        const rows = ObservableHint.opaque([1]);
+        obs.set({ rows, n: 1 });
+        await sent;
+        await when(() => !state.isSetting.get());
+        expect(obs.peek().rows).not.toBe(rows);
+        expect(obs.peek().rows).toEqual([1]);
+        expect(state.getPendingChanges()).toEqual({});
+    } finally {
+        internal.globalState.reviver = previous;
+    }
+});
+
+test('an equal root ACK restores extensibility before the next array edit', async () => {
+    const obs = observable({ rows: [0], n: 0 });
+    let started!: () => void;
+    const sent = new Promise<void>((resolve) => (started = resolve));
+    const state = syncObservable(obs, {
+        set: async (p) => {
+            p.update({ value: p.value, changes: p.changes });
+            started();
+        },
+    });
+    obs.set({ rows: Object.preventExtensions([1]), n: 1 });
+    await sent;
+    await when(() => !state.isSetting.get());
+    expect(state.getPendingChanges()).toEqual({});
+    state.isSyncEnabled.set(false);
+    expect(() => obs.rows.push(2)).not.toThrow();
+    expect(obs.peek().rows).toEqual([1, 2]);
+});
