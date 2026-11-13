@@ -1490,6 +1490,44 @@ describe('reset sync state', () => {
         expect(obs$.peek()).toHaveLength(3);
         expect(Object.keys(obs$.peek())).toEqual([]);
     });
+    test('reset preserves detached enumerable properties on initial arrays', async () => {
+        const symbol = Symbol('metadata');
+        const initial = Object.assign(new Array<string | { count: number }>(3), {
+            metadata: { count: 1 },
+            [symbol]: { count: 2 },
+        });
+        initial[1] = 'initial';
+        Object.defineProperty(initial, '2', { value: { count: 4 }, configurable: true, writable: true });
+        Object.defineProperty(initial, '__proto__', { value: { count: 3 }, enumerable: true });
+        const obs$ = observable(synced({ initial }));
+        const state$ = syncState(obs$);
+
+        obs$.get();
+        obs$.set(Object.assign([], { metadata: { count: 9 }, [symbol]: { count: 9 } }));
+        await state$.reset();
+
+        const value = obs$.peek();
+        expect(value).toHaveLength(3);
+        expect(0 in value).toBe(false);
+        expect(value[1]).toBe('initial');
+        expect(value[2]).toEqual({ count: 4 });
+        expect(value[2]).not.toBe(initial[2]);
+        expect(value.metadata).toEqual({ count: 1 });
+        expect(value[symbol]).toEqual({ count: 2 });
+        expect(Object.getOwnPropertyDescriptor(value, '__proto__')?.value).toEqual({ count: 3 });
+        expect(Object.getPrototypeOf(value)).toBe(Array.prototype);
+        expect(value.metadata).not.toBe(initial.metadata);
+        expect(value[symbol]).not.toBe(initial[symbol]);
+
+        value.metadata.count = 9;
+        value[symbol].count = 9;
+        (value[2] as { count: number }).count = 9;
+        await state$.reset();
+
+        expect(obs$.peek().metadata).toEqual({ count: 1 });
+        expect(obs$.peek()[symbol]).toEqual({ count: 2 });
+        expect(obs$.peek()[2]).toEqual({ count: 4 });
+    });
     test('reset preserves observable hints in initial values', async () => {
         const opaque = ObservableHint.opaque({ count: 1 });
         const plain = ObservableHint.plain({ count: 1 });

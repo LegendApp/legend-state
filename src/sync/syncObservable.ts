@@ -205,13 +205,7 @@ function cloneInitialValue<T>(value: T, seen?: Map<object, any>): T {
     }
 
     let out: any;
-    if (isArray(value)) {
-        out = new Array(value.length);
-        seen.set(value, out);
-        value.forEach((item, index) => {
-            out[index] = cloneInitialValue(item, seen);
-        });
-    } else if (value instanceof Map) {
+    if (value instanceof Map) {
         out = new Map();
         seen.set(value, out);
         value.forEach((item, key) => {
@@ -220,12 +214,30 @@ function cloneInitialValue<T>(value: T, seen?: Map<object, any>): T {
     } else if (value instanceof Set) {
         out = new Set(value);
         seen.set(value, out);
-    } else if (isPlainObject(value)) {
-        out = {};
+    } else if (isArray(value) || isPlainObject(value)) {
+        const array = isArray(value);
+        out = array ? new Array(value.length) : {};
         seen.set(value, out);
         Reflect.ownKeys(value).forEach((key) => {
-            if (Object.prototype.propertyIsEnumerable.call(value, key)) {
-                out[key] = cloneInitialValue((value as Record<PropertyKey, any>)[key], seen);
+            if (
+                Object.prototype.propertyIsEnumerable.call(value, key) ||
+                (array &&
+                    typeof key === 'string' &&
+                    key === String(parseInt(key, 10)) &&
+                    +key >= 0 &&
+                    +key < value.length)
+            ) {
+                const item = cloneInitialValue((value as Record<PropertyKey, any>)[key], seen);
+                if (key === '__proto__') {
+                    Object.defineProperty(out, key, {
+                        value: item,
+                        enumerable: true,
+                        configurable: true,
+                        writable: true,
+                    });
+                } else {
+                    out[key] = item;
+                }
             }
         });
     } else {
