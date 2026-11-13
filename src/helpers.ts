@@ -110,7 +110,11 @@ export function setAtPath<T extends object>(
         }
     } else {
         if (mode === 'merge') {
-            o[p] = deepMerge(o[p], value);
+            if (isMap(o)) {
+                o.set(p, deepMerge(o.get(p), value));
+            } else {
+                o[p] = deepMerge(o[p], value);
+            }
         } else if (isMap(o)) {
             o.set(p, value);
         } else {
@@ -269,6 +273,20 @@ export function applyChanges<T extends object>(value: T, changes: Change[], appl
 export function deepMerge<T>(target: T, ...sources: any[]): T {
     if (isPrimitive(target)) {
         return sources[sources.length - 1];
+    }
+
+    if (isMap(target)) {
+        let result: any = new Map(target);
+        for (const source of sources) {
+            if (isMap(result) && isMap(source)) {
+                source.forEach((value, key) => {
+                    result.set(key, result.has(key) ? deepMerge(result.get(key), value) : value);
+                });
+            } else {
+                result = isMap(result) ? source : deepMerge(result, source);
+            }
+        }
+        return result;
     }
 
     let result: T = (isArray(target) ? [...target] : { ...target }) as T;

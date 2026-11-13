@@ -5,7 +5,7 @@ import { enable$GetSet } from '../src/config/enable$GetSet';
 import { enable_PeekAssign } from '../src/config/enable_PeekAssign';
 import { event } from '../src/event';
 import { clone, getNodeValue, isEvent, isObservable, optimized, symbolGetNode } from '../src/globals';
-import { setAtPath } from '../src/helpers';
+import { getValueAtPath, setAtPath } from '../src/helpers';
 import { linked } from '../src/linked';
 import { observable, observablePrimitive } from '../src/observable';
 import { NodeInfo, OpaqueObject } from '../src/observableInterfaces';
@@ -3574,6 +3574,42 @@ describe('Built-in functions', () => {
     });
 });
 describe('setAtPath', () => {
+    test('reads a nested Map value at a path', () => {
+        const value = new Map([['id1', { text: 'local' }]]);
+
+        expect(getValueAtPath(value, ['id1', 'text'])).toBe('local');
+    });
+    test('merges a Map entry without dropping existing fields', () => {
+        const value = new Map([['id1', { text: 'remote', serverOnly: 'keep' }]]);
+
+        const result = setAtPath(value, ['id1'], ['object'], { text: 'local' }, 'merge');
+
+        expect(result).toEqual(new Map([['id1', { text: 'local', serverOnly: 'keep' }]]));
+        expect(result.size).toBe(1);
+    });
+    test('merges Map-of-Map entries without losing their type or existing entries', () => {
+        const value = new Map([['row', new Map([['existing', { text: 'remote', serverOnly: 'keep' }]])]]);
+        const pending = new Map([
+            ['existing', { text: 'local' }],
+            ['new', { text: 'new' }],
+        ]);
+
+        const result = setAtPath(value, ['row'], ['map'], pending, 'merge');
+
+        expect(result).toEqual(
+            new Map([
+                [
+                    'row',
+                    new Map([
+                        ['existing', { text: 'local', serverOnly: 'keep' }],
+                        ['new', { text: 'new' }],
+                    ]),
+                ],
+            ]),
+        );
+        expect(result.get('row')).toBeInstanceOf(Map);
+        expect(result.get('row')!.size).toBe(2);
+    });
     test('At root', () => {
         const value = {};
 
