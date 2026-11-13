@@ -3526,6 +3526,8 @@ export function syncObservable<T>(
     let isSubscribed = false;
     let isApplyingPendingAfterSync = false;
     let unsubscribe: void | (() => void) = undefined;
+    let numSubscriptionUpdates = 0;
+    let lastAppliedSnapshot = 0;
 
     const applyPending = (pending: PendingChanges | undefined) => {
         if (pending && !isEmpty(pending)) {
@@ -4052,40 +4054,46 @@ export function syncObservable<T>(
                             node,
                             value$: obs$,
                             lastSync,
-                            update: (params: UpdateFnParams) => {
+                            update: (params) => {
+                                const updateNum = ++numSubscriptionUpdates;
+                                const applyUpdate = (complete = false) => {
+                                    if (!complete && updateNum <= lastAppliedSnapshot) return;
+                                    if (complete) lastAppliedSnapshot = updateNum;
+                                    params.mode ||= syncOptions.mode || 'merge';
+                                    const finish = () => {
+                                        if (complete || !syncState$.isLoaded.peek()) {
+                                            syncState$.assign({
+                                                isLoaded: (syncStateValue.numPendingRemoteLoads || 0) < 1,
+                                                error: undefined,
+                                                isGetting: syncStateValue.numPendingGets! > 0,
+                                            });
+                                        }
+                                    };
+                                    const changed = doInOrder(
+                                        onChange(params, undefined, onMetadataError, finish),
+                                        finish,
+                                    );
+                                    if (isPromise(changed)) changed.catch(onMetadataError);
+                                };
+                                if (params.isLoaded && !syncState$.isLoaded.peek()) {
+                                    when(waitFor || true, () => {
+                                        if (isWaitingForLoad) {
+                                            isWaitingForLoad = false;
+                                            syncStateValue.numPendingRemoteLoads!--;
+                                        }
+                                        if (syncStateValue.numPendingRemoteLoads! < 1) {
+                                            // Publish the recovered data before releasing readiness listeners.
+                                            applyUpdate(true);
+                                        }
+                                    });
+                                }
                                 when(
                                     () => !get || syncState$.isLoaded.get(),
-                                    () => {
-                                        when(waitFor || true, () => {
-                                            params.mode ||= syncOptions.mode || 'merge';
-                                            const finish = () => {
-                                                // If no get then we need to set the loaded state
-                                                if (!syncState$.isLoaded.peek()) {
-                                                    syncState$.assign({
-                                                        isLoaded: (syncStateValue.numPendingRemoteLoads || 0) < 1,
-                                                        error: undefined,
-                                                        isGetting: syncStateValue.numPendingGets! > 0,
-                                                    });
-                                                }
-                                            };
-                                            const changed = doInOrder(
-                                                onChange(params, undefined, onMetadataError, finish),
-                                                finish,
-                                            );
-                                            if (isPromise(changed)) changed.catch(onMetadataError);
-                                        });
-                                    },
+                                    () => when(waitFor || true, () => applyUpdate()),
                                 );
                             },
                             refresh: () => when(syncState$.isLoaded, callSync),
-                            onError: (error: Error) =>
-                                onGetError(error, {
-                                    source: 'subscribe',
-                                    syncOptions,
-                                    subscribeParams,
-                                    type: 'get',
-                                    retry: {} as OnErrorRetryParams,
-                                }),
+                            onError: onMetadataError,
                         };
                         unsubscribe = subscribe(subscribeParams);
                         registerMiddleware(node, 'listeners-cleared', () => {

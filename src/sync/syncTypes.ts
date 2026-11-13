@@ -18,6 +18,7 @@ import type {
     SetParams,
     TypeAtPath,
     UpdateFn,
+    UpdateFnParams,
     UpdateSetFn,
 } from '@legendapp/state';
 
@@ -67,7 +68,12 @@ export interface SyncedSetParams<T>
 
 export interface SyncedSubscribeParams<T = any> extends SyncedGetSetSubscribeBaseParams<T> {
     lastSync: number | undefined;
-    update: UpdateFn<T>;
+    update: (
+        params: UpdateFnParams<T> & {
+            /** A complete snapshot can fulfill this subscription's initial load. */
+            isLoaded?: boolean;
+        },
+    ) => void;
     onError: (error: Error) => void;
 }
 

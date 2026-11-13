@@ -84,6 +84,7 @@ export function syncedQuery<
     }
 
     let isFirstRun = true;
+    let rejectInitialPromise: undefined | ((error: Error) => void);
     const get = (async () => {
         if (isFirstRun) {
             isFirstRun = false;
@@ -92,27 +93,40 @@ export function syncedQuery<
             const result = observer!.getOptimisticResult(latestOptions);
 
             if (result.isLoading) {
-                await new Promise((resolve) => {
+                return new Promise<TData>((resolve, reject) => {
                     resolveInitialPromise = resolve;
+                    rejectInitialPromise = reject;
                 });
             }
-
+            if (result.isError) throw result.error;
             return result.data!;
         } else {
-            return Promise.resolve(observer!.refetch()).then((res) => (res as any).data as TData);
+            return observer!.refetch({ throwOnError: true }).then((result) => result.data!);
         }
     }) as () => Promise<TData>;
 
-    const subscribe = ({ update }: SyncedSubscribeParams<TData>) => {
+    const subscribe = ({ update, onError, node }: SyncedSubscribeParams<TData>) => {
         // Subscribe to Query's observer and update the observable
         const unsubscribe = observer!.subscribe(
             notifyManager.batchCalls((result) => {
                 if (result.status === 'success') {
+                    node.state!.error.set(undefined);
                     if (resolveInitialPromise) {
                         resolveInitialPromise(result.data);
                         resolveInitialPromise = undefined;
+                        rejectInitialPromise = undefined;
                     }
-                    update({ value: result.data });
+                    update({
+                        value: result.data,
+                        isLoaded: !node.state!.isLoaded.peek() && !node.state!.isGetting.peek(),
+                    });
+                } else if (result.status === 'error') {
+                    if (rejectInitialPromise) {
+                        rejectInitialPromise(result.error as Error);
+                        rejectInitialPromise = undefined;
+                        resolveInitialPromise = undefined;
+                    }
+                    onError(result.error as Error);
                 }
             }),
         );

@@ -1,6 +1,7 @@
-import { observable, syncState, when } from '@legendapp/state';
+import { observable, observe, syncState, when } from '@legendapp/state';
 import { QueryClient } from '@tanstack/query-core';
 import { syncedQuery } from '../../src/sync-plugins/tanstack-query';
+import { promiseTimeout } from '../testglobals';
 
 type Todo = {
     id: number;
@@ -282,4 +283,200 @@ test('syncedQuery resolves per-key selected defaults again when a reactive key c
         unsubscribe();
         queryClient.clear();
     }
+});
+
+describe('syncedQuery with QueryClient', () => {
+    let client: QueryClient;
+    const disposers: (() => void)[] = [];
+
+    beforeEach(() => {
+        client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0, staleTime: Infinity } } });
+    });
+
+    afterEach(() => {
+        disposers.splice(0).forEach((dispose) => dispose());
+        client.clear();
+    });
+
+    test('loads uncached data and settles the initial get', async () => {
+        let resolve!: (value: string) => void;
+        const data = new Promise<string>((r) => (resolve = r));
+        const obs$ = observable(
+            syncedQuery({
+                queryClient: client,
+                query: { queryKey: ['initial'], queryFn: () => data },
+            }),
+        );
+        obs$.get();
+        await promiseTimeout(5);
+        expect(syncState(obs$).isGetting.peek()).toBe(true);
+        resolve('loaded');
+        await when(() => obs$.get() === 'loaded');
+        expect(syncState(obs$).isLoaded.peek()).toBe(true);
+        expect(syncState(obs$).isGetting.peek()).toBe(false);
+    });
+
+    test('reads fresh cached data without fetching and receives cache updates', async () => {
+        client.setQueryData(['cached'], 'cached');
+        const queryFn = jest.fn(async () => 'fetched');
+        const obs$ = observable(syncedQuery({ queryClient: client, query: { queryKey: ['cached'], queryFn } }));
+        disposers.push(observe(() => obs$.get()));
+        await when(syncState(obs$).isLoaded);
+        expect(obs$.peek()).toBe('cached');
+        expect(queryFn).not.toHaveBeenCalled();
+        client.setQueryData(['cached'], 'updated');
+        await when(() => obs$.get() === 'updated');
+        expect(queryFn).not.toHaveBeenCalled();
+    });
+
+    test('re-observation leaves refetch decisions to Query but explicit sync always refetches', async () => {
+        client.setQueryData(['reobserve'], 'cached');
+        client.setQueryDefaults(['reobserve'], { gcTime: Infinity });
+        const queryFn = jest.fn(async () => 'fetched');
+        const obs$ = observable(
+            syncedQuery({
+                queryClient: client,
+                query: { queryKey: ['reobserve'], queryFn, refetchOnMount: false },
+            }),
+        );
+        const dispose = observe(() => obs$.get());
+        await when(syncState(obs$).isLoaded);
+        dispose();
+        await promiseTimeout(5);
+        disposers.push(observe(() => obs$.get()));
+        await promiseTimeout(5);
+        expect(queryFn).not.toHaveBeenCalled();
+
+        await syncState(obs$).sync();
+        await promiseTimeout(5);
+        expect(queryFn).toHaveBeenCalledTimes(1);
+        expect(obs$.peek()).toBe('fetched');
+
+        await syncState(obs$).sync();
+        await promiseTimeout(5);
+        expect(queryFn).toHaveBeenCalledTimes(2);
+    });
+
+    test('refetchOnMount still refreshes stale data after re-observation', async () => {
+        client.setQueryData(['stale'], 'cached');
+        client.setQueryDefaults(['stale'], { gcTime: Infinity });
+        const queryFn = jest.fn(async () => 'fetched');
+        const obs$ = observable(
+            syncedQuery({
+                queryClient: client,
+                query: { queryKey: ['stale'], queryFn, staleTime: 0, refetchOnMount: true },
+            }),
+        );
+        const dispose = observe(() => obs$.get());
+        await when(() => obs$.get() === 'fetched');
+        dispose();
+        await promiseTimeout(5);
+        disposers.push(observe(() => obs$.get()));
+        await promiseTimeout(5);
+        expect(queryFn).toHaveBeenCalledTimes(2);
+    });
+
+    for (const cached of [false, true]) {
+        test(`reports ${cached ? 'background' : 'initial'} errors without throwing and recovers on sync`, async () => {
+            const key = ['error', cached];
+            if (cached) client.setQueryData(key, 'cached');
+            const error = new Error('Network failure');
+            let shouldFail = true;
+            const onError = jest.fn();
+            const obs$ = observable(
+                syncedQuery({
+                    queryClient: client,
+                    query: {
+                        queryKey: key,
+                        queryFn: async () => {
+                            if (shouldFail) throw error;
+                            return 'recovered';
+                        },
+                        staleTime: 0,
+                    },
+                    onError,
+                }),
+            );
+            disposers.push(observe(() => obs$.get()));
+            await when(() => syncState(obs$).error.get() === error);
+            await promiseTimeout(5);
+            expect(onError).toHaveBeenCalledTimes(1);
+            expect(syncState(obs$).isGetting.peek()).toBe(false);
+            expect(syncState(obs$).numPendingGets.peek()).toBe(0);
+
+            shouldFail = false;
+            await syncState(obs$).sync();
+            await when(() => obs$.get() === 'recovered');
+            await promiseTimeout(5);
+            expect(syncState(obs$).error.peek()).toBeUndefined();
+            expect(syncState(obs$).isGetting.peek()).toBe(false);
+        });
+    }
+
+    for (const recovery of ['refetch', 'cache', 'reobserve', 'unobserved'] as const) {
+        test(`recovers an initial failure through QueryClient ${recovery} without an extra fetch`, async () => {
+            const key = ['recover', recovery];
+            const error = new Error('offline');
+            let shouldFail = true;
+            const queryFn = jest.fn(async () => {
+                if (shouldFail) throw error;
+                return 'recovered';
+            });
+            const obs$ = observable(
+                syncedQuery({
+                    queryClient: client,
+                    query: { queryKey: key, queryFn, gcTime: Infinity },
+                }),
+            );
+            const dispose = recovery === 'unobserved' ? () => {} : observe(() => obs$.get());
+            obs$.get();
+            disposers.push(dispose);
+            const state$ = syncState(obs$);
+            await when(() => state$.error.get() === error);
+            await promiseTimeout(5);
+            expect(state$.isLoaded.peek()).toBe(false);
+            expect(state$.isGetting.peek()).toBe(false);
+
+            shouldFail = false;
+            if (recovery === 'cache') {
+                client.setQueryData(key, 'recovered');
+            } else if (recovery === 'reobserve') {
+                dispose();
+                await promiseTimeout(5);
+                disposers.push(observe(() => obs$.get()));
+            } else {
+                await client.refetchQueries({ queryKey: key });
+            }
+            await promiseTimeout(10);
+            expect(client.getQueryData(key)).toBe('recovered');
+            expect(state$.isLoaded.peek()).toBe(true);
+            expect(obs$.peek()).toBe('recovered');
+            expect(state$.isGetting.peek()).toBe(false);
+            expect(state$.numPendingGets.peek()).toBe(0);
+            expect(state$.error.peek()).toBeUndefined();
+            expect(queryFn).toHaveBeenCalledTimes(recovery === 'cache' ? 1 : 2);
+
+            if (recovery === 'unobserved') disposers.push(observe(() => obs$.get()));
+            await state$.sync();
+            await promiseTimeout(5);
+            expect(queryFn).toHaveBeenCalledTimes(recovery === 'cache' ? 2 : 3);
+        });
+    }
+
+    test('mutations still receive local changes', async () => {
+        client.setQueryData(['mutation'], 'cached');
+        const mutationFn = jest.fn(async (value: string) => value);
+        const obs$ = observable(
+            syncedQuery({
+                queryClient: client,
+                query: { queryKey: ['mutation'], queryFn: async () => 'cached' },
+                mutation: { mutationFn },
+            }),
+        );
+        obs$.get();
+        await when(syncState(obs$).isLoaded);
+        obs$.set('changed');
+        await promiseTimeout(5);
+        expect(mutationFn).toHaveBeenCalledWith('changed');
+    });
 });

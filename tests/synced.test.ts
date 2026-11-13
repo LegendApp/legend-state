@@ -1,5 +1,5 @@
-import { observable, observe } from '@legendapp/state';
-import { synced } from '@legendapp/state/sync';
+import { observable, observe, syncState, when } from '@legendapp/state';
+import { synced, syncObservable, SyncedSubscribeParams } from '@legendapp/state/sync';
 import { promiseTimeout } from './testglobals';
 
 describe('unsubscribe', () => {
@@ -247,4 +247,208 @@ describe('synced', () => {
         page$.set((p) => p + 1);
         expect(getCalls).toEqual(4);
     });
+});
+
+describe('sync errors', () => {
+    test('only a complete subscription snapshot can settle a failed initial load', async () => {
+        let update!: SyncedSubscribeParams<string>['update'];
+        const error = new Error('initial load failed');
+        const obs$ = observable(
+            synced({
+                get: async (): Promise<string> => {
+                    throw error;
+                },
+                subscribe: (params) => {
+                    update = params.update;
+                },
+            }),
+        );
+        obs$.get();
+        await promiseTimeout(5);
+        const state$ = syncState(obs$);
+        const readyValues: (string | undefined)[] = [];
+        const dispose = state$.isLoaded.onChange(({ value }) => {
+            if (value) readyValues.push(obs$.peek());
+        });
+        update({ value: 'older' });
+        expect(state$.isLoaded.peek()).toBe(false);
+        expect(obs$.peek()).toBeUndefined();
+        update({ value: 'recovered', isLoaded: true });
+        await promiseTimeout(0);
+        expect(obs$.peek()).toBe('recovered');
+        expect(state$.isLoaded.peek()).toBe(true);
+        expect(state$.numPendingRemoteLoads.peek()).toBe(0);
+        expect(state$.numPendingGets.peek()).toBe(0);
+        expect(state$.error.peek()).toBeUndefined();
+        expect(readyValues).toEqual(['recovered']);
+        update({ value: 'newer', isLoaded: true });
+        expect(obs$.peek()).toBe('newer');
+        expect(state$.numPendingRemoteLoads.peek()).toBe(0);
+        dispose();
+    });
+
+    test('a complete subscription snapshot still honors waitFor', async () => {
+        const ready$ = observable(true);
+        let update!: SyncedSubscribeParams<string>['update'];
+        const obs$ = observable(
+            synced({
+                get: async (): Promise<string> => {
+                    throw new Error('initial load failed');
+                },
+                subscribe: (params) => {
+                    update = params.update;
+                },
+                waitFor: ready$,
+            }),
+        );
+        obs$.get();
+        await promiseTimeout(5);
+        ready$.set(false);
+        update({ value: 'recovered', isLoaded: true });
+        expect(syncState(obs$).isLoaded.peek()).toBe(false);
+        expect(obs$.peek()).toBeUndefined();
+        ready$.set(true);
+        await promiseTimeout(0);
+        expect(obs$.peek()).toBe('recovered');
+        expect(syncState(obs$).isLoaded.peek()).toBe(true);
+    });
+
+    test('a complete snapshot settles only its own source when multiple gets are pending', async () => {
+        const obs$ = observable<string>();
+        let update!: SyncedSubscribeParams<string>['update'];
+        let resolveFirst!: (value: string) => void;
+        let resolveSecond!: (value: string) => void;
+        syncObservable(obs$, {
+            get: () =>
+                new Promise<string>((resolve) => {
+                    resolveFirst = resolve;
+                }),
+            subscribe: (params) => {
+                update = params.update;
+            },
+        });
+        syncObservable(obs$, {
+            get: () =>
+                new Promise<string>((resolve) => {
+                    resolveSecond = resolve;
+                }),
+        });
+        const state$ = syncState(obs$);
+        update({ value: 'older' });
+        update({ value: 'snapshot', isLoaded: true });
+        expect(state$.numPendingRemoteLoads.peek()).toBe(1);
+        expect(state$.isLoaded.peek()).toBe(false);
+        expect(obs$.peek()).toBeUndefined();
+        resolveSecond('other source');
+        await promiseTimeout(0);
+        expect(state$.isLoaded.peek()).toBe(true);
+        expect(obs$.peek()).toBe('snapshot');
+        resolveFirst('old get');
+        await promiseTimeout(0);
+        expect(state$.numPendingRemoteLoads.peek()).toBe(0);
+        expect(state$.numPendingGets.peek()).toBe(0);
+        expect(obs$.peek()).toBe('snapshot');
+    });
+
+    test('asynchronous subscription errors are reported without throwing', async () => {
+        let reportError!: (error: Error) => void;
+        const onError = jest.fn();
+        const obs$ = observable(
+            synced({
+                initial: 'cached',
+                subscribe: ({ onError }) => {
+                    reportError = onError;
+                },
+                onError,
+            }),
+        );
+        obs$.get();
+        await promiseTimeout(0);
+        const error = new Error('subscription failed');
+        expect(() => reportError(error)).not.toThrow();
+        expect(syncState(obs$).error.peek()).toBe(error);
+        expect(onError).toHaveBeenCalledWith(error, expect.objectContaining({ source: 'subscribe' }));
+    });
+
+    test('a rejected get settles its counter while another get is pending', async () => {
+        const pending: { resolve: (value: string) => void; reject: (error: Error) => void }[] = [];
+        const obs$ = observable(
+            synced({
+                get: () => new Promise<string>((resolve, reject) => pending.push({ resolve, reject })),
+            }),
+        );
+        const dispose = observe(() => obs$.get());
+        const state$ = syncState(obs$);
+        await state$.sync();
+        expect(state$.numPendingGets.peek()).toBe(2);
+        pending[0].reject(new Error('get failed'));
+        await promiseTimeout(0);
+        expect(state$.numPendingGets.peek()).toBe(1);
+        expect(state$.isGetting.peek()).toBe(true);
+        pending[1].resolve('recovered');
+        await promiseTimeout(0);
+        expect(state$.numPendingGets.peek()).toBe(0);
+        expect(state$.isGetting.peek()).toBe(false);
+        expect(state$.isLoaded.peek()).toBe(true);
+        expect(state$.error.peek()).toBeUndefined();
+        expect(obs$.peek()).toBe('recovered');
+        dispose();
+    });
+});
+
+describe('complete subscription transforms', () => {
+    test.each([false, true])(
+        'publishes transformed snapshots before readiness (reject first=%s)',
+        async (rejectFirst) => {
+            let update!: SyncedSubscribeParams<string>['update'];
+            let release!: () => void;
+            const gate = new Promise<void>((resolve) => (release = resolve));
+            const transformError = new Error('invalid snapshot');
+            let reportRejection!: () => void;
+            const rejected = new Promise<void>((resolve) => (reportRejection = resolve));
+            const obs$ = observable(
+                synced({
+                    get: async (): Promise<string> => {
+                        throw new Error('offline');
+                    },
+                    subscribe: (params) => {
+                        update = params.update;
+                    },
+                    onError: (error) => {
+                        if (error === transformError) reportRejection();
+                    },
+                    transform: {
+                        load: async (value: string) => {
+                            if (value === 'bad') throw transformError;
+                            await gate;
+                            return value.toUpperCase();
+                        },
+                    },
+                }),
+            );
+            obs$.get();
+            const state$ = syncState(obs$);
+            await when(state$.error);
+            const ready: string[] = [];
+            const dispose = state$.isLoaded.onChange(({ value }) => {
+                if (value) ready.push(obs$.peek());
+            });
+            if (rejectFirst) {
+                update({ value: 'bad', isLoaded: true });
+                await rejected;
+                expect(state$.error.peek()).toBe(transformError);
+                expect(state$.isLoaded.peek()).toBe(false);
+            }
+            update({ value: 'recovered', isLoaded: true });
+            expect(state$.isLoaded.peek()).toBe(false);
+            expect(obs$.peek()).toBeUndefined();
+            release();
+            await when(state$.isLoaded);
+            expect(ready).toEqual(['RECOVERED']);
+            expect(obs$.peek()).toBe('RECOVERED');
+            expect(state$.numPendingRemoteLoads.peek()).toBe(0);
+            expect(state$.error.peek()).toBeUndefined();
+            dispose();
+        },
+    );
 });
