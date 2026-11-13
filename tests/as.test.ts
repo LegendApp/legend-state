@@ -34,6 +34,15 @@ describe('arrayAsRecord', () => {
 });
 
 describe('recordAsArray', () => {
+    test('returns an empty array while the record has not loaded', () => {
+        const source$ = observable<Record<string, Item>>();
+        const array$ = observable(recordAsArray(source$));
+        expect(array$.get()).toEqual([]);
+        source$.set({ a: items[0] });
+        expect(array$.get()).toEqual([items[0]]);
+        source$.delete();
+        expect(array$.get()).toEqual([]);
+    });
     test('maps all record values to an array and writes them back by id', () => {
         const source$ = observable<Record<string, Item>>({ a: items[0], b: items[1] });
         const array$ = observable(recordAsArray(source$));

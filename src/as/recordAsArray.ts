@@ -5,7 +5,7 @@ export function recordAsArray<T, TKey extends keyof T>(
     keyField: TKey = 'id' as TKey,
 ): Linked<T[]> {
     return linked({
-        get: () => Object.values(record$.get()),
+        get: () => Object.values(record$.get() ?? {}),
         set: ({ value }) => {
             if (value) {
                 const record = {};
