@@ -1,5 +1,5 @@
 import { applyChanges, Change, internal, ObservableParam } from '@legendapp/state';
-import { onChangeRemote } from '@legendapp/state/sync';
+import { onChangeRemote } from './syncObservable';
 
 const { clone } = internal;
 
