@@ -1,8 +1,8 @@
 import { runWithRetry } from '../src/sync/retry';
-import { syncObservable } from '@legendapp/state/sync';
-import { observable, observe, syncState } from '@legendapp/state';
+import { syncObservable, synced } from '@legendapp/state/sync';
+import { observable, observe, syncState, when } from '@legendapp/state';
 import { syncedCrud } from '@legendapp/state/sync-plugins/crud';
-import { BasicValue, getPersistName, ObservablePersistLocalStorage, promiseTimeout } from './testglobals';
+import { BasicValue, getPersistName, ObservablePersistLocalStorage, promiseTimeout, localStorage } from './testglobals';
 
 jest?.setTimeout?.(1000);
 
@@ -12,6 +12,243 @@ const ItemBasicValue: () => BasicValue = () => ({
 });
 
 describe('sync()', () => {
+    test.each(['manual', 'auto'] as const)(
+        'explicit sync waits for asynchronous persistence in %s mode',
+        async (syncMode) => {
+            const persistName = getPersistName();
+            const stored = { id1: { id: 'id1', test: 'offline' } };
+            localStorage.setItem(persistName, JSON.stringify(stored));
+            localStorage.setItem(
+                persistName + '__m',
+                JSON.stringify({ lastSync: 17, pending: { id1: { p: null, t: ['object'], v: stored.id1 } } }),
+            );
+            let releaseLoad!: () => void;
+            const loadGate = new Promise<void>((resolve) => (releaseLoad = resolve));
+            class SlowStorage extends ObservablePersistLocalStorage {
+                async loadTable() {
+                    await loadGate;
+                }
+            }
+            const listCalls: Array<number | undefined> = [];
+            const createCalls: BasicValue[] = [];
+            const obs$ = observable<Record<string, BasicValue>>(
+                syncedCrud<BasicValue>({
+                    initial: {},
+                    syncMode,
+                    mode: 'merge',
+                    list: ({ lastSync }) => {
+                        listCalls.push(lastSync);
+                        return [];
+                    },
+                    create: async (input) => {
+                        createCalls.push(input);
+                        return { ...input, updatedAt: 18 };
+                    },
+                    fieldUpdatedAt: 'updatedAt',
+                    changesSince: 'last-sync',
+                    persist: { name: persistName, plugin: SlowStorage, retrySync: true },
+                }),
+            );
+            obs$.get();
+            const state$ = syncState(obs$);
+            const earlySync = state$.sync();
+            expect(listCalls).toEqual([]);
+            expect(createCalls).toEqual([]);
+            releaseLoad();
+            await earlySync;
+            await when(state$.isPersistLoaded);
+            await promiseTimeout(20);
+            expect(createCalls).toHaveLength(1);
+            expect(listCalls).toHaveLength(syncMode === 'manual' ? 1 : 2);
+            expect(listCalls.every((lastSync) => lastSync === 17)).toBe(true);
+            expect(createCalls[0]).toEqual(stored.id1);
+            expect(obs$.id1.peek()).toEqual({ ...stored.id1, updatedAt: 18 });
+            expect(state$.getPendingChanges()).toEqual({});
+            expect(JSON.parse(localStorage.getItem(persistName + '__m')!).pending).toEqual({});
+            await state$.sync();
+            await promiseTimeout(0);
+            expect(createCalls).toHaveLength(1);
+        },
+    );
+    test('explicit child sync waits for ancestor persistence', async () => {
+        let releaseLoad!: () => void;
+        const loadGate = new Promise<void>((resolve) => (releaseLoad = resolve));
+        class SlowStorage extends ObservablePersistLocalStorage {
+            async loadTable() {
+                await loadGate;
+            }
+        }
+        let getCalls = 0;
+        const parent$ = observable({
+            child: synced({
+                initial: 0,
+                syncMode: 'manual',
+                get: () => ++getCalls,
+            }),
+        });
+        const parentState$ = syncObservable(parent$, {
+            persist: { name: getPersistName(), plugin: SlowStorage },
+        });
+        parent$.child.get();
+        const earlySync = syncState(parent$.child).sync();
+        await promiseTimeout(0);
+        expect(getCalls).toBe(0);
+        releaseLoad();
+        await earlySync;
+        await when(parentState$.isPersistLoaded);
+        expect(getCalls).toBe(1);
+        expect(parent$.child.peek()).toBe(1);
+    });
+    test('subscription-only sync waits for persisted replay and lastSync', async () => {
+        const name = getPersistName();
+        localStorage.setItem(name, JSON.stringify({ n: 1 }));
+        localStorage.setItem(
+            name + '__m',
+            JSON.stringify({ lastSync: 17, pending: { n: { p: 0, t: ['object'], v: 1 } } }),
+        );
+        let releaseLoad!: () => void;
+        const loadGate = new Promise<void>((resolve) => (releaseLoad = resolve));
+        class SlowStorage extends ObservablePersistLocalStorage {
+            async loadTable() {
+                await loadGate;
+            }
+        }
+        const subscriptions: Array<number | undefined> = [];
+        const writes: Array<{ n: number }> = [];
+        const obs$ = observable(
+            synced({
+                initial: { n: 0 },
+                syncMode: 'manual',
+                subscribe: ({ lastSync, update }) => {
+                    subscriptions.push(lastSync);
+                    update({ value: { n: 0 }, lastSync: 18 });
+                },
+                set: async ({ value }) => {
+                    writes.push(value);
+                },
+                persist: { name, plugin: SlowStorage, retrySync: true },
+            }),
+        );
+        obs$.get();
+        const state$ = syncState(obs$);
+        const earlySync = state$.sync();
+        await promiseTimeout(0);
+        expect(subscriptions).toEqual([]);
+        releaseLoad();
+        await earlySync;
+        await promiseTimeout(20);
+        expect(subscriptions).toEqual([17]);
+        expect(writes).toEqual([{ n: 1 }]);
+        expect(obs$.peek()).toEqual({ n: 1 });
+        expect(state$.lastSync.peek()).toBe(18);
+        expect(state$.getPendingChanges()).toEqual({});
+        expect(JSON.parse(localStorage.getItem(name + '__m')!).pending).toEqual({});
+        await state$.sync();
+        await promiseTimeout(0);
+        expect(subscriptions).toEqual([17]);
+        expect(writes).toHaveLength(1);
+    });
+    test('concurrent early sync calls preserve dispatch order when resetting lastSync', async () => {
+        const name = getPersistName();
+        localStorage.setItem(name, JSON.stringify({ n: 1 }));
+        localStorage.setItem(name + '__m', JSON.stringify({ lastSync: 17 }));
+        let releaseLoad!: () => void;
+        const loadGate = new Promise<void>((resolve) => (releaseLoad = resolve));
+        class SlowStorage extends ObservablePersistLocalStorage {
+            async loadTable() {
+                await loadGate;
+            }
+        }
+        const lastSyncCalls: Array<number | undefined> = [];
+        const obs$ = observable(
+            synced({
+                initial: { n: 0 },
+                syncMode: 'manual',
+                get: ({ lastSync }) => {
+                    lastSyncCalls.push(lastSync);
+                    return { n: 2 };
+                },
+                persist: { name, plugin: SlowStorage },
+            }),
+        );
+        obs$.get();
+        const state$ = syncState(obs$);
+        const ordinarySync = state$.sync();
+        const earlySync = state$.sync({ resetLastSync: true });
+        await promiseTimeout(0);
+        expect(lastSyncCalls).toEqual([]);
+        releaseLoad();
+        await Promise.all([ordinarySync, earlySync]);
+        await promiseTimeout(0);
+        expect(lastSyncCalls).toEqual([17, undefined]);
+        expect(state$.lastSync.peek()).toBeUndefined();
+        expect(obs$.peek()).toEqual({ n: 2 });
+    });
+    test('set-only sync replays pending writes after asynchronous persistence', async () => {
+        const name = getPersistName();
+        localStorage.setItem(name, JSON.stringify({ n: 1 }));
+        localStorage.setItem(name + '__m', JSON.stringify({ pending: { n: { p: 0, t: ['object'], v: 1 } } }));
+        let releaseLoad!: () => void;
+        const loadGate = new Promise<void>((resolve) => (releaseLoad = resolve));
+        class SlowStorage extends ObservablePersistLocalStorage {
+            async loadTable() {
+                await loadGate;
+            }
+        }
+        const writes: Array<{ n: number }> = [];
+        const obs$ = observable(
+            synced({
+                initial: { n: 0 },
+                set: async ({ value }) => {
+                    writes.push(value);
+                },
+                persist: { name, plugin: SlowStorage, retrySync: true },
+            }),
+        );
+        obs$.get();
+        const state$ = syncState(obs$);
+        state$.sync();
+        await promiseTimeout(0);
+        expect(writes).toEqual([]);
+        releaseLoad();
+        await when(state$.isPersistLoaded);
+        await promiseTimeout(20);
+        expect(writes).toEqual([{ n: 1 }]);
+        expect(state$.getPendingChanges()).toEqual({});
+        expect(JSON.parse(localStorage.getItem(name + '__m')!).pending).toEqual({});
+        state$.sync();
+        await promiseTimeout(0);
+        expect(writes).toHaveLength(1);
+        obs$.n.set(2);
+        await promiseTimeout(20);
+        expect(writes).toEqual([{ n: 1 }, { n: 2 }]);
+        expect(state$.getPendingChanges()).toEqual({});
+        expect(JSON.parse(localStorage.getItem(name + '__m')!).pending).toEqual({});
+    });
+    test('sync rechecks enabled state after waiting for persistence', async () => {
+        let releaseLoad!: () => void;
+        const loadGate = new Promise<void>((resolve) => (releaseLoad = resolve));
+        class SlowStorage extends ObservablePersistLocalStorage {
+            async loadTable() {
+                await loadGate;
+            }
+        }
+        let gets = 0;
+        const obs$ = observable(
+            synced({
+                initial: 0,
+                get: () => ++gets,
+                persist: { name: getPersistName(), plugin: SlowStorage },
+            }),
+        );
+        obs$.get();
+        const state$ = syncState(obs$);
+        const earlySync = state$.sync();
+        state$.isSyncEnabled.set(false);
+        releaseLoad();
+        await earlySync;
+        expect(gets).toBe(1);
+    });
     test('sync() triggers sync', async () => {
         const persistName = getPersistName();
         let numLists = 0;

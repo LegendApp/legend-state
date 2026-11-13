@@ -3567,6 +3567,10 @@ export function syncObservable<T>(
                 }
                 return;
             }
+            if (!onAllPersistLoaded(false)) {
+                await when(onAllPersistLoaded);
+                return sync(options);
+            }
             const metadata = metadatas.get(obs$);
             if (metadata && options?.resetLastSync) {
                 metadata.lastSync = undefined;
@@ -4216,12 +4220,6 @@ export function syncObservable<T>(
         };
 
         syncStateValue.sync = sync;
-    } else {
-        if (!isSynced) {
-            isApplyingPendingAfterSync = true;
-            applyPending(localState.pendingChanges);
-            isApplyingPendingAfterSync = false;
-        }
     }
 
     syncStateValue.reset = async () => {
@@ -4274,10 +4272,11 @@ export function syncObservable<T>(
     });
 
     // Wait for this node and all parent nodes up the hierarchy to be loaded
-    const onAllPersistLoaded = () => {
+    const onAllPersistLoaded = (track = true) => {
         let parentNode: NodeInfo | undefined = node;
         while (parentNode) {
-            if (parentNode.state?.isPersistLoaded?.get() === false) {
+            const isPersistLoaded$ = parentNode.state?.isPersistLoaded;
+            if ((track ? isPersistLoaded$?.get() : isPersistLoaded$?.peek()) === false) {
                 return false;
             }
             parentNode = parentNode.parent;
@@ -4295,6 +4294,11 @@ export function syncObservable<T>(
         // If remote is not manual, then sync() is called automatically
         if ((syncOptions.get || syncOptions.subscribe) && syncOptions.syncMode === 'auto') {
             sync();
+        }
+        if (!syncOptions.get && !syncOptions.subscribe) {
+            isApplyingPendingAfterSync = true;
+            applyPending(localState.pendingChanges);
+            isApplyingPendingAfterSync = false;
         }
     });
 
