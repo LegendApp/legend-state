@@ -9075,9 +9075,12 @@ describe('initial keyed soft deletions', () => {
 
 describe('timestamped creates during persisted replay', () => {
     for (const as of ['object', 'array', 'Map'] as const) {
-        const pack = (rows: any[]) => as === 'array' ? rows : as === 'Map'
-            ? new Map(rows.map((row) => [row.id, row]))
-            : Object.fromEntries(rows.map((row) => [row.id, row]));
+        const pack = (rows: any[]) =>
+            as === 'array'
+                ? rows
+                : as === 'Map'
+                  ? new Map(rows.map((row) => [row.id, row]))
+                  : Object.fromEntries(rows.map((row) => [row.id, row]));
         for (const timestampField of ['createdAt', 'updatedAt'] as const) {
             for (const delay of [0, 20]) {
                 for (const serverHasRow of [false, true]) {
@@ -9086,25 +9089,36 @@ describe('timestamped creates during persisted replay', () => {
                         const previous = { id: 'a', value: 'A', [timestampField]: 1 };
                         const added = { id: 'x', value: 'X', [timestampField]: 5 };
                         localStorage.setItem(name, safeStringify(pack([previous, added])));
-                        localStorage.setItem(name + '__m', safeStringify({
-                            lastSync: 1,
-                            pending: { '': { p: pack([previous]), v: pack([previous, added]), t: [] } },
-                        }));
+                        localStorage.setItem(
+                            name + '__m',
+                            safeStringify({
+                                lastSync: 1,
+                                pending: { '': { p: pack([previous]), v: pack([previous, added]), t: [] } },
+                            }),
+                        );
                         const creates: any[] = [];
                         const updates: any[] = [];
-                        const obs: any = observable(syncedCrud<any, any, any>({
-                            as,
-                            fieldCreatedAt: timestampField === 'createdAt' ? timestampField : undefined,
-                            fieldUpdatedAt: timestampField === 'updatedAt' ? timestampField : undefined,
-                            changesSince: 'last-sync',
-                            list: async () => {
-                                if (delay) await promiseTimeout(delay);
-                                return serverHasRow ? [{ ...added }] : [];
-                            },
-                            create: async (input) => { creates.push(input); return input; },
-                            update: async (input) => { updates.push(input); return input; },
-                            persist: { name, plugin: new ObservablePersistLocalStorage(), retrySync: true },
-                        }));
+                        const obs: any = observable(
+                            syncedCrud<any, any, any>({
+                                as,
+                                fieldCreatedAt: timestampField === 'createdAt' ? timestampField : undefined,
+                                fieldUpdatedAt: timestampField === 'updatedAt' ? timestampField : undefined,
+                                changesSince: 'last-sync',
+                                list: async () => {
+                                    if (delay) await promiseTimeout(delay);
+                                    return serverHasRow ? [{ ...added }] : [];
+                                },
+                                create: async (input) => {
+                                    creates.push(input);
+                                    return input;
+                                },
+                                update: async (input) => {
+                                    updates.push(input);
+                                    return input;
+                                },
+                                persist: { name, plugin: new ObservablePersistLocalStorage(), retrySync: true },
+                            }),
+                        );
                         obs.get();
                         await when(syncState(obs).isLoaded);
                         await releaseTick();
@@ -9122,23 +9136,30 @@ describe('timestamped creates during persisted replay', () => {
                 const added = { id: 'b', value: 'B', updatedAt: 2 };
                 const removed = { id: 'd', value: 'removed', updatedAt: 1 };
                 localStorage.setItem(name, safeStringify(pack([row])));
-                localStorage.setItem(name + '__m', safeStringify({
-                    lastSync: 1,
-                    pending: { '': { p: pack([{ ...row, value: 'old' }, removed]), v: pack([row]), t: [] } },
-                }));
+                localStorage.setItem(
+                    name + '__m',
+                    safeStringify({
+                        lastSync: 1,
+                        pending: { '': { p: pack([{ ...row, value: 'old' }, removed]), v: pack([row]), t: [] } },
+                    }),
+                );
                 const create = jest.fn(async (input) => input);
                 const update = jest.fn(async (input) => input);
                 const remove = jest.fn(async (input) => input);
-                const obs: any = observable(syncedCrud<any, any, any>({
-                    as,
-                    fieldUpdatedAt: 'updatedAt',
-                    list: async () => {
-                        if (delay) await promiseTimeout(delay);
-                        return [row, added];
-                    },
-                    create, update, delete: remove,
-                    persist: { name, plugin: new ObservablePersistLocalStorage(), retrySync: true },
-                }));
+                const obs: any = observable(
+                    syncedCrud<any, any, any>({
+                        as,
+                        fieldUpdatedAt: 'updatedAt',
+                        list: async () => {
+                            if (delay) await promiseTimeout(delay);
+                            return [row, added];
+                        },
+                        create,
+                        update,
+                        delete: remove,
+                        persist: { name, plugin: new ObservablePersistLocalStorage(), retrySync: true },
+                    }),
+                );
                 obs.get();
                 await when(syncState(obs).isLoaded);
                 await releaseTick();

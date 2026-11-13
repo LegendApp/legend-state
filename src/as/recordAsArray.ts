@@ -12,11 +12,11 @@ export function recordAsArray<T, TKey extends keyof T>(
                 for (let i = 0; i < value.length; i++) {
                     const v = value[i];
                     Object.defineProperty(record, v[keyField] as PropertyKey, {
-                    value: v,
-                    enumerable: true,
-                    configurable: true,
-                    writable: true,
-                });
+                        value: v,
+                        enumerable: true,
+                        configurable: true,
+                        writable: true,
+                    });
                 }
                 record$.set(record);
             } else {
