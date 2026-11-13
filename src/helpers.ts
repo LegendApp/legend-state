@@ -1,6 +1,7 @@
+import { ObservableHint } from './ObservableHint';
 import { getProxy } from './ObservableObject';
 import { beginBatch, endBatch, endBatchAndThrow } from './batching';
-import { getChildNode, getNode, isObservable, setNodeValue, symbolDelete, symbolOpaque } from './globals';
+import { getChildNode, getNode, isObservable, setNodeValue, symbolDelete, symbolOpaque, symbolPlain } from './globals';
 import {
     hasOwnProperty,
     isArray,
@@ -171,7 +172,7 @@ function _mergeIntoObservable<T extends ObservableParam<Record<string, any>>>(
                   : (source as Record<string, any>)[key];
             if (sourceValue === symbolDelete) {
                 let targetChild =
-                    isMap(targetValue) || key === '__proto__'
+                    isMap(targetValue) || key === '__proto__' || key === '_'
                         ? getProxy(getChildNode(getNode(target), key))
                         : (target as Record<string, any>)[key];
                 if (isFunction(targetChild) && !isObservable(targetChild))
@@ -181,7 +182,7 @@ function _mergeIntoObservable<T extends ObservableParam<Record<string, any>>>(
                 const isObj = isObject(sourceValue);
                 const isArr = !isObj && isArray(sourceValue);
                 let targetChild =
-                    isMap(targetValue) || key === '__proto__'
+                    isMap(targetValue) || key === '__proto__' || key === '_'
                         ? getProxy(getChildNode(getNode(target), key))
                         : (target as Record<string, any>)[key];
                 if (isFunction(targetChild) && !isObservable(targetChild))
@@ -213,6 +214,29 @@ function _mergeIntoObservable<T extends ObservableParam<Record<string, any>>>(
             }
         }
     } else if (source !== undefined) {
+        const sourcePrototype = isObject(source) ? Object.getPrototypeOf(source) : undefined;
+        if (sourcePrototype === Object.prototype || sourcePrototype === null || source instanceof Map) {
+            const keys: any[] = isSourceMap ? Array.from(source.keys()) : Object.keys(source);
+            const deleted = keys.filter((key) => (isSourceMap ? source.get(key) : source[key]) === symbolDelete);
+            if (deleted.length > 0) {
+                const isPlain = source[symbolPlain];
+                const isOpaque = source[symbolOpaque];
+                source = isSourceMap ? new Map(source) : Object.setPrototypeOf({ ...source }, sourcePrototype);
+                if (isPlain) {
+                    ObservableHint.plain(source);
+                }
+                if (isOpaque) {
+                    ObservableHint.opaque(source);
+                }
+                for (const key of deleted) {
+                    if (isSourceMap) {
+                        source.delete(key);
+                    } else {
+                        delete source[key];
+                    }
+                }
+            }
+        }
         target.set(source);
     }
 

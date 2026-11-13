@@ -8872,3 +8872,45 @@ describe('CRUD retry invocation ownership within one shared record', () => {
         }
     });
 });
+
+describe('initial keyed soft deletions', () => {
+    test('initial object list handles a deleted constructor row', async () => {
+        const state$ = observable(
+            syncedCrud({
+                list: async () => [
+                    { id: 'constructor', deleted: true },
+                    { id: 'kept', deleted: false },
+                ],
+                fieldDeleted: 'deleted',
+                mode: 'merge',
+            }),
+        );
+        state$.get();
+        await when(syncState(state$).isLoaded);
+        expect(state$.peek()).toEqual({ kept: { id: 'kept', deleted: false } });
+    });
+    test.each(['object', 'Map'] as const)('consumes initial and later deletion markers for %s', async (as) => {
+        let rows = [
+            { id: 'gone', deleted: true },
+            { id: 'kept', deleted: false },
+        ];
+        const state$ = observable(
+            syncedCrud({
+                list: async () => rows,
+                as,
+                fieldDeleted: 'deleted',
+                changesSince: 'last-sync',
+                mode: 'merge',
+            }),
+        );
+        state$.get();
+        await when(syncState(state$).isLoaded);
+        expect(state$.peek()).toEqual(as === 'Map' ? new Map([['kept', rows[1]]]) : { kept: rows[1] });
+        const dispose = state$.onChange(() => {});
+        rows = [{ id: 'kept', deleted: true }];
+        await syncState(state$).sync();
+        await when(() => !syncState(state$).isGetting.get());
+        expect(state$.peek()).toEqual(as === 'Map' ? new Map() : {});
+        dispose();
+    });
+});

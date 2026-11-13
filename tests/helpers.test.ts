@@ -2,12 +2,231 @@ import fc from 'fast-check';
 import { isDeepStrictEqual } from 'node:util';
 import { deepEqual, diffObjects } from '../src/sync/syncHelpers';
 import { getValueAtPath } from '../src/helpers';
-import { batch, observe, symbolDelete } from '@legendapp/state';
-import { isObservable } from '../src/globals';
+import { batch, ObservableHint, observe, optimized, symbolDelete } from '@legendapp/state';
+import { isObservable, symbolOpaque, symbolPlain } from '../src/globals';
 import { deepMerge, isObservableValueReady, mergeIntoObservable } from '../src/helpers';
 import { observable } from '../src/observable';
 
 describe('mergeIntoObservable', () => {
+    test.each([undefined, null])('merge deletion markers onto %s', (initial) => {
+        const target = observable<any>(initial);
+        const changes: any[] = [];
+        const dispose = target.onChange(({ value }) => changes.push(value));
+        const source = { gone: symbolDelete, kept: { id: 'kept', empty: null } };
+        mergeIntoObservable(target, source);
+        expect(target.peek()).toEqual({ kept: { id: 'kept', empty: null } });
+        expect(changes).toEqual([{ kept: { id: 'kept', empty: null } }]);
+        expect(source.gone).toBe(symbolDelete);
+        mergeIntoObservable(target, { kept: symbolDelete });
+        expect(target.peek()).toEqual({});
+        dispose();
+    });
+    test('merge nested missing and all-deleted records', () => {
+        const target = observable<any>({});
+        mergeIntoObservable(target, { nested: { gone: symbolDelete, kept: 1 }, gone: symbolDelete });
+        expect(target.peek()).toEqual({ nested: { kept: 1 } });
+        const deleted = observable<any>();
+        mergeIntoObservable(deleted, { gone: symbolDelete });
+        expect(deleted.peek()).toEqual({});
+        const empty = observable<any>();
+        mergeIntoObservable(empty, {});
+        expect(empty.peek()).toEqual({});
+    });
+    test('merge initial Map deletion markers preserves keys and source', () => {
+        const target = observable<any>();
+        const key = { id: 1 };
+        const source = new Map<any, any>([
+            [key, { value: 1 }],
+            [2, symbolDelete],
+        ]);
+        mergeIntoObservable(target, source);
+        expect(target.peek()).toEqual(new Map([[key, { value: 1 }]]));
+        expect(source.get(2)).toBe(symbolDelete);
+        mergeIntoObservable(target, new Map([[key, symbolDelete]]));
+        expect(target.peek()).toEqual(new Map());
+    });
+    test('filtered initial records retain the plain hint', () => {
+        const target = observable<any>();
+        const source = ObservableHint.plain({ gone: symbolDelete, kept: { id: 'kept' } });
+        mergeIntoObservable(target, source);
+        expect(target.peek()).toEqual({ kept: { id: 'kept' } });
+        expect(target.peek()[symbolPlain]).toBe(true);
+        expect(Object.getOwnPropertyDescriptor(target.peek(), symbolPlain)?.enumerable).toBe(false);
+        expect(source.gone).toBe(symbolDelete);
+    });
+    test('initial deletion filtering handles a constructor key and null prototype', () => {
+        for (const source of [
+            { constructor: symbolDelete, kept: 1 },
+            Object.assign(Object.create(null), { gone: symbolDelete, kept: 1 }),
+        ]) {
+            const target = observable<any>();
+            mergeIntoObservable(target, source);
+            expect(Object.keys(target.peek())).toEqual(['kept']);
+            expect(target.peek().kept).toBe(1);
+            expect(Object.getPrototypeOf(target.peek())).toBe(Object.getPrototypeOf(source));
+        }
+    });
+    test('filtered initial records retain opaque behavior', () => {
+        const kept = { id: 'kept' };
+        const source = ObservableHint.opaque({ gone: symbolDelete, kept });
+        const target = observable<any>();
+        mergeIntoObservable(target, source);
+        expect(target.peek()[symbolOpaque]).toBe(true);
+        expect(Object.getOwnPropertyDescriptor(target.peek(), symbolOpaque)?.enumerable).toBe(false);
+        expect(target.kept).toBe(kept);
+        expect(source.gone).toBe(symbolDelete);
+    });
+    test('marker-free opaque WeakMap installs by reference', () => {
+        const source = ObservableHint.opaque(new WeakMap());
+        const target = observable<any>();
+        mergeIntoObservable(target, source);
+        expect(target.peek()).toBe(source);
+    });
+    test('Map updates retain boolean, numeric and method-name key identity', () => {
+        const target = observable<any>(
+            new Map<any, any>([
+                [true, { value: 1 }],
+                [undefined, { value: 2 }],
+                [3, { value: 3 }],
+                ['get', { value: 4 }],
+            ]),
+        );
+        mergeIntoObservable(
+            target,
+            new Map<any, any>([
+                [true, symbolDelete],
+                [3, { value: 30 }],
+                ['get', { value: 40 }],
+            ]),
+        );
+        expect(target.peek()).toEqual(
+            new Map<any, any>([
+                [undefined, { value: 2 }],
+                [3, { value: 30 }],
+                ['get', { value: 40 }],
+            ]),
+        );
+        mergeIntoObservable(
+            target,
+            new Map<any, any>([
+                [false, { value: 5 }],
+                [3, symbolDelete],
+            ]),
+        );
+        expect(target.peek().has(false)).toBe(true);
+        expect(target.peek().has(3)).toBe(false);
+        expect(target.peek().get(undefined)).toEqual({ value: 2 });
+    });
+    test.each([undefined, null])('Map merge updates and deletes the actual %s key', (key) => {
+        const target = observable<any>(
+            new Map<any, any>([
+                [key, { value: 1 }],
+                ['kept', 2],
+            ]),
+        );
+        const changes: any[] = [];
+        const dispose = target.onChange(({ value }) => changes.push(new Map(value)));
+        mergeIntoObservable(target, new Map([[key, { value: 3 }]]));
+        expect(target.peek()).toEqual(
+            new Map<any, any>([
+                [key, { value: 3 }],
+                ['kept', 2],
+            ]),
+        );
+        mergeIntoObservable(target, new Map([[key, symbolDelete]]));
+        expect(target.peek()).toEqual(new Map([['kept', 2]]));
+        (target as any).set(key, { value: 4 });
+        expect((target as any).delete(key)).toBe(true);
+        expect(target.peek()).toEqual(new Map([['kept', 2]]));
+        expect(changes).toHaveLength(4);
+        dispose();
+    });
+    test('initial deletion filtering preserves an own __proto__ row', () => {
+        const kept = { id: '__proto__' };
+        const source = { ['__proto__']: kept, gone: symbolDelete };
+        const target = observable<any>();
+        mergeIntoObservable(target, source);
+        expect(Object.getOwnPropertyDescriptor(target.peek(), '__proto__')?.value).toBe(kept);
+        expect(Object.getPrototypeOf(target.peek())).toBe(Object.prototype);
+        expect(Object.keys(target.peek())).toEqual(['__proto__']);
+        expect(source.gone).toBe(symbolDelete);
+    });
+    test('Map underscore entry deletion preserves the collection', () => {
+        const target = observable<any>(
+            new Map<any, any>([
+                ['_', 1],
+                ['kept', 2],
+            ]),
+        );
+        const changes: any[] = [];
+        const dispose = target.onChange(({ value }) => changes.push(value));
+        mergeIntoObservable(target, new Map([['_', 3]]));
+        expect(target.peek()).toEqual(
+            new Map([
+                ['_', 3],
+                ['kept', 2],
+            ]),
+        );
+        mergeIntoObservable(target, new Map([['_', symbolDelete]]));
+        expect(target.peek()).toEqual(new Map([['kept', 2]]));
+        (target as any).set('_', 4);
+        expect((target as any).delete('_')).toBe(true);
+        expect(target.peek()).toEqual(new Map([['kept', 2]]));
+        expect(changes).toHaveLength(4);
+        dispose();
+    });
+    test('Map size entry merges fields and keeps the tracked collection size', () => {
+        const target = observable<any>(
+            new Map<any, any>([
+                ['size', { retained: 1 }],
+                ['kept', 2],
+            ]),
+        );
+        mergeIntoObservable(target, new Map([['size', { updated: 2 }]]));
+        expect(target.peek()).toEqual(
+            new Map<any, any>([
+                ['size', { retained: 1, updated: 2 }],
+                ['kept', 2],
+            ]),
+        );
+        expect(target.size).toBe(2);
+        expect((target as any).get('size').peek()).toEqual({ retained: 1, updated: 2 });
+    });
+    test('object underscore tombstone merges preserve siblings', () => {
+        const target = observable({ _: 1, kept: 2 });
+        mergeIntoObservable(target, { _: symbolDelete });
+        expect(target.peek()).toEqual({ kept: 2 });
+    });
+    test('Map tombstone merges notify size, shallow and optimized observers', () => {
+        const target = observable(
+            new Map([
+                ['gone', { value: 1 }],
+                ['kept', { value: 2 }],
+            ]),
+        );
+        const sizes: number[] = [];
+        let shallow = 0;
+        let optimizedRuns = 0;
+        const disposeSize = observe(() => {
+            sizes.push(target.size);
+        });
+        const disposeShallow = observe(() => {
+            target.get(true as any);
+            shallow++;
+        });
+        const disposeOptimized = observe(() => {
+            target.get(optimized as any);
+            optimizedRuns++;
+        });
+        mergeIntoObservable(target, new Map([['gone', symbolDelete]]));
+        expect(target.peek().size).toBe(1);
+        expect(sizes).toEqual([2, 1]);
+        expect(shallow).toBe(2);
+        expect(optimizedRuns).toBe(2);
+        disposeSize();
+        disposeShallow();
+        disposeOptimized();
+    });
     test('listener errors do not leave the merge batch open', () => {
         const target = observable({ child: 0 });
         const error = new Error('immediate listener failed');

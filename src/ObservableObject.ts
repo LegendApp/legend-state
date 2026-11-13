@@ -116,7 +116,7 @@ function collectionSetter(node: NodeInfo, target: any[], prop: keyof Array<any>,
             parentValue[key] = prevValue;
 
             // Then set with the new value so it notifies with the correct prevValue
-            setKey(node.parent ?? node, key, target);
+            setKey(node.parent ?? node, key, target, undefined, !hasParent);
         }
 
         // Return the original value
@@ -685,7 +685,7 @@ export function set(node: NodeInfo, newValue?: any) {
     if (node.parent) {
         setKey(node.parent, node.key, newValue);
     } else {
-        setKey(node, '_', newValue);
+        setKey(node, '_', newValue, undefined, true);
     }
 }
 function toggle(node: NodeInfo) {
@@ -697,14 +697,12 @@ function toggle(node: NodeInfo) {
     }
 }
 
-function setKey(node: NodeInfo, key: string, newValue?: any, level?: number) {
+function setKey(node: NodeInfo, key: string, newValue?: any, level?: number, isRoot = false) {
     if (process.env.NODE_ENV === 'development') {
         if (typeof HTMLElement !== 'undefined' && newValue instanceof HTMLElement) {
             console.warn(`[legend-state] Set an HTMLElement into state. You probably don't want to do that.`);
         }
     }
-
-    const isRoot = !node.parent && key === '_';
 
     if (node.parent && !getNodeValue(node) && !isFunction(newValue)) {
         set(node, { [key]: newValue });
@@ -765,7 +763,7 @@ function setKey(node: NodeInfo, key: string, newValue?: any, level?: number) {
             );
         }
 
-        extractFunctionOrComputed(node, key, savedValue);
+        extractFunctionOrComputed(node, key, savedValue, isRoot);
     }
 }
 
@@ -804,6 +802,7 @@ function assign(node: NodeInfo, value: any) {
 }
 
 function deleteFn(node: NodeInfo, key?: string) {
+    const isRoot = !node.parent && key === undefined;
     // If called without a key, delete by key from the parent node
     if (key === undefined && isChildNode(node)) {
         key = node.key;
@@ -813,7 +812,7 @@ function deleteFn(node: NodeInfo, key?: string) {
     if (isArray(value)) {
         collectionSetter(node, value, 'splice', key!, 1);
     } else {
-        setKey(node, key ?? '_', symbolDelete, /*level*/ -1);
+        setKey(node, isRoot ? '_' : key!, symbolDelete, /*level*/ -1, isRoot);
     }
 }
 
@@ -1004,11 +1003,11 @@ export function extractPromise(node: NodeInfo, value: Promise<any>, setter?: (pa
         });
 }
 
-function extractFunctionOrComputed(node: NodeInfo, k: string, v: any) {
+function extractFunctionOrComputed(node: NodeInfo, k: string, v: any, isRoot = false) {
     // We want to extract these types of values from the observable's raw value so that
     // the raw value does not contain Promises, Observables or functions
     if (isPromise(v)) {
-        const childNode = getChildNode(node, k);
+        const childNode = isRoot ? node : getChildNode(node, k);
         extractPromise(childNode, v);
         setNodeValue(childNode, undefined);
         return undefined;
