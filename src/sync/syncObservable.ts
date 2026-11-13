@@ -1219,6 +1219,11 @@ export function syncObservable<T>(
                 }
                 return;
             }
+            // An explicit syncState(obs$).sync() can run before the async loadLocal() has finished.
+            // Wait for it so the one-shot pending replay and lastSync are not consumed with an empty snapshot.
+            if (syncOptions.persist && !syncState$.isPersistLoaded.peek()) {
+                await when(syncState$.isPersistLoaded);
+            }
             const metadata = metadatas.get(obs$);
             if (metadata && options?.resetLastSync) {
                 metadata.lastSync = undefined;

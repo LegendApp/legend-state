@@ -890,6 +890,51 @@ describe('Pending', () => {
 
         expect(await when(saved$)).toEqual({ test: 'hi' });
     });
+    test('replays persisted pending creates when sync() is called before the persist load resolves (#659)', async () => {
+        const persistName = getPersistName();
+        const value = { id: 'id1', test: 'created offline' };
+        localStorage.setItem(persistName, JSON.stringify({ id1: value }));
+        localStorage.setItem(
+            persistName + '__m',
+            JSON.stringify({ lastSync: 1000, pending: { id1: { p: null, t: ['object'], v: value } } }),
+        );
+
+        // Persist plugin whose loadTable resolves on demand, like a slow IndexedDB/MMKV read at startup
+        let release!: () => void;
+        const gate = new Promise<void>((resolve) => (release = resolve));
+        class SlowPlugin extends ObservablePersistLocalStorage {
+            loadTable() {
+                return gate;
+            }
+        }
+
+        const created: BasicValue[] = [];
+        const obs$ = observable(
+            syncedCrud({
+                list: () => [] as BasicValue[],
+                create: async (input: BasicValue) => {
+                    created.push(clone(input));
+                    return input;
+                },
+                as: 'object',
+                changesSince: 'last-sync',
+                persist: { plugin: SlowPlugin, name: persistName, retrySync: true },
+            }),
+        );
+
+        obs$.peek();
+        // Explicit sync before the local load has finished
+        const syncPromise = syncState(obs$).sync();
+        release();
+        await syncPromise;
+        await when(syncState(obs$).isPersistLoaded);
+        for (let i = 0; i < 10; i++) {
+            await promiseTimeout(0);
+        }
+
+        expect(created.map((r) => r.id)).toEqual(['id1']);
+        expect(syncState(obs$).getPendingChanges()).toEqual({});
+    });
 });
 describe('sync state', () => {
     test('isGetting and isSetting', async () => {
