@@ -147,15 +147,32 @@ export function configureSyncedSupabase(config: SyncedSupabaseConfiguration) {
 }
 
 function wrapSupabaseFn(fn: (...args: any) => PromiseLike<any>, source: CrudErrorParams['source']) {
-    return async (params: SyncedGetParams<any>, ...args: any) => {
-        const { onError } = params;
-        const { data, error } = await fn(params, ...args);
+    if (source === 'list') {
+        return async (params: SyncedGetParams<any>, ...args: any) => {
+            const { onError } = params;
+            const { data, error } = await fn(params, ...args);
+            if (error) {
+                (onError as CrudOnErrorFn)(new Error(error.message), {
+                    getParams: params,
+                    source,
+                    type: 'get',
+                    retry: params,
+                });
+            }
+            return data;
+        };
+    }
+    // create/update/delete are called by syncedCrud as fn(input, params)
+    return async (input: any, params: SyncedSetParams<any>) => {
+        const { data, error } = await fn(input, params);
         if (error) {
-            (onError as CrudOnErrorFn)(new Error(error.message), {
-                getParams: params,
+            handleSupabaseError(error, params.onError, {
+                setParams: params,
                 source,
-                type: 'get',
+                type: 'set',
                 retry: params,
+                input,
+                revert: createRevertChanges(params.value$, params.changes),
             });
         }
         return data;
