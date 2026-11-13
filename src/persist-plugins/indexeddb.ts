@@ -225,7 +225,16 @@ export class ObservablePersistIndexedDB implements ObservablePersistPlugin {
                 if (!this.tableData[table]) {
                     this.tableData[table] = {};
                 }
-                this.tableData[table] = setAtPath(this.tableData[table], path as string[], pathTypes, valueAtPath);
+                // A later queued row replaces an earlier full-table deletion marker.
+                if (this.tableData[table][key] === symbolDelete) {
+                    this.tableData[table][key] = undefined;
+                }
+                this.tableData[table] = setAtPath(
+                    this.tableData[table],
+                    path as string[],
+                    pathTypes,
+                    valueAtPath === symbolDelete ? undefined : valueAtPath,
+                );
                 pendingTable.items.add(key);
             } else {
                 // Set the whole table
@@ -401,7 +410,8 @@ export class ObservablePersistIndexedDB implements ObservablePersistPlugin {
             if (this.tableData[table]) {
                 delete this.tableData[table][key];
             }
-            return store.delete(key);
+            const prefixID = config.indexedDB?.prefixID;
+            return store.delete(prefixID ? prefixID + '/' + key : key);
         } else {
             if (isPrimitive(value)) {
                 value = { [PrimitiveName]: value };

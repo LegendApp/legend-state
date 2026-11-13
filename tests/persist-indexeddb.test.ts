@@ -2,7 +2,7 @@ import { IDBFactory } from 'fake-indexeddb';
 import 'fake-indexeddb/auto';
 import { symbolDelete } from '../src/globals';
 import { observable } from '../src/observable';
-import { observablePersistIndexedDB } from '../src/persist-plugins/indexeddb';
+import { observablePersistIndexedDB, ObservablePersistIndexedDB } from '../src/persist-plugins/indexeddb';
 import { configureSynced } from '../src/sync/configureSynced';
 import { mapSyncPlugins, syncObservable } from '../src/sync/syncObservable';
 import type { ObservablePersistPlugin, ObservablePersistPluginOptions } from '../src/sync/syncTypes';
@@ -444,6 +444,89 @@ describe('Persist IDB', () => {
         );
 
         await expectIDB(persistName, [{ id: 'keep', text: 'keep' }]);
+    });
+    test.each(['incremental', 'table'] as const)(
+        'prefixed %s sentinel delete preserves other namespaces after reload',
+        async (mode) => {
+            const persistName = getLocalName();
+            const persist = myIndexedDBPlugin as ObservablePersistPlugin;
+            await persist.initialize!(persistOptions);
+            const prefix = { indexedDB: { prefixID: 'p' } };
+            const otherPrefix = { indexedDB: { prefixID: 'q' } };
+            const write = (id: string, name: string) => [
+                { path: [id], pathTypes: ['object'] as const, prevAtPath: undefined, valueAtPath: { id, name } },
+            ];
+            await persist.set(persistName, write('id1', 'outside') as any, {});
+            await persist.set(persistName, write('id1', 'other prefix') as any, otherPrefix);
+            await persist.set(persistName, write('id1', 'delete') as any, prefix);
+            await persist.set(persistName, write('id2', 'keep') as any, prefix);
+            await persist.set(
+                persistName,
+                mode === 'incremental'
+                    ? [{ path: ['id1'], pathTypes: ['object'], prevAtPath: undefined, valueAtPath: symbolDelete }]
+                    : [
+                          {
+                              path: [],
+                              pathTypes: [],
+                              prevAtPath: undefined,
+                              valueAtPath: { id1: symbolDelete, id2: { id: 'id2', name: 'keep' } },
+                          },
+                      ],
+                prefix,
+            );
+            await expectIDB(persistName, [
+                { id: 'id1', name: 'outside' },
+                { id: 'p/id2', name: 'keep' },
+                { id: 'q/id1', name: 'other prefix' },
+            ]);
+            const reloaded = new ObservablePersistIndexedDB(persistOptions.indexedDB!);
+            await reloaded.initialize(persistOptions);
+            expect(reloaded.getTable(persistName, {}, prefix)).toEqual({ id2: { id: 'id2', name: 'keep' } });
+            expect(reloaded.getTable(persistName, {}, {})).toEqual({ id1: { id: 'id1', name: 'outside' } });
+            expect(reloaded.getTable(persistName, {}, otherPrefix)).toEqual({
+                id1: { id: 'id1', name: 'other prefix' },
+            });
+        },
+    );
+    test('itemID nested sentinel follows ordinary undefined deletion and keeps the parent row', async () => {
+        const persistName = getLocalName();
+        const persist = myIndexedDBPlugin as ObservablePersistPlugin;
+        await persist.initialize!(persistOptions);
+        const config = { indexedDB: { prefixID: 'p', itemID: 'container' } };
+        await persist.set(
+            persistName,
+            [{ path: [], pathTypes: [], prevAtPath: undefined, valueAtPath: { name: 'Alice', keep: true } }],
+            config,
+        );
+        await persist.set(
+            persistName,
+            [{ path: ['name'], pathTypes: ['object'], prevAtPath: 'Alice', valueAtPath: symbolDelete }],
+            config,
+        );
+        await expectIDB(persistName, [{ id: 'p/container', name: undefined, keep: true }]);
+    });
+    test('same-tick table marker then re-add preserves the newest row', async () => {
+        const persistName = getLocalName();
+        const persist = myIndexedDBPlugin as ObservablePersistPlugin;
+        await persist.initialize!(persistOptions);
+        const config = { indexedDB: { prefixID: 'p' } };
+        await persist.set(
+            persistName,
+            [{ path: ['id1'], pathTypes: ['object'], prevAtPath: undefined, valueAtPath: { id: 'id1', name: 'old' } }],
+            config,
+        );
+        const deleted = persist.set(
+            persistName,
+            [{ path: [], pathTypes: [], prevAtPath: undefined, valueAtPath: { id1: symbolDelete } }],
+            config,
+        );
+        const readded = persist.set(
+            persistName,
+            [{ path: ['id1'], pathTypes: ['object'], prevAtPath: undefined, valueAtPath: { id: 'id1', name: 'new' } }],
+            config,
+        );
+        await Promise.all([deleted, readded]);
+        await expectIDB(persistName, [{ id: 'p/id1', name: 'new' }]);
     });
     test('Persist without a name errors', async () => {
         const obs = observable<Record<string, any>>({});
