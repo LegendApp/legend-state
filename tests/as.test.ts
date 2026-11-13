@@ -34,8 +34,9 @@ describe('arrayAsRecord', () => {
 });
 
 describe('recordAsArray', () => {
-    test('returns an empty array while the record has not loaded', () => {
-        const source$ = observable<Record<string, Item>>();
+    test('returns an empty array while the record is cleared', () => {
+        const source$ = observable<Record<string, Item>>({});
+        source$.delete();
         const array$ = observable(recordAsArray(source$));
         expect(array$.get()).toEqual([]);
         source$.set({ a: items[0] });
