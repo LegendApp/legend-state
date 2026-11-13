@@ -1,5 +1,6 @@
 import { event } from '../src/event';
 import { observable } from '../src/observable';
+import { trackSelector } from '../src/trackSelector';
 import { beginTracking, endTracking, tracking } from '../src/tracking';
 
 beforeEach(() => {
@@ -138,5 +139,29 @@ describe('Tracking', () => {
 
         expect(nodes[0].node.key).toEqual('arr');
         expect(nodes[0].track).toEqual(true);
+    });
+});
+
+describe('trackSelector', () => {
+    test('a selector that throws still ends its tracking', () => {
+        const obs = observable({ test: 'hi' });
+        const outer = tracking.current;
+        const noop = () => undefined;
+
+        expect(() =>
+            trackSelector(() => {
+                obs.test.get();
+                throw new Error('thrown in selector');
+            }, noop),
+        ).toThrow('thrown in selector');
+
+        // The thrown selector's tracker is gone and the outer context is current again.
+        // Compared as booleans and sizes: printing a leaked tracker on failure would walk its proxies forever.
+        expect(tracking.current === outer).toBe(true);
+        expect(tracking.current!.nodes?.size ?? 0).toEqual(0);
+
+        // so later gets are recorded where they belong, not in a leaked tracker
+        obs.test.get();
+        expect(tracking.current!.nodes!.size).toEqual(1);
     });
 });

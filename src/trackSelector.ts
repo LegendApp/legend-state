@@ -15,13 +15,15 @@ export function trackSelector<T>(
     let resubscribe: (() => () => void) | undefined;
     let updateFn = update;
 
+    let value: T;
     beginTracking();
-    const value = selector
-        ? computeSelector(selector, getOptions, observeEvent, observeOptions?.fromComputed)
-        : selector;
     const tracker = tracking.current;
+    try {
+        value = selector ? computeSelector(selector, getOptions, observeEvent, observeOptions?.fromComputed) : selector;
+    } finally {
+        endTracking();
+    }
     const nodes = tracker!.nodes;
-    endTracking();
 
     if ((process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') && tracker && nodes) {
         tracker.traceListeners?.(nodes);
