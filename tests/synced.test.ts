@@ -518,6 +518,98 @@ test('a rejected get from before reset cannot block complete snapshot recovery',
     expect(obs$.peek()).toBe('recovered');
 });
 
+test.each([
+    [false, false],
+    [false, true],
+    [true, false],
+    [true, true],
+])(
+    'pre-reset GET completion cannot settle a current request (current first=%s, reject=%s)',
+    async (currentFirst, rejectObsolete) => {
+        const requests: { resolve: (value: string) => void; reject: (error: Error) => void }[] = [];
+        const errors: Error[] = [];
+        const obs$ = observable(
+            synced({
+                initial: 'initial',
+                get: () => new Promise<string>((resolve, reject) => requests.push({ resolve, reject })),
+                onError: (error) => errors.push(error),
+            }),
+        );
+        obs$.get();
+        const state$ = syncState(obs$);
+        await state$.reset();
+        obs$.get();
+        expect(requests).toHaveLength(2);
+        expect(state$.numPendingGets.peek()).toBe(1);
+        const completeObsolete = () => {
+            if (rejectObsolete) requests[0].reject(new Error('obsolete'));
+            else requests[0].resolve('obsolete');
+        };
+        if (currentFirst) {
+            requests[1].resolve('current');
+            await when(state$.isLoaded);
+            completeObsolete();
+        } else {
+            completeObsolete();
+            await promiseTimeout(0);
+            expect(state$.numPendingGets.peek()).toBe(1);
+            expect(state$.isGetting.peek()).toBe(true);
+            expect(state$.isLoaded.peek()).toBe(false);
+            expect(obs$.peek()).toBe('initial');
+            expect(errors).toEqual([]);
+            requests[1].resolve('current');
+            await when(state$.isLoaded);
+        }
+        await promiseTimeout(0);
+        expect(state$.numPendingGets.peek()).toBe(0);
+        expect(state$.isGetting.peek()).toBe(false);
+        expect(obs$.peek()).toBe('current');
+        expect(errors).toEqual([]);
+    },
+);
+
+test.each([false, true])('reset discards an unfinished GET transform (reject=%s)', async (rejectTransform) => {
+    let release!: () => void;
+    let started!: () => void;
+    const transforming = new Promise<void>((resolve) => {
+        started = resolve;
+    });
+    const transformed = new Promise<string>((resolve, reject) => {
+        release = () => (rejectTransform ? reject(new Error('obsolete transform')) : resolve('obsolete'));
+    });
+    let gets = 0;
+    const errors: Error[] = [];
+    const obs$ = observable(
+        synced({
+            initial: 'initial',
+            get: () => (++gets === 1 ? 'old' : 'current'),
+            transform: {
+                load: (value) => {
+                    if (value === 'old') {
+                        started();
+                        return transformed;
+                    }
+                    return value;
+                },
+            },
+            onError: (error) => errors.push(error),
+        }),
+    );
+    obs$.get();
+    const state$ = syncState(obs$);
+    await transforming;
+    await state$.reset();
+    obs$.get();
+    await when(state$.isLoaded);
+    release();
+    await promiseTimeout(0);
+
+    expect(obs$.peek()).toBe('current');
+    expect(state$.numPendingGets.peek()).toBe(0);
+    expect(state$.isGetting.peek()).toBe(false);
+    expect(errors).toEqual([]);
+});
+
 test.each([false, true])(
     'superseded complete snapshots cannot publish old transforms or errors (reject=%s)',
     async (reject) => {

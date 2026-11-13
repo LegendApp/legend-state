@@ -98,7 +98,7 @@ interface LocalState {
     pendingClears?: PendingChanges;
     pendingSetGeneration?: number;
     pendingSetsSinceClear?: number;
-    pendingSetEpoch?: number;
+    resetEpoch?: number;
     isApplyingPending?: boolean;
     timeoutSaveMetadata?: any;
 }
@@ -2700,7 +2700,7 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
             localState.pendingSetsSinceClear = pendingSetsSinceClear + 1;
         }
         // Track in-flight sets in sync state for UI and sequencing
-        const setEpoch = localState.pendingSetEpoch;
+        const setEpoch = localState.resetEpoch;
         state$.assign({ numPendingSets: (state$.numPendingSets.peek() || 0) + 1, isSetting: true });
 
         const beforeSetParams: Parameters<Required<SyncedOptions<any>>['onBeforeSet']>[0] = {
@@ -3048,7 +3048,7 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
         } catch (error) {
             onSetError(error as Error, undefined, true);
         } finally {
-            if (localState.pendingSetEpoch === setEpoch) {
+            if (localState.resetEpoch === setEpoch) {
                 const remainingSets = state$.numPendingSets.peek()! - 1;
                 if (setGeneration !== undefined && localState.pendingSetGeneration === setGeneration) {
                     localState.pendingSetsSinceClear = (localState.pendingSetsSinceClear || 1) - 1;
@@ -3617,9 +3617,11 @@ export function syncObservable<T>(
                     onPendingMetadataError?: () => void,
                     subscriptionNumber?: number,
                 ) => {
+                    const updateEpoch = localState.resetEpoch;
                     mode = mode || syncOptions.mode || 'set';
                     const hasValue = value !== undefined;
                     const apply = (value: any) => {
+                        if (localState.resetEpoch !== updateEpoch) return;
                         if (
                             getNumber !== undefined &&
                             (getNumber < (node.getNumResolved || 0) || getNumber <= lastSubscriptionGet)
@@ -4188,6 +4190,7 @@ export function syncObservable<T>(
                     syncOptions.onBeforeGet?.(beforeGetParams);
 
                     if (!beforeGetParams.cancel) {
+                        const getEpoch = localState.resetEpoch;
                         syncState$.assign({
                             numPendingGets: (syncStateValue.numPendingGets! || 0) + 1,
                             isGetting: true,
@@ -4201,16 +4204,18 @@ export function syncObservable<T>(
                         const numGets = (node.numGets = (node.numGets || 0) + 1);
                         let settled = false;
                         const settle = () => {
-                            if (!settled) {
+                            if (!settled && localState.resetEpoch === getEpoch) {
                                 settled = true;
                                 syncState$.numPendingGets.set((v) => v! - 1);
                                 syncState$.isGetting.set(syncStateValue.numPendingGets! > 0);
                             }
                         };
                         const handle = (value: any) => {
+                            if (localState.resetEpoch !== getEpoch) return;
                             latestGet = Math.max(latestGet, numGets);
                             let changed: void | Promise<void> = undefined;
                             const finish = () => {
+                                if (localState.resetEpoch !== getEpoch) return;
                                 settle();
                                 if (numGets <= lastSubscriptionGet) return;
                                 if (numGets === latestGet && isWaitingForLoad) {
@@ -4236,6 +4241,7 @@ export function syncObservable<T>(
                             return doInOrder(changed, finish);
                         };
                         const onError = (error: Error) => {
+                            if (localState.resetEpoch !== getEpoch) return;
                             latestGet = Math.max(latestGet, numGets);
                             settle();
                             if (numGets > lastSubscriptionGet && numGets >= (node.getNumResolved || 0)) {
@@ -4285,7 +4291,7 @@ export function syncObservable<T>(
             Object.assign(metadata, { lastSync: undefined, pending: undefined } as PersistMetadata);
         }
         resetPendingState();
-        localState.pendingSetEpoch = (localState.pendingSetEpoch || 0) + 1;
+        localState.resetEpoch = (localState.resetEpoch || 0) + 1;
         const newState: Partial<ObservableSyncState> = {
             isPersistEnabled: false,
             isSyncEnabled: false,
