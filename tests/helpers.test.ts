@@ -1531,3 +1531,14 @@ describe('diffObjects Date fallback', () => {
         expect(diffObjects({ date: data(NaN, { note: 1 }) }, { date: data(NaN, { note: 1 }) }, true)).toEqual({});
     });
 });
+
+test('deepMerge keeps non-iterable WeakMaps outside the entry merge path', () => {
+    const key = {};
+    const first = new WeakMap([[key, { value: 1 }]]);
+    const second = new WeakMap([[key, { value: 2 }]]);
+    expect(deepMerge(first, second)).toBe(second);
+    expect(deepMerge(new Map(), second)).toBe(second);
+    const last = new Map([['last', 3]]);
+    expect(deepMerge(new Map(), second, last)).toBe(last);
+    expect(second.get(key)).toEqual({ value: 2 });
+});

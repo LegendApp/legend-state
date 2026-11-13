@@ -303,15 +303,15 @@ export function deepMerge<T>(target: T, ...sources: any[]): T {
         return sources[sources.length - 1];
     }
 
-    if (isMap(target)) {
+    if (target instanceof Map) {
         let result: any = new Map(target);
         for (const source of sources) {
-            if (isMap(result) && isMap(source)) {
+            if (result instanceof Map && source instanceof Map) {
                 source.forEach((value, key) => {
                     result.set(key, result.has(key) ? deepMerge(result.get(key), value) : value);
                 });
             } else {
-                result = isMap(result) ? source : deepMerge(result, source);
+                result = result instanceof Map ? source : deepMerge(result, source);
             }
         }
         return result;
