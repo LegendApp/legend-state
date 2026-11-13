@@ -101,7 +101,10 @@ export function syncedQuery<
             if (result.isError) throw result.error;
             return result.data!;
         } else {
-            return observer!.refetch({ throwOnError: true }).then((result) => result.data!);
+            return observer!.refetch().then((result) => {
+                if (result.isError) throw result.error;
+                return result.data!;
+            });
         }
     }) as () => Promise<TData>;
 

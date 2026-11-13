@@ -463,6 +463,73 @@ describe('syncedQuery with QueryClient', () => {
         });
     }
 
+    test('query recovery ownership: a pending own refetch publishes its result before readiness', async () => {
+        const key = ['own-refetch'];
+        const error = new Error('offline');
+        let shouldFail = true;
+        let resolveFetch!: (value: string) => void;
+        const obs$ = observable(
+            syncedQuery({
+                queryClient: client,
+                query: {
+                    queryKey: key,
+                    queryFn: async () => {
+                        if (shouldFail) throw error;
+                        return new Promise<string>((resolve) => (resolveFetch = resolve));
+                    },
+                },
+            }),
+        );
+        disposers.push(observe(() => obs$.get()));
+        const state$ = syncState(obs$);
+        await when(() => state$.error.get() === error);
+        const ready: string[] = [];
+        const dispose = state$.isLoaded.onChange(({ value }) => {
+            if (value) ready.push(obs$.peek());
+        });
+        shouldFail = false;
+        await state$.sync();
+        client.setQueryData(key, 'intermediate cache');
+        await promiseTimeout(5);
+        expect(state$.isLoaded.peek()).toBe(false);
+        resolveFetch('fresh');
+        await when(state$.isLoaded);
+        await promiseTimeout(5);
+        expect(ready).toEqual(['fresh']);
+        expect(obs$.peek()).toBe('fresh');
+        dispose();
+    });
+
+    test('overlapping explicit refetches do not report Query cancellation as an error', async () => {
+        const key = ['overlap'];
+        client.setQueryData(key, 'cached');
+        const onError = jest.fn();
+        let calls = 0;
+        const obs$ = observable(
+            syncedQuery({
+                queryClient: client,
+                query: {
+                    queryKey: key,
+                    queryFn: async () => {
+                        const call = ++calls;
+                        await promiseTimeout(20);
+                        return 'fetched ' + call;
+                    },
+                },
+                onError,
+            }),
+        );
+        disposers.push(observe(() => obs$.get()));
+        const state$ = syncState(obs$);
+        await when(state$.isLoaded);
+        await Promise.all([state$.sync(), state$.sync()]);
+        await when(() => !state$.isGetting.get());
+        await promiseTimeout(5);
+        expect(onError).not.toHaveBeenCalled();
+        expect(state$.error.peek()).toBeUndefined();
+        expect(obs$.peek()).toBe('fetched 2');
+    });
+
     test('mutations still receive local changes', async () => {
         client.setQueryData(['mutation'], 'cached');
         const mutationFn = jest.fn(async (value: string) => value);
