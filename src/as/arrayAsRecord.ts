@@ -10,8 +10,12 @@ export function arrayAsRecord<T, TKey extends keyof T>(
             const value = arr$.get();
             for (let i = 0; i < value.length; i++) {
                 const v = value[i];
-                const child = v[keyField];
-                (record as any)[child[keyField]] = child;
+                Object.defineProperty(record, v[keyField] as PropertyKey, {
+                    value: v,
+                    enumerable: true,
+                    configurable: true,
+                    writable: true,
+                });
             }
             return record;
         },
