@@ -15,7 +15,7 @@ import {
 let nextMutationKey = 0;
 
 export interface ObservableQueryOptions<TQueryFnData, TError, TData, TQueryKey extends QueryKey>
-    extends Omit<QueryObserverOptions<TQueryFnData, TError, TData, TData, TQueryKey>, 'queryKey'> {
+    extends Omit<QueryObserverOptions<TQueryFnData, TError, TData, TQueryFnData, TQueryKey>, 'queryKey'> {
     queryKey?: TQueryKey | (() => TQueryKey);
 }
 
@@ -34,19 +34,14 @@ export function syncedQuery<
 >(params: SyncedQueryParams<TQueryFnData, TError, TData, TQueryKey>): Synced<TData> {
     const { query: options, mutation: mutationOptions, queryClient, initial: initialParam, ...rest } = params;
 
+    let initial: TData | undefined;
     if (initialParam !== undefined) {
-        const initialValue = isFunction(initialParam) ? initialParam() : initialParam;
-        options.initialData = initialValue as any;
+        initial = isFunction(initialParam) ? initialParam() : initialParam;
     }
 
-    const initial = options.initialData as TData;
-
     const Observer = QueryObserver;
-    const defaultedOptions = queryClient!.defaultQueryOptions(
-        options as QueryObserverOptions<TQueryFnData, TError, TData, TQueryKey>,
-    );
-    let observer: QueryObserver<TQueryFnData, TError, TData, TQueryKey> | undefined = undefined;
-    let latestOptions = defaultedOptions;
+    let observer: QueryObserver<TQueryFnData, TError, TData, TQueryFnData, TQueryKey> | undefined = undefined;
+    let latestOptions!: DefaultedQueryObserverOptions<TQueryFnData, TError, TData, TQueryFnData, TQueryKey>;
     let queryKeyFromFn: TQueryKey;
     let resolveInitialPromise: undefined | ((value: TData) => void) = undefined;
 
@@ -55,33 +50,38 @@ export function syncedQuery<
     // If the queryKey is a function, observe it and extract the raw value
     const isKeyFunction = isFunction(origQueryKey);
 
-    const updateQueryOptions = (obj: DefaultedQueryObserverOptions<TQueryFnData, TError, TData, TQueryKey>) => {
-        // Since legend-state mutates the query options, we need to clone it to make Query
-        // see it as changed
-        const options = Object.assign({}, obj);
-
-        // Use the latest value from the observed queryKey function
+    const updateQueryOptions = () => {
+        // Query options must be new for the observer to see a changed key.
+        const queryOptions = Object.assign({}, options);
         if (isKeyFunction) {
-            options.queryKey = queryKeyFromFn;
+            queryOptions.queryKey = queryKeyFromFn;
         }
-
-        latestOptions = options;
-
-        // Update the Query options
+        const defaultedOptions = queryClient.defaultQueryOptions(
+            queryOptions as QueryObserverOptions<TQueryFnData, TError, TData, TQueryFnData, TQueryKey>,
+        );
+        if (initialParam !== undefined && !defaultedOptions.select) {
+            defaultedOptions.initialData = initial as any;
+        }
+        latestOptions = defaultedOptions;
         if (observer) {
-            observer.setOptions(options, { listeners: false });
+            observer.setOptions(latestOptions, { listeners: false });
         }
     };
 
     if (isKeyFunction) {
         observe(() => {
             queryKeyFromFn = origQueryKey();
-            updateQueryOptions(latestOptions);
+            updateQueryOptions();
         });
+    } else {
+        updateQueryOptions();
     }
 
     // Create the observer
-    observer = new Observer!<TQueryFnData, TError, TData, TQueryKey>(queryClient!, latestOptions);
+    observer = new Observer!<TQueryFnData, TError, TData, TQueryFnData, TQueryKey>(queryClient!, latestOptions);
+    if (initialParam === undefined) {
+        initial = observer.getOptimisticResult(latestOptions).data;
+    }
 
     let isFirstRun = true;
     const get = (async () => {
