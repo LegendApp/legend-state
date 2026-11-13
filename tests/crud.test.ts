@@ -1448,6 +1448,79 @@ describe('Crud as Array', () => {
     });
 });
 describe('Crud record transform', () => {
+    test('transformed timestamp fields keep existing rows on the update path', async () => {
+        type RemoteValue = {
+            id: string;
+            test: string;
+            created_at: number;
+            modified_at: number;
+        };
+        type LocalValue = RemoteValue & {
+            modifiedAt: number;
+        };
+        const created: RemoteValue[] = [];
+        const updated: RemoteValue[] = [];
+        const obs$ = observable<Record<string, LocalValue>>(
+            syncedCrud<RemoteValue, LocalValue, 'object'>({
+                list: () => [
+                    {
+                        id: 'id1',
+                        test: 'before',
+                        created_at: 1,
+                        modified_at: 2,
+                    },
+                ],
+                as: 'object',
+                changesSince: 'last-sync',
+                fieldCreatedAt: 'created_at',
+                fieldUpdatedAt: 'modified_at',
+                updatePartial: true,
+                create: async (input) => {
+                    created.push(clone(input));
+                    return input;
+                },
+                update: async (input) => {
+                    updated.push(clone(input));
+                    return input;
+                },
+                transform: {
+                    load: (value) => ({
+                        ...value,
+                        modifiedAt: value.modified_at,
+                    }),
+                    save: (value) => ({
+                        ...value,
+                        modified_at: value.modifiedAt,
+                    }),
+                },
+            }),
+        );
+
+        expect(obs$.get()).toEqual(undefined);
+        await promiseTimeout(1);
+
+        expect(obs$.get()).toEqual({
+            id1: {
+                id: 'id1',
+                test: 'before',
+                created_at: 1,
+                modified_at: 2,
+                modifiedAt: 2,
+            },
+        });
+
+        obs$.id1.test.set('after');
+        await promiseTimeout(1);
+
+        expect(created).toEqual([]);
+        expect(updated).toEqual([
+            {
+                id: 'id1',
+                test: 'after',
+            },
+        ]);
+    });
+
     test('get transformed', async () => {
         const obs = observable(
             syncedCrud({
@@ -1735,7 +1808,92 @@ describe('fieldUpdatedAt', () => {
         });
     });
 });
+describe('create/update classification', () => {
+    for (const asType of ['object', 'array', 'Map'] as const) {
+        for (const timestampField of ['createdAt', 'updatedAt'] as const) {
+            test(`creates a new ${asType} item that already has ${timestampField}`, async () => {
+                const created: BasicValue[] = [];
+                const updated: BasicValue[] = [];
+                const initial = asType === 'array' ? [] : asType === 'Map' ? new Map() : {};
+                const obs$ = observable(
+                    syncedCrud({
+                        initial,
+                        as: asType,
+                        fieldCreatedAt: timestampField === 'createdAt' ? timestampField : undefined,
+                        fieldUpdatedAt: timestampField === 'updatedAt' ? timestampField : undefined,
+                        create: async (input: BasicValue) => {
+                            created.push(clone(input));
+                            return input;
+                        },
+                        update: async (input: BasicValue) => {
+                            updated.push(clone(input));
+                            return input;
+                        },
+                    } as any),
+                ) as any;
+                const item = {
+                    ...ItemBasicValue(),
+                    [timestampField]: 1,
+                };
+
+                obs$.get();
+                if (asType === 'array') {
+                    obs$.push(item);
+                } else if (asType === 'Map') {
+                    obs$.set(new Map([['id1', item]]));
+                } else {
+                    obs$.id1.set(item);
+                }
+                await promiseTimeout(1);
+
+                expect(created).toEqual([item]);
+                expect(updated).toEqual([]);
+            });
+        }
+    }
+});
 describe('lastSync', () => {
+    test('creates a new array item after loading last-sync metadata', async () => {
+        type Task = {
+            uuid: string;
+            title: string;
+            created?: number;
+            updated?: number;
+        };
+        const persistName = getPersistName();
+        localStorage.setItem(persistName, JSON.stringify([]));
+        localStorage.setItem(persistName + '__m', JSON.stringify({ lastSync: 1000 }));
+        const created: Task[] = [];
+        const obs$ = observable(
+            syncedCrud({
+                as: 'array',
+                initial: [] as Task[],
+                list: () => [],
+                create: async (value: Task) => {
+                    created.push(clone(value));
+                    return value;
+                },
+                fieldId: 'uuid',
+                fieldCreatedAt: 'created',
+                fieldUpdatedAt: 'updated',
+                changesSince: 'last-sync',
+                persist: {
+                    name: persistName,
+                    plugin: ObservablePersistLocalStorage,
+                    retrySync: true,
+                },
+            }),
+        );
+
+        expect(obs$.get()).toEqual([]);
+        await promiseTimeout(1);
+
+        obs$.push({ uuid: 'id1', title: 'new' });
+        await promiseTimeout(1);
+
+        expect(created).toEqual([{ uuid: 'id1', title: 'new' }]);
+    });
+
     test('as Object assign if lastSync', async () => {
         const persistName = getPersistName();
         localStorage.setItem(persistName, JSON.stringify({ id2: { id: 'id2', test: 'hi2', updatedAt: 1 } }));
@@ -8913,4 +9071,83 @@ describe('initial keyed soft deletions', () => {
         expect(state$.peek()).toEqual(as === 'Map' ? new Map() : {});
         dispose();
     });
+});
+
+describe('timestamped creates during persisted replay', () => {
+    for (const as of ['object', 'array', 'Map'] as const) {
+        const pack = (rows: any[]) => as === 'array' ? rows : as === 'Map'
+            ? new Map(rows.map((row) => [row.id, row]))
+            : Object.fromEntries(rows.map((row) => [row.id, row]));
+        for (const timestampField of ['createdAt', 'updatedAt'] as const) {
+            for (const delay of [0, 20]) {
+                for (const serverHasRow of [false, true]) {
+                    test(`${as} ${timestampField} delay=${delay} existing=${serverHasRow}`, async () => {
+                        const name = getPersistName();
+                        const previous = { id: 'a', value: 'A', [timestampField]: 1 };
+                        const added = { id: 'x', value: 'X', [timestampField]: 5 };
+                        localStorage.setItem(name, safeStringify(pack([previous, added])));
+                        localStorage.setItem(name + '__m', safeStringify({
+                            lastSync: 1,
+                            pending: { '': { p: pack([previous]), v: pack([previous, added]), t: [] } },
+                        }));
+                        const creates: any[] = [];
+                        const updates: any[] = [];
+                        const obs: any = observable(syncedCrud<any, any, any>({
+                            as,
+                            fieldCreatedAt: timestampField === 'createdAt' ? timestampField : undefined,
+                            fieldUpdatedAt: timestampField === 'updatedAt' ? timestampField : undefined,
+                            changesSince: 'last-sync',
+                            list: async () => {
+                                if (delay) await promiseTimeout(delay);
+                                return serverHasRow ? [{ ...added }] : [];
+                            },
+                            create: async (input) => { creates.push(input); return input; },
+                            update: async (input) => { updates.push(input); return input; },
+                            persist: { name, plugin: new ObservablePersistLocalStorage(), retrySync: true },
+                        }));
+                        obs.get();
+                        await when(syncState(obs).isLoaded);
+                        await releaseTick();
+                        expect(creates).toEqual(serverHasRow ? [] : [added]);
+                        expect(updates).toEqual([]);
+                        expect(syncState(obs).getPendingChanges()).toEqual({});
+                    });
+                }
+            }
+        }
+        for (const delay of [0, 20]) {
+            test(`${as} resolved full refresh does not replay old root writes delay=${delay}`, async () => {
+                const name = getPersistName();
+                const row = { id: 'a', value: 'A', updatedAt: 1 };
+                const added = { id: 'b', value: 'B', updatedAt: 2 };
+                const removed = { id: 'd', value: 'removed', updatedAt: 1 };
+                localStorage.setItem(name, safeStringify(pack([row])));
+                localStorage.setItem(name + '__m', safeStringify({
+                    lastSync: 1,
+                    pending: { '': { p: pack([{ ...row, value: 'old' }, removed]), v: pack([row]), t: [] } },
+                }));
+                const create = jest.fn(async (input) => input);
+                const update = jest.fn(async (input) => input);
+                const remove = jest.fn(async (input) => input);
+                const obs: any = observable(syncedCrud<any, any, any>({
+                    as,
+                    fieldUpdatedAt: 'updatedAt',
+                    list: async () => {
+                        if (delay) await promiseTimeout(delay);
+                        return [row, added];
+                    },
+                    create, update, delete: remove,
+                    persist: { name, plugin: new ObservablePersistLocalStorage(), retrySync: true },
+                }));
+                obs.get();
+                await when(syncState(obs).isLoaded);
+                await releaseTick();
+                expect(obs.peek()).toEqual(pack([row, added]));
+                expect(create).not.toHaveBeenCalled();
+                expect(update).not.toHaveBeenCalled();
+                expect(remove).not.toHaveBeenCalled();
+                expect(syncState(obs).getPendingChanges()).toEqual({});
+            });
+        }
+    }
 });

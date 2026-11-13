@@ -874,11 +874,12 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                                   isFailedCreateRetry ||
                                   creates.has(id) ||
                                   (!pendingCreates.has(id) &&
-                                      (fieldCreatedAt
-                                          ? !fullValue[fieldCreatedAt!] && !prev?.[fieldCreatedAt!]
-                                          : fieldUpdatedAt
-                                            ? !fullValue[fieldUpdatedAt] && !prev?.[fieldUpdatedAt]
-                                            : isNullOrUndefined(prev)));
+                                      (isNullOrUndefined(prev) ||
+                                          (fieldCreatedAt
+                                              ? isNullOrUndefined(prev[fieldCreatedAt])
+                                              : fieldUpdatedAt
+                                                ? isNullOrUndefined(prev[fieldUpdatedAt])
+                                                : false)));
                               if (isCreate) {
                                   if (!id) {
                                       console.error('[legend-state]: added item without an id');

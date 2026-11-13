@@ -2782,6 +2782,9 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
                     const current = resolved.value;
                     if (change.path.length && entry?.v && typeof entry.v === 'object' && entry.v !== current) continue;
                     change.valueAtPath = getValueAtPath(value, change.path);
+                    // Keep replay's baseline in step with a remote load that has already completed.
+                    if (entry) change.prevAtPath = entry.p;
+                    else if (!change.path.length) change.prevAtPath = change.valueAtPath;
                     const local = changesLocal?.get(change.pathStr);
                     if (local) local.valueAtPath = getValueAtPath(valueLocal, local.path);
                 }
