@@ -237,6 +237,37 @@ describe('syncedFirebase realtime updates', () => {
             }),
         );
 
+    test('root value receives another client update after its own write is acknowledged', async () => {
+        const createValueObservable = () =>
+            observable<{ prop: number }>(
+                syncedFirebase({
+                    refPath: () => basePath,
+                    realtime: true,
+                    as: 'value',
+                }),
+            );
+        const first$ = createValueObservable();
+        const second$ = createValueObservable();
+
+        first$.get();
+        second$.get();
+        await waitForValueListeners();
+        emitValue(activePath, { prop: 0 });
+        await flushAsync();
+
+        first$.prop.set(1);
+        await flushAsync();
+        emitValue(activePath, { prop: 1 });
+        await flushAsync();
+
+        second$.prop.set(2);
+        await flushAsync();
+        emitValue(activePath, { prop: 2 });
+        await flushAsync();
+
+        expect(first$.prop.get()).toBe(2);
+    });
+
     test('ignores stale remote payload when newer local write is pending', async () => {
         // Ensure older childChanged payloads are ignored while a newer local write is pending.
         const obs$ = createObservable();
