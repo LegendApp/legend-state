@@ -315,8 +315,16 @@ export function syncedSupabase<
                 : async (input: SupabaseRowOf<Client, Collection, SchemaName>, params: SyncedSetParams<TRemote>) => {
                       const { onError } = params;
                       const res = await client.from(collection).update(input).eq(fieldId, input[fieldId]).select();
-                      const { data, error } = res;
-                      if (data) {
+                      const { data } = res;
+                      let { error } = res as { error: any };
+                      if (!error && Array.isArray(data) && data.length === 0) {
+                          // The UPDATE matched no row (not created yet, filtered by RLS, or deleted remotely).
+                          // Reporting this as success would drop the pending change without writing it.
+                          error = {
+                              message: `update matched no rows in ${String(collection)} (${fieldId}=${input[fieldId]})`,
+                          };
+                      }
+                      if (data && !error) {
                           const created = data[0];
                           return created;
                       } else if (error) {
