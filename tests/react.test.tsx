@@ -963,6 +963,202 @@ describe('For', () => {
         expect(items[2].id).toEqual('B');
         expect(items[3].id).toEqual('A');
     });
+    test.each(
+        [false, true].flatMap((optimized) =>
+            ['array', 'object', 'Map'].map((collection) => ({ optimized, collection })),
+        ),
+    )('For renders null and falsy $collection rows, optimized=$optimized', ({ optimized, collection }) => {
+        type Value = string | number | boolean | null | undefined;
+        const values: Value[] = ['ok', null, 0, false, '', undefined];
+        const entries = values.map((value, index) => [String(index), value] as const);
+        const each =
+            collection === 'array'
+                ? observable(values)
+                : collection === 'object'
+                  ? observable<Record<string, Value>>(Object.fromEntries(entries))
+                  : observable(new Map(entries));
+        function Item({ item$ }: { item$: Observable<Value> }) {
+            return createElement('li', undefined, String(useSelector(item$)));
+        }
+        const { container } = render(createElement(For as typeof For<Value, {}>, { each, item: Item, optimized }));
+        expect(Array.from(container.querySelectorAll('li')).map((el) => el.textContent)).toEqual([
+            'ok',
+            'null',
+            '0',
+            'false',
+            '',
+        ]);
+    });
+    test.each(['array', 'object', 'Map'])('For children render null and falsy %s rows', (collection) => {
+        type Value = number | boolean | null;
+        const values: Value[] = [0, null, false];
+        const entries = values.map((value, index) => [String(index), value] as const);
+        const each =
+            collection === 'array'
+                ? observable(values)
+                : collection === 'object'
+                  ? observable<Record<string, Value>>(Object.fromEntries(entries))
+                  : observable(new Map(entries));
+        const { container } = render(
+            <For<Value, {}> each={each}>{(item$) => createElement('li', undefined, String(item$.get()))}</For>,
+        );
+        expect(Array.from(container.querySelectorAll('li')).map((el) => el.textContent)).toEqual([
+            '0',
+            'null',
+            'false',
+        ]);
+    });
+    test.each([false, true])('For keeps nullable row subscriptions, optimized=%s', (optimized) => {
+        type Value = string | number | boolean | null;
+        const each = observable<Value[]>([null, 'stable']);
+        const renders: Record<string, number> = {};
+        function Item({ item$, id }: { item$: Observable<Value>; id?: string }) {
+            renders[id!] = (renders[id!] || 0) + 1;
+            return createElement('li', undefined, String(useSelector(item$)));
+        }
+        const { container } = render(createElement(For as typeof For<Value, {}>, { each, item: Item, optimized }));
+        const stableRenders = renders[1];
+        expect(container.querySelector('li')!.textContent).toBe('null');
+        for (const value of [0, false, '', null]) {
+            act(() => each[0].set(value));
+            expect(container.querySelectorAll('li').length).toBe(2);
+            expect(container.querySelector('li')!.textContent).toBe(String(value));
+            expect(renders[1]).toBe(stableRenders);
+        }
+    });
+    test.each([false, true])('For skips undefined and array holes, optimized=%s', (optimized) => {
+        const values = new Array<number | null | undefined>(4);
+        values[1] = null;
+        values[2] = undefined;
+        values[3] = 0;
+        const each = observable(values);
+        function Item({ item$ }: { item$: Observable<number | null | undefined> }) {
+            return createElement('li', undefined, String(useSelector(item$)));
+        }
+        const { container } = render(
+            createElement(For as typeof For<number | null | undefined, {}>, { each, item: Item, optimized }),
+        );
+        expect(Array.from(container.querySelectorAll('li')).map((el) => el.textContent)).toEqual(['null', '0']);
+    });
+    test.each([false, true])('For removes and reinserts null record rows, optimized=%s', (optimized) => {
+        const each = observable<Record<string, string | null>>({ a: 'stable', b: null });
+        function Item({ item$ }: { item$: Observable<string | null> }) {
+            return createElement('li', undefined, String(useSelector(item$)));
+        }
+        const { container } = render(
+            createElement(For as typeof For<string | null, {}>, { each, item: Item, optimized }),
+        );
+        expect(container.querySelectorAll('li').length).toBe(2);
+        act(() => each.b.delete());
+        expect(container.querySelectorAll('li').length).toBe(1);
+        act(() => each.b.set(null));
+        expect(Array.from(container.querySelectorAll('li')).map((el) => el.textContent)).toEqual(['stable', 'null']);
+    });
+    test.each([false, true])('For removes and reinserts null Map rows, optimized=%s', (optimized) => {
+        const each = observable(
+            new Map<string, string | null>([
+                ['a', 'stable'],
+                ['b', null],
+            ]),
+        );
+        function Item({ item$ }: { item$: Observable<string | null> }) {
+            return createElement('li', undefined, String(useSelector(item$)));
+        }
+        const { container } = render(
+            createElement(For as typeof For<string | null, {}>, { each, item: Item, optimized }),
+        );
+        expect(container.querySelectorAll('li').length).toBe(2);
+        act(() => each.delete('b'));
+        expect(container.querySelectorAll('li').length).toBe(1);
+        act(() => each.set('b', null));
+        expect(Array.from(container.querySelectorAll('li')).map((el) => el.textContent)).toEqual(['stable', 'null']);
+    });
+    test('For sorts nullable record rows without filtering valid values', () => {
+        type Value = string | number | boolean | null;
+        const each = observable<Record<string, Value>>({ a: null, b: false, c: 0, d: '' });
+        function Item({ item$ }: { item$: Observable<Value> }) {
+            return createElement('li', undefined, String(useSelector(item$)));
+        }
+        const { container } = render(
+            createElement(For as typeof For<Value, {}>, {
+                each,
+                item: Item,
+                sortValues: (a, b) => String(a).localeCompare(String(b)),
+            }),
+        );
+        expect(Array.from(container.querySelectorAll('li')).map((el) => el.textContent)).toEqual([
+            '',
+            '0',
+            'false',
+            'null',
+        ]);
+    });
+    test.each(
+        [false, true].flatMap((optimized) =>
+            [1, '1', 'index:1'].map((id) => ({ optimized, id, label: typeof id + ':' + id })),
+        ),
+    )('For separates nullable index keys from ID $label, optimized=$optimized', ({ optimized, id }) => {
+        type Value = { id: string | number; text: string } | null;
+        const each = observable<Value[]>([{ id, text: 'A' }, null]);
+        const ids: unknown[] = [];
+        const errors = jest.spyOn(console, 'error').mockImplementation(() => {});
+        function Item({ item$, id }: { item$: Observable<Value>; id?: string }) {
+            ids.push(id);
+            const value = useSelector(item$);
+            return createElement('li', undefined, value === null ? 'null' : value.text);
+        }
+        try {
+            const { container } = render(createElement(For as typeof For<Value, {}>, { each, item: Item, optimized }));
+            const rows = () => Array.from(container.querySelectorAll('li')).map((el) => el.textContent);
+            expect(rows()).toEqual(['A', 'null']);
+            expect(ids).toEqual([id, 1]);
+            act(() => each.unshift({ id: 'new', text: 'B' }));
+            expect(each.get()).toEqual([{ id: 'new', text: 'B' }, { id, text: 'A' }, null]);
+            expect(rows()).toEqual(['B', 'A', 'null']);
+            act(() => each.splice(1, 1));
+            expect(rows()).toEqual(['B', 'null']);
+            expect(errors.mock.calls.filter(([message]) => String(message).includes('same key'))).toEqual([]);
+        } finally {
+            errors.mockRestore();
+        }
+    });
+    test.each([false, true])('For preserves IDs after a first-null replacement, optimized=%s', (optimized) => {
+        type Value = { id: string; text: string } | null;
+        const b = { id: 'b', text: 'B' };
+        const each = observable<Value[]>([{ id: 'a', text: 'A' }, b]);
+        let instances = 0;
+        function Item({ item$, id }: { item$: Observable<Value>; id?: string }) {
+            const instance = useState(() => ++instances)[0];
+            const value = useSelector(item$);
+            return createElement(
+                'li',
+                { 'data-id': id, 'data-instance': instance },
+                value === null ? 'null' : value.text,
+            );
+        }
+        const { container } = render(createElement(For as typeof For<Value, {}>, { each, item: Item, optimized }));
+        const instance = container.querySelectorAll('li')[1].getAttribute('data-instance');
+        act(() => each.set([null, b]));
+        const rows = container.querySelectorAll('li');
+        expect(Array.from(rows).map((el) => el.textContent)).toEqual(['null', 'B']);
+        expect(rows[1].getAttribute('data-id')).toBe('b');
+        expect(rows[1].getAttribute('data-instance')).toBe(instance);
+        act(() => each.push({ id: 'c', text: 'C' }));
+        const next = container.querySelectorAll('li');
+        expect(Array.from(next).map((el) => el.textContent)).toEqual(['null', 'B', 'C']);
+        expect(next[1].getAttribute('data-id')).toBe('b');
+        expect(next[1].getAttribute('data-instance')).toBe(instance);
+    });
+    test('For does not call a custom key extractor on null rows', () => {
+        const state$ = observable({
+            rows: [null, { code: 'kept' }] as ({ code: string } | null)[],
+            rows_keyExtractor: (row: { code: string }) => row.code,
+        });
+        const { container } = render(
+            <For each={state$.rows}>{(item$) => <li>{String(item$.get()?.code ?? null)}</li>}</For>,
+        );
+        expect(Array.from(container.querySelectorAll('li')).map((el) => el.textContent)).toEqual(['null', 'kept']);
+    });
     test('For getObservableIndex', () => {
         const obs = observable({
             items: [

@@ -64,27 +64,32 @@ export function For<T, TProps>({
 
     if (isArr) {
         // Get the appropriate id field
-        const v0 = value[0] as any;
+        const v0 = (value[0] ?? value.find((v) => v !== null && v !== undefined)) as any;
         const node = getNode(each!);
         const length = (value as any[]).length;
 
         const idField =
             length > 0
                 ? (node && findIDKey(v0, node)) ||
-                  (v0.id !== undefined ? 'id' : v0.key !== undefined ? 'key' : undefined)
+                  (v0?.id !== undefined ? 'id' : v0?.key !== undefined ? 'key' : undefined)
                 : undefined;
 
         const isIdFieldFunction = isFunction(idField);
 
         for (let i = 0; i < length; i++) {
-            if (value[i]) {
+            if (value[i] !== undefined) {
                 const val = value[i];
-                const key = (isIdFieldFunction ? idField(val) : (val as Record<string, any>)[idField as string]) ?? i;
+                const id =
+                    val === null
+                        ? undefined
+                        : isIdFieldFunction
+                          ? idField(val)
+                          : (val as Record<string, any>)[idField as string];
                 const item$ = (each as Observable<any[]>)[i];
                 // TODOV3 Remove item
                 const props: ForItemProps<any> & { key: string; item: Observable<any> } = {
-                    key,
-                    id: key,
+                    key: id === null || id === undefined ? `index:${i}` : `id:${id}`,
+                    id: id ?? i,
                     item$,
                     item: item$,
                 };
@@ -101,7 +106,7 @@ export function For<T, TProps>({
         }
         for (let i = 0; i < keys.length; i++) {
             const key = keys[i];
-            if (asMap ? value.get(key) : value[key]) {
+            if ((asMap ? value.get(key) : value[key]) !== undefined) {
                 const item$ = asMap ? each!.get(key) : (each as ObservableObject<Record<string, any>>)[key];
                 const props: ForItemProps<any> & { key: string; item: Observable<any> } = {
                     key,
