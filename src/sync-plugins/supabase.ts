@@ -405,6 +405,7 @@ export function syncedSupabase<
                               old[symbolDelete as any] = true;
                               update({
                                   value: [old as TRemote],
+                                  mode: 'merge',
                               });
                           }
                       },
@@ -427,7 +428,7 @@ export function syncedSupabase<
         AsOption
     >({
         ...rest,
-        mode: mode || 'merge',
+        mode: mode || (changesSince === 'all' ? 'set' : 'merge'),
         list: list as (
             params: SyncedGetParams<SupabaseRowOf<Client, Collection, SchemaName>>,
         ) => Promise<SupabaseRowOf<Client, Collection, SchemaName>[] | null>,
