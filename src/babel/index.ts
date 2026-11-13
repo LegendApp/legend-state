@@ -8,41 +8,44 @@ import {
     jsxIdentifier,
     jsxOpeningElement,
     jsxOpeningFragment,
+    react,
 } from '@babel/types';
 
 export default function () {
-    let hasLegendImport = false;
     return {
+        pre(this: any) {
+            this.legendImports = new WeakMap<object, boolean>();
+        },
         visitor: {
             ImportDeclaration: {
-                enter(path: { node: any; replaceWith: (param: any) => any; skip: () => void }) {
-                    if (path.node.source.value === '@legendapp/state/react') {
-                        const specifiers = path.node.specifiers;
-                        for (let i = 0; i < specifiers.length; i++) {
-                            const s = specifiers[i].imported.name;
-                            if (!hasLegendImport && (s === 'Computed' || s === 'Memo' || s === 'Show')) {
-                                hasLegendImport = true;
-                                break;
-                            }
-                        }
-                    }
+                enter(path: any, state: any) {
+                    isLegendImport(path, state);
                 },
             },
             JSXElement: {
-                enter(path: {
-                    node: any;
-                    replaceWith: (param: any) => any;
-                    skip: () => void;
-                    traverse: (path: any) => any;
-                }) {
-                    if (!hasLegendImport) {
+                enter(
+                    path: {
+                        node: any;
+                        scope: any;
+                        replaceWith: (param: any) => any;
+                        skip: () => void;
+                        traverse: (path: any) => any;
+                    },
+                    state: any,
+                ) {
+                    const openingElement = path.node.openingElement;
+                    if (openingElement.name.type !== 'JSXIdentifier' || react.isCompatTag(openingElement.name.name)) {
                         return;
                     }
-
-                    const openingElement = path.node.openingElement;
                     const name = openingElement.name.name;
+                    const binding = path.scope.getBinding(name);
+                    if (!binding?.path.isImportSpecifier() || !isLegendImport(binding.path.parentPath, state)) {
+                        return;
+                    }
+                    const imported = binding.path.node.imported;
+                    const importedName = imported.name ?? imported.value;
 
-                    if (name === 'Computed' || name === 'Memo' || name === 'Show') {
+                    if (importedName === 'Computed' || importedName === 'Memo' || importedName === 'Show') {
                         const children = removeEmptyText(path.node.children);
                         if (children.length === 0) return;
 
@@ -68,6 +71,16 @@ export default function () {
             },
         },
     };
+}
+
+function isLegendImport(path: any, state: { legendImports: WeakMap<object, boolean> }) {
+    let isLegend = state.legendImports.get(path);
+    if (isLegend === undefined) {
+        // Capture module identity before a later plugin rewrites the source.
+        isLegend = path.node.source.value === '@legendapp/state/react';
+        state.legendImports.set(path, isLegend);
+    }
+    return isLegend;
 }
 
 function maybeWrapFragment(children: any[]) {
