@@ -4099,7 +4099,10 @@ export function syncObservable<T>(
                                             // Publish the recovered data before releasing readiness listeners.
                                             applyUpdate(true);
                                         } else {
-                                            when(syncState$.isLoaded, () => applyUpdate(true));
+                                            when(
+                                                () => !get || syncState$.isLoaded.get(),
+                                                () => applyUpdate(true),
+                                            );
                                         }
                                     });
                                     return;

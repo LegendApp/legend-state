@@ -561,3 +561,25 @@ test.each([false, true])(
         dispose();
     },
 );
+
+test('a subscribe-only complete snapshot applies before its later delta while another source loads', async () => {
+    const obs$ = observable<string>();
+    let resolveOther!: (value: string) => void;
+    let update!: SyncedSubscribeParams<string>['update'];
+    syncObservable(obs$, { get: () => new Promise<string>((resolve) => (resolveOther = resolve)) });
+    syncObservable(obs$, {
+        subscribe: (params) => {
+            update = params.update;
+        },
+    });
+    try {
+        update({ value: 'snapshot', isLoaded: true });
+        expect(obs$.peek()).toBe('snapshot');
+        update({ value: 'newer' });
+        expect(obs$.peek()).toBe('newer');
+    } finally {
+        resolveOther('other');
+    }
+    await promiseTimeout(0);
+    expect(obs$.peek()).toBe('other');
+});
