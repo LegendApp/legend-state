@@ -1,3 +1,31 @@
+## 3.0.0-next.0
+
+This is the first 3.0 release on the `next` tag, which previously pointed to 2.2.x.
+
+### Breaking / Behavior changes
+
+- Pending writes are now persisted in a new format so they can be recovered after a restart. **Downgrading to 3.0.0-beta.48 is not supported** once this version has saved pending writes.
+- Supabase UPDATEs that match zero rows now go through your configured error/retry/revert handling instead of being silently treated as successful. With infinite retries, rows that are missing or hidden by RLS will keep retrying. ([#674](https://github.com/LegendApp/legend-state/pull/674))
+- Supabase full-list refreshes now replace the local collection, so rows deleted on the server disappear. Realtime DELETEs still only remove the deleted row. ([#584](https://github.com/LegendApp/legend-state/issues/584), [#586](https://github.com/LegendApp/legend-state/issues/586), [#670](https://github.com/LegendApp/legend-state/pull/670))
+
+### Fixes
+
+- Sync: pending writes are recovered after restart, persistence writes are saved in order, and retries no longer interfere across different synced observables. Map keys and changes made while a save is in flight are preserved. ([#547](https://github.com/LegendApp/legend-state/issues/547))
+- Sync: explicit `sync()` waits for local persistence to load, and new records with timestamps are replayed correctly. ([#659](https://github.com/LegendApp/legend-state/issues/659), [#673](https://github.com/LegendApp/legend-state/pull/673), [#619](https://github.com/LegendApp/legend-state/issues/619))
+- Persistence: changes to root collections and IndexedDB deletions are saved correctly, including prefixed keys and items re-added after deletion. ([#552](https://github.com/LegendApp/legend-state/issues/552), [#658](https://github.com/LegendApp/legend-state/issues/658), [#663](https://github.com/LegendApp/legend-state/pull/663))
+- Reset restores empty initial values and sparse arrays, and responses from requests started before a reset no longer change data after it. ([#441](https://github.com/LegendApp/legend-state/issues/441), [#661](https://github.com/LegendApp/legend-state/issues/661))
+- Supabase: errors from custom write functions are reported through `onError` with retry/revert support. ([#675](https://github.com/LegendApp/legend-state/pull/675))
+- TanStack Query: `select` types are inferred correctly, query errors are reported, and cancellations are ignored. ([#665](https://github.com/LegendApp/legend-state/pull/665))
+- Soft-deleted items in initial data are handled correctly, and clearing a record converts to an empty array. ([#515](https://github.com/LegendApp/legend-state/issues/515))
+- Tracking and batching recover after errors thrown in selectors or listeners. ([#669](https://github.com/LegendApp/legend-state/pull/669))
+- React: `For` handles nullable rows, the Babel plugin resolves components by import, and tracking warnings recommend `useValue`. ([#153](https://github.com/LegendApp/legend-state/issues/153), [#477](https://github.com/LegendApp/legend-state/issues/477))
+
+### Performance
+
+- Saving CRUD changes is significantly faster.
+
+The changelog was not updated during the 3.0 alpha/beta prereleases after alpha.1.
+
 ## 3.0.0-alpha.1
 - Fix: The new undoRedo helper was not exported correctly, moved it to `/helpers`
 - Fix: IndexedDB plugin was not saving primitives properly when combined with `itemID` option
