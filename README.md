@@ -4,7 +4,7 @@ Legend-State is a super fast all-in-one state and sync library that lets you wri
 
 ### 1. 🦄 As easy as possible to use
 
-There is no boilerplate and there are no contexts, actions, reducers, dispatchers, sagas, thunks, or epics. It doesn't modify your data at all, and you can just call `get()` to get the raw data and `set()` to change it.
+There is no boilerplate and there are no contexts, actions, reducers, dispatchers, sagas, thunks, or epics. It uses plain JavaScript data, and you can just call `get()` to get the raw data and `set()` to change it.
 
 In React components you can call `use()` on any observable to get the raw data and automatically re-render whenever it changes.
 
@@ -32,6 +32,16 @@ const Component = observer(function Component() {
 
     return <div>Theme: {theme}</div>
 })
+```
+
+Object and array inputs are stored by reference, so child writes mutate the supplied data. For resettable state, create a fresh initial value each time:
+
+```js
+const createInitialState = () => ({ onboardingCompleted: false })
+const state$ = observable(createInitialState())
+
+state$.onboardingCompleted.set(true)
+state$.set(createInitialState()) // reset to false
 ```
 
 ### 2. ⚡️ The fastest React state library
