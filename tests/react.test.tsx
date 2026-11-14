@@ -16,7 +16,7 @@ import { useObservableReducer } from '../src/react/useObservableReducer';
 import { useObservableState } from '../src/react/useObservableState';
 import { useObserve } from '../src/react/useObserve';
 import { useObserveEffect } from '../src/react/useObserveEffect';
-import { use$, useSelector } from '../src/react/useSelector';
+import { use$, useSelector, useValue } from '../src/react/useSelector';
 import { getNode } from '../src/globals';
 import { tracking } from '../src/tracking';
 import { Memo } from '../src/react/Memo';
@@ -260,7 +260,7 @@ describe('useSelector', () => {
         });
         expect(num).toEqual(3);
     });
-    test('useSelector runs twice in strict mode', () => {
+    test('useSelector refreshes after strict effect replay', () => {
         const obs = observable('hi');
 
         let num = 0;
@@ -276,11 +276,12 @@ describe('useSelector', () => {
         }
         render(createElement(App));
 
-        expect(num).toEqual(2);
+        // StrictMode doubles both the initial render and the reconnect render.
+        expect(num).toEqual(4);
         act(() => {
             obs.set('hello');
         });
-        expect(num).toEqual(6);
+        expect(num).toEqual(8);
     });
     test('Renders once with one selector listening to multiple', () => {
         const obs = observable('hi');
@@ -435,22 +436,22 @@ describe('useSelector', () => {
         render(createElement(App));
 
         expect(numListeners()).toEqual(2);
-        expect(num).toEqual(2);
+        expect(num).toEqual(4);
         act(() => {
             obs.set('hello');
         });
         expect(numListeners()).toEqual(2);
-        expect(num).toEqual(4);
+        expect(num).toEqual(6);
         act(() => {
             obs.set('z');
         });
         expect(numListeners()).toEqual(2);
-        expect(num).toEqual(6);
+        expect(num).toEqual(8);
         act(() => {
             obs.set('q');
         });
         expect(numListeners()).toEqual(2);
-        expect(num).toEqual(8);
+        expect(num).toEqual(10);
     });
     test('useSelector listener count', () => {
         const obs = observable('hi');
@@ -2919,6 +2920,71 @@ describe('React tracking diagnostics', () => {
             process.env.NODE_ENV = originalEnv;
             configureLegendState({ observableFunctions: { get: originalGet } });
             warn.mockRestore();
+        }
+    });
+});
+
+describe('production subscription reconnection (#671)', () => {
+    test('ordinary mount reads once and removes all listeners on unmount', () => {
+        const state$ = observable({ value: 0 });
+        let reads = 0;
+        function Test() {
+            const value = useValue(() => {
+                reads++;
+                return state$.value.get();
+            });
+            return <span>{value}</span>;
+        }
+        const { unmount } = render(<Test />);
+        expect(reads).toBe(1);
+        unmount();
+        expect(getNode(state$).numListenersRecursive).toBe(0);
+    });
+
+    test.each(['scalar', 'object', 'conditional', 'skipCheck'])('refreshes %s after effect replay', (kind) => {
+        const previousEnv = process.env.NODE_ENV;
+        process.env.NODE_ENV = 'production';
+        const state$ = observable({ useA: true, a: 0, b: 0 });
+        function Test() {
+            const value = useValue(
+                () => {
+                    if (kind === 'object') return state$.get();
+                    return kind === 'conditional'
+                        ? state$.useA.get()
+                            ? state$.a.get()
+                            : state$.b.get()
+                        : state$.a.get();
+                },
+                kind === 'skipCheck' ? { skipCheck: true } : undefined,
+            );
+            React.useEffect(() => {
+                return () => {
+                    if (kind === 'conditional') state$.useA.set(false);
+                    else state$.a.set(1);
+                };
+            }, []);
+            return <div data-testid="value">{typeof value === 'object' ? value.a : value}</div>;
+        }
+        try {
+            const { getByTestId, unmount } = render(
+                <StrictMode>
+                    <Test />
+                </StrictMode>,
+            );
+            expect(getByTestId('value').textContent).toBe(kind === 'conditional' ? '0' : '1');
+            act(() => {
+                if (kind === 'conditional') state$.b.set(2);
+                else state$.a.set(2);
+            });
+            expect(getByTestId('value').textContent).toBe('2');
+            // React 18's discarded StrictMode render already retains listeners on the base revision.
+            // The committed subscription must still be removed, without adding to that baseline.
+            const legacyListeners = kind === 'conditional' ? 2 : 1;
+            expect(getNode(state$).numListenersRecursive).toBe(legacyListeners * 2);
+            unmount();
+            expect(getNode(state$).numListenersRecursive).toBe(legacyListeners);
+        } finally {
+            process.env.NODE_ENV = previousEnv;
         }
     });
 });
