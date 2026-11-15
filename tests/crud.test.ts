@@ -9172,3 +9172,450 @@ describe('timestamped creates during persisted replay', () => {
         }
     }
 });
+
+describe('replacing GETs preserve local creates (#666)', () => {
+    for (const as of ['object', 'Map', 'array'] as const) {
+        const pack = (rows: any[]) =>
+            as === 'array'
+                ? rows
+                : as === 'Map'
+                  ? new Map(rows.map((row) => [row.id, row]))
+                  : Object.fromEntries(rows.map((row) => [row.id, row]));
+        const row = { id: 't1', text: 'created locally' };
+        const setup = (options: any = {}) => {
+            const answers: ((rows: any[]) => void)[] = [];
+            const creates: any[] = [];
+            const obs: any = observable(
+                syncedCrud<any, any, any>({
+                    as,
+                    initial: pack([]),
+                    list: () => new Promise<any[]>((resolve) => answers.push(resolve)),
+                    create: async (input) => {
+                        creates.push(input);
+                        return { ...input, saved: true };
+                    },
+                    ...options,
+                }),
+            );
+            obs.get();
+            return { obs, state: syncState(obs), answers, creates };
+        };
+        const add = (obs: any) => {
+            if (as === 'array') obs.push({ ...row });
+            else if (as === 'Map') obs.set(row.id, { ...row });
+            else obs[row.id].set({ ...row });
+        };
+        const current = (obs: any) =>
+            as === 'array'
+                ? obs.peek().find((item: any) => item.id === row.id)
+                : as === 'Map'
+                  ? obs.peek().get(row.id)
+                  : obs.peek()[row.id];
+
+        for (const mode of ['set', 'merge'] as const) {
+            test(`${as} ${mode}: initial load and overlapping reset keep the waiting create`, async () => {
+                const { obs, state, answers, creates } = setup({ mode });
+                await promiseTimeout(0);
+                state.sync({ resetLastSync: true });
+                await promiseTimeout(0);
+                add(obs);
+                await promiseTimeout(0);
+                answers[1]([]);
+                await releaseTick();
+                answers[0]([]);
+                await releaseTick();
+                expect(current(obs)).toEqual({ ...row, saved: true });
+                expect(creates).toEqual([row]);
+                expect(state.getPendingChanges()).toEqual({});
+            });
+
+            for (const ackFirst of [false, true]) {
+                test(`${as} ${mode}: reset overlaps create ACK (ackFirst=${ackFirst})`, async () => {
+                    let release!: () => void;
+                    const gate = new Promise<void>((resolve) => (release = resolve));
+                    const { obs, state, answers } = setup({
+                        mode,
+                        create: async (input: any) => {
+                            await gate;
+                            return { ...input, saved: true };
+                        },
+                    });
+                    answers[0]([]);
+                    await when(state.isLoaded);
+                    state.sync({ resetLastSync: true });
+                    add(obs);
+                    await promiseTimeout(0);
+                    if (ackFirst) {
+                        release();
+                        await releaseTick();
+                    }
+                    answers[1]([]);
+                    await promiseTimeout(0);
+                    if (!ackFirst) release();
+                    await releaseTick();
+                    expect(current(obs)).toEqual({ ...row, saved: true });
+                    expect(state.getPendingChanges()).toEqual({});
+                    // A later request can authoritatively remove an acknowledged row.
+                    state.sync({ resetLastSync: true });
+                    answers[2]([]);
+                    await releaseTick();
+                    expect(obs.peek()).toEqual(pack([]));
+                });
+            }
+        }
+
+        test(`${as}: a failed create survives reset until retry succeeds`, async () => {
+            let attempts = 0;
+            const { obs, state, answers } = setup({
+                mode: 'merge',
+                create: async (input: any) => {
+                    if (++attempts === 1) return Promise.reject(new Error('offline'));
+                    return { ...input, saved: true };
+                },
+                retry: { times: 2, delay: 10, backoff: 'constant' },
+            });
+            answers[0]([]);
+            await when(state.isLoaded);
+            add(obs);
+            await promiseTimeout(0);
+            state.sync({ resetLastSync: true });
+            answers[1]([]);
+            await promiseTimeout(50);
+            expect(attempts).toBe(2);
+            expect(current(obs)).toEqual({ ...row, saved: true });
+            expect(state.getPendingChanges()).toEqual({});
+        });
+
+        test(`${as}: each overlapping GET owns its confirmation history`, async () => {
+            const { obs, state, answers } = setup();
+            answers[0]([]);
+            await when(state.isLoaded);
+            state.sync();
+            add(obs);
+            await releaseTick();
+            state.sync();
+            answers[1]([]);
+            await promiseTimeout(0);
+            expect(current(obs)).toEqual({ ...row, saved: true });
+            answers[2]([]);
+            await releaseTick();
+            expect(obs.peek()).toEqual(pack([]));
+        });
+
+        test(`${as}: an old ACK does not clear a newer pending edit through GET history`, async () => {
+            const { obs, state, answers } = setup({ update: () => new Promise(() => {}) });
+            answers[0]([]);
+            await when(state.isLoaded);
+            state.sync();
+            add(obs);
+            await releaseTick();
+            const item = as === 'array' ? obs[0] : as === 'Map' ? obs.get(row.id) : obs[row.id];
+            item.text.set('newer edit');
+            await promiseTimeout(0);
+            answers[1]([]);
+            await promiseTimeout(0);
+            expect(current(obs).text).toBe('newer edit');
+            expect(Object.keys(state.getPendingChanges()!)).not.toHaveLength(0);
+        });
+
+        test(`${as}: deletion after ACK is not undone by an older GET`, async () => {
+            const { obs, state, answers } = setup({ delete: async () => undefined });
+            answers[0]([]);
+            await when(state.isLoaded);
+            state.sync();
+            add(obs);
+            await releaseTick();
+            obs.set(pack([]));
+            await releaseTick();
+            answers[1]([]);
+            await releaseTick();
+            expect(obs.peek()).toEqual(pack([]));
+            expect(state.getPendingChanges()).toEqual({});
+        });
+
+        test(`${as}: reverting a create before its ACK does not resurrect it`, async () => {
+            let release!: () => void;
+            const gate = new Promise<void>((resolve) => (release = resolve));
+            const { obs, state, answers } = setup({
+                create: async (input: any) => {
+                    await gate;
+                    return { ...input, saved: true };
+                },
+                delete: async () => undefined,
+            });
+            answers[0]([]);
+            await when(state.isLoaded);
+            state.sync();
+            add(obs);
+            await promiseTimeout(0);
+            obs.set(pack([]));
+            release();
+            await releaseTick();
+            answers[1]([]);
+            await releaseTick();
+            expect(obs.peek()).toEqual(pack([]));
+        });
+
+        test(`${as}: reset invalidates old GETs, ACKs, and confirmation history`, async () => {
+            let release!: () => void;
+            const gate = new Promise<void>((resolve) => (release = resolve));
+            const { obs, state, answers } = setup({
+                create: async (input: any) => {
+                    await gate;
+                    return { ...input, saved: true };
+                },
+            });
+            answers[0]([]);
+            await when(state.isLoaded);
+            state.sync();
+            add(obs);
+            await promiseTimeout(0);
+            await state.reset();
+            obs.get();
+            answers[2]([]);
+            await when(state.isLoaded);
+            // The old create result must not merge into a new incarnation of this ID.
+            state.isSyncEnabled.set(false);
+            obs.set(pack([{ ...row, text: 'after reset' }]));
+            release();
+            answers[1]([]);
+            await releaseTick();
+            expect(current(obs)).toEqual({ ...row, text: 'after reset' });
+            expect(state.numPendingGets.peek()).toBe(0);
+            expect(state.numPendingSets.peek()).toBe(0);
+        });
+
+        test(`${as}: confirmation survives an async GET transform until application`, async () => {
+            let release!: () => void;
+            const gate = new Promise<void>((resolve) => (release = resolve));
+            const remote = { id: 'remote', text: 'server row' };
+            const { obs, state, answers } = setup({
+                transform: {
+                    load: async (input: any, method: string) => {
+                        if (method === 'get' && input.id === remote.id) await gate;
+                        return input;
+                    },
+                },
+            });
+            answers[0]([]);
+            await when(state.isLoaded);
+            state.sync();
+            answers[1]([remote]);
+            await promiseTimeout(0);
+            add(obs);
+            await releaseTick();
+            expect(state.numPendingGets.peek()).toBe(1);
+            release();
+            await releaseTick();
+            const rows: any[] =
+                as === 'array'
+                    ? obs.peek()
+                    : as === 'Map'
+                      ? Array.from(obs.peek().values())
+                      : Object.values(obs.peek());
+            expect(rows).toHaveLength(2);
+            expect(current(obs)).toEqual({ ...row, saved: true });
+            expect(state.numPendingGets.peek()).toBe(0);
+        });
+
+        test(`${as}: a newer applied GET invalidates an older transforming answer`, async () => {
+            let release!: () => void;
+            const gate = new Promise<void>((resolve) => (release = resolve));
+            const { obs, state, answers } = setup({
+                transform: {
+                    load: async (input: any, method: string) => {
+                        if (method === 'get') await gate;
+                        return input;
+                    },
+                },
+            });
+            answers[0]([]);
+            await when(state.isLoaded);
+            state.sync();
+            answers[1]([{ id: 'obsolete', text: 'old snapshot' }]);
+            await promiseTimeout(0);
+            add(obs);
+            await releaseTick();
+            state.sync();
+            answers[2]([]);
+            await releaseTick();
+            release();
+            await releaseTick();
+            expect(obs.peek()).toEqual(pack([]));
+            expect(state.numPendingGets.peek()).toBe(0);
+        });
+
+        test(`${as}: same-key server results retain their existing authority`, async () => {
+            const { obs, state, answers } = setup();
+            answers[0]([]);
+            await when(state.isLoaded);
+            state.sync();
+            add(obs);
+            await releaseTick();
+            const server = { ...row, text: 'from server', serverOnly: true };
+            answers[1]([server]);
+            await releaseTick();
+            expect(current(obs)).toEqual(server);
+        });
+
+        test(`${as}: a root save confirms each created row while leaving unrelated absence authoritative`, async () => {
+            const unchanged = { id: 'old', text: 'old' };
+            const second = { id: 'second', text: 'second' };
+            const { obs, state, answers, creates } = setup();
+            answers[0]([unchanged]);
+            await when(state.isLoaded);
+            state.sync();
+            if (as === 'array') obs.splice(0, 0, row, second);
+            else obs.set(pack([unchanged, row, second]));
+            await releaseTick();
+            answers[1]([]);
+            await releaseTick();
+            expect(obs.peek()).toEqual(
+                pack([
+                    { ...row, saved: true },
+                    { ...second, saved: true },
+                ]),
+            );
+            expect(creates).toHaveLength(2);
+            expect(state.getPendingChanges()).toEqual({});
+        });
+
+        test(`${as}: reset keeps durable pending intent and clears it only after ACK`, async () => {
+            const name = getPersistName();
+            let release!: () => void;
+            const gate = new Promise<void>((resolve) => (release = resolve));
+            const { obs, state, answers } = setup({
+                mode: 'merge',
+                persist: { name, plugin: new ObservablePersistLocalStorage(), retrySync: true },
+                create: async (input: any) => {
+                    await gate;
+                    return { ...input, saved: true };
+                },
+            });
+            await promiseTimeout(0);
+            answers[0]([]);
+            await when(state.isLoaded);
+            state.sync({ resetLastSync: true });
+            add(obs);
+            await promiseTimeout(0);
+            answers[1]([]);
+            await releaseTick();
+            expect(current(obs)).toEqual(row);
+            expect(Object.keys(safeParse(localStorage.getItem(name + '__m')!).pending)).not.toHaveLength(0);
+            release();
+            await releaseTick();
+            expect(current(obs)).toEqual({ ...row, saved: true });
+            expect(safeParse(localStorage.getItem(name + '__m')!).pending || {}).toEqual({});
+        });
+
+        test(`${as}: repeated confirmations retain the current row without retaining old values`, async () => {
+            const { obs, state, answers, creates } = setup({ delete: async () => undefined });
+            answers[0]([]);
+            await when(state.isLoaded);
+            state.sync();
+            add(obs);
+            await releaseTick();
+            obs.set(pack([]));
+            await releaseTick();
+            obs.set(pack([{ ...row, text: 'second incarnation' }]));
+            await releaseTick();
+            answers[1]([]);
+            await releaseTick();
+            expect(current(obs)).toEqual({ ...row, text: 'second incarnation', saved: true });
+            expect(creates).toHaveLength(2);
+            expect(state.getPendingChanges()).toEqual({});
+        });
+
+        for (const clear of ['clearPendingChanges', 'resetCache'] as const) {
+            test(`${as}: ${clear} forgets past confirmations but retains active GET ownership`, async () => {
+                let clearNext = false;
+                const added = { id: 'new', text: 'after clear' };
+                const { obs, state, answers } = setup({
+                    onBeforeGet: (params: any) => {
+                        if (clearNext) {
+                            clearNext = false;
+                            params[clear]();
+                        }
+                    },
+                });
+                answers[0]([]);
+                await when(state.isLoaded);
+                state.sync();
+                add(obs);
+                await releaseTick();
+                clearNext = true;
+                state.sync();
+                obs.set(pack([{ ...row, saved: true }, added]));
+                await releaseTick();
+                answers[1]([]);
+                await releaseTick();
+                expect(obs.peek()).toEqual(pack([{ ...added, saved: true }]));
+                answers[2]([]);
+                await releaseTick();
+                expect(obs.peek()).toEqual(pack([{ ...added, saved: true }]));
+                expect(state.getPendingChanges()).toEqual({});
+            });
+        }
+    }
+});
+
+test('#666: numeric and string Map IDs have independent request confirmations', async () => {
+    const answers: ((rows: any[]) => void)[] = [];
+    const numeric = { id: 1, text: 'numeric' };
+    const string = { id: '1', text: 'string' };
+    const obs = observable(
+        syncedCrud<any, any, 'Map'>({
+            as: 'Map',
+            initial: new Map(),
+            list: () => new Promise<any[]>((resolve) => answers.push(resolve)),
+            create: async (input) => ({ ...input, saved: true }),
+        }),
+    );
+    obs.get();
+    answers[0]([]);
+    const state = syncState(obs);
+    await when(state.isLoaded);
+    state.sync();
+    obs.set(
+        new Map<any, any>([
+            [1, numeric],
+            ['1', string],
+        ]),
+    );
+    await releaseTick();
+    answers[1]([{ ...numeric, fromGet: true }]);
+    await releaseTick();
+    expect(obs.peek()).toEqual(
+        new Map<any, any>([
+            [1, { ...numeric, fromGet: true }],
+            ['1', { ...string, saved: true }],
+        ]),
+    );
+    expect(state.getPendingChanges()).toEqual({});
+});
+
+test('#666: a failed GET releases its confirmations before a future authoritative GET', async () => {
+    const answers: { resolve: (rows: any[]) => void; reject: (error: Error) => void }[] = [];
+    const obs = observable(
+        syncedCrud<any>({
+            initial: {},
+            list: () => new Promise<any[]>((resolve, reject) => answers.push({ resolve, reject })),
+            create: async (input) => input,
+        }),
+    );
+    const state = syncState(obs);
+    obs.get();
+    answers[0].resolve([]);
+    await when(state.isLoaded);
+    state.sync();
+    obs.t1.set({ id: 't1' });
+    await releaseTick();
+    answers[1].reject(new Error('GET failed'));
+    await releaseTick();
+    expect(state.numPendingGets.peek()).toBe(0);
+    state.sync();
+    answers[2].resolve([]);
+    await releaseTick();
+    expect(obs.peek()).toEqual({});
+    expect(state.getPendingChanges()).toEqual({});
+});

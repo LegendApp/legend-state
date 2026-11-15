@@ -75,7 +75,6 @@ const {
     isHintPlain,
     registerMiddleware,
     symbolLinked,
-    setNodeValue,
 } = internal;
 
 export const mapSyncPlugins: WeakMap<
@@ -99,8 +98,13 @@ interface LocalState {
     pendingSetGeneration?: number;
     pendingSetsSinceClear?: number;
     resetEpoch?: number;
+    getRequests?: Set<GetRequest>;
     isApplyingPending?: boolean;
     timeoutSaveMetadata?: any;
+}
+
+interface GetRequest {
+    confirmed?: Set<string | number>;
 }
 
 interface PreppedChangeLocal {
@@ -2556,6 +2560,70 @@ function cloneTransportValue(value: any): any {
         : internal.safeParse(json);
 }
 
+const symbolCrudState = Symbol();
+const symbolCrudEpoch = Symbol();
+type CrudSetParams = SyncedSetParams<any> & {
+    [symbolCrudState]: LocalState;
+    [symbolCrudEpoch]: number | undefined;
+};
+
+// Capture this save owner's epoch only for actual CRUD creates.
+export function captureCrudCreate(params: SyncedSetParams<any>) {
+    const localState = (params as CrudSetParams)[symbolCrudState];
+    const epoch = (params as CrudSetParams)[symbolCrudEpoch];
+    return (id: string | number) => {
+        if (localState.resetEpoch === epoch && localState.getRequests?.size) {
+            for (const request of localState.getRequests) (request.confirmed ||= new Set()).add(id);
+        }
+    };
+}
+
+function restoreConfirmedRows(
+    value: any,
+    current: any,
+    confirmed: Set<string | number>,
+    node: NodeInfo,
+    fieldId?: string,
+) {
+    if (isArray(value) && isArray(current)) {
+        const idKey = fieldId || findIDKey(current[0], node);
+        if (!idKey) return value;
+        const getId = isFunction(idKey) ? idKey : (row: any) => row?.[idKey];
+        const remoteIds = new Set(value.map(getId));
+        const missing = current.filter((row: any) => confirmed.has(getId(row)) && !remoteIds.has(getId(row)));
+        return missing.length ? value.concat(missing) : value;
+    }
+    if (value instanceof Map && current instanceof Map) {
+        let out = value;
+        for (const key of confirmed) {
+            if (!value.has(key) && current.has(key)) {
+                if (out === value) out = new Map(value);
+                out.set(key, current.get(key));
+            }
+        }
+        return out;
+    }
+    if (getPendingRecordPrototype(value) !== undefined && getPendingRecordPrototype(current) !== undefined) {
+        let out = value;
+        for (const key of confirmed) {
+            if (
+                !Object.prototype.hasOwnProperty.call(value, key) &&
+                Object.prototype.hasOwnProperty.call(current, key)
+            ) {
+                if (out === value) out = Object.setPrototypeOf({ ...value }, Object.getPrototypeOf(value));
+                Object.defineProperty(out, key, {
+                    value: current[key],
+                    enumerable: true,
+                    configurable: true,
+                    writable: true,
+                });
+            }
+        }
+        return out;
+    }
+    return value;
+}
+
 async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
     if (!changeInfo) return;
 
@@ -2701,7 +2769,9 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
             }
         };
 
-        const setParams: SyncedSetParams<any> = {
+        const setParams: CrudSetParams = {
+            [symbolCrudState]: localState,
+            [symbolCrudEpoch]: setEpoch,
             node,
             value$: obs$,
             changes: changesRemote,
@@ -2773,6 +2843,8 @@ async function doChangeRemote(changeInfo: PreppedChangeRemote | undefined) {
                     onSetError(error, undefined, true);
                 });
             }
+
+            if (localState.resetEpoch !== setEpoch) return;
 
             // If the plugin set which changes saved successfully then use those.
             // Or if it didn't error then use all the changes
@@ -3455,6 +3527,7 @@ export function syncObservable<T>(
     const resetPendingState = () => {
         localState.pendingChanges = {};
         localState.pendingClears = undefined;
+        for (const request of localState.getRequests || []) request.confirmed = undefined;
         // Reset starts a new generation only when older sets are still in flight
         // This lets later set completions detect that pending was cleared and avoid resurrecting it
         // Only start tracking pending clears when there are in-flight sets
@@ -3583,6 +3656,7 @@ export function syncObservable<T>(
                     onMetadataError?: (error: Error) => void,
                     onPendingMetadataError?: () => void,
                     subscriptionNumber?: number,
+                    request?: GetRequest,
                 ) => {
                     const updateEpoch = localState.resetEpoch;
                     mode = mode || syncOptions.mode || 'set';
@@ -3599,6 +3673,16 @@ export function syncObservable<T>(
                         if (hasValue) {
                             const originalPending = localState.pendingChanges;
                             const currentValue = obs$.peek();
+                            if (options?.resetLastSync) {
+                                value = normalizePendingRoot(
+                                    getInitialValue(),
+                                    value,
+                                    mode!,
+                                    node,
+                                    syncOptions.fieldId,
+                                );
+                                mode = 'set';
+                            }
                             const pendingKeys = originalPending && Object.keys(originalPending);
                             const stagedPending = pendingKeys?.some(Boolean);
                             const pending = stagedPending ? (Object.create(null) as PendingChanges) : originalPending;
@@ -3913,13 +3997,17 @@ export function syncObservable<T>(
                                 }
                             }
 
-                            if (options?.resetLastSync) {
-                                // Reset the node to the initial value before updating it with fresh
-                                // server results
-                                setNodeValue(node, getInitialValue());
+                            if (reconciledRoot) mode = 'set';
+                            if (mode === 'set' && request?.confirmed?.size) {
+                                value = restoreConfirmedRows(
+                                    value,
+                                    currentValue,
+                                    request.confirmed,
+                                    node,
+                                    syncOptions.fieldId,
+                                );
                             }
 
-                            if (reconciledRoot) mode = 'set';
                             onChangeRemote(() => {
                                 if (isPlainObject(value)) {
                                     value = ObservableHint.plain(value);
@@ -4147,6 +4235,7 @@ export function syncObservable<T>(
                             });
                         },
                         resetCache: () => {
+                            for (const request of localState.getRequests || []) request.confirmed = undefined;
                             modeBeforeReset = getParams.mode;
                             getParams.mode = 'set';
                             return syncStateValue.resetPersistence?.();
@@ -4158,6 +4247,8 @@ export function syncObservable<T>(
 
                     if (!beforeGetParams.cancel) {
                         const getEpoch = localState.resetEpoch;
+                        const request: GetRequest = {};
+                        (localState.getRequests ||= new Set()).add(request);
                         syncState$.assign({
                             numPendingGets: (syncStateValue.numPendingGets! || 0) + 1,
                             isGetting: true,
@@ -4171,8 +4262,11 @@ export function syncObservable<T>(
                         const numGets = (node.numGets = (node.numGets || 0) + 1);
                         let settled = false;
                         const settle = () => {
-                            if (!settled && localState.resetEpoch === getEpoch) {
+                            if (!settled) {
                                 settled = true;
+                                localState.getRequests?.delete(request);
+                                request.confirmed = undefined;
+                                if (localState.resetEpoch !== getEpoch) return;
                                 syncState$.numPendingGets.set((v) => v! - 1);
                                 syncState$.isGetting.set(syncStateValue.numPendingGets! > 0);
                             }
@@ -4203,6 +4297,8 @@ export function syncObservable<T>(
                                     numGets,
                                     undefined,
                                     finish,
+                                    undefined,
+                                    request,
                                 );
                             }
                             return doInOrder(changed, finish);
@@ -4258,6 +4354,7 @@ export function syncObservable<T>(
             Object.assign(metadata, { lastSync: undefined, pending: undefined } as PersistMetadata);
         }
         resetPendingState();
+        localState.getRequests?.clear();
         localState.resetEpoch = (localState.resetEpoch || 0) + 1;
         const newState: Partial<ObservableSyncState> = {
             isPersistEnabled: false,

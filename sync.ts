@@ -1,3 +1,4 @@
+import { captureCrudCreate } from './src/sync/syncObservable';
 import type { SyncedOptionsGlobal } from './src/sync/syncTypes';
 export { configureObservableSync } from './src/sync/configureObservableSync';
 export * from './src/sync/persistTypes';
@@ -15,8 +16,10 @@ export const internal: {
     observableSyncConfiguration: SyncedOptionsGlobal;
     waitForSet: typeof waitForSet;
     runWithRetry: typeof runWithRetry;
+    captureCrudCreate: typeof captureCrudCreate;
 } = {
     observableSyncConfiguration,
     waitForSet,
     runWithRetry,
+    captureCrudCreate,
 };

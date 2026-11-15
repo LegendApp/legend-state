@@ -914,6 +914,8 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                       else update({ value: {}, changes });
                   };
                   const requestCount = creates.size + updates.size + deletes.size;
+                  const confirmCreate =
+                      creates.size && asType !== 'value' ? internalSync.captureCrudCreate(params) : undefined;
                   const syncStateValue = onSaved ? getNodeValue(getNode(node.state!)) : undefined;
                   const applySaved = (
                       itemKey: ItemKey,
@@ -991,6 +993,7 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                                   : change,
                           );
                       }
+                      if (isCreate) confirmCreate?.(itemKey);
                       let saved: Partial<TLocal> | undefined = data
                           ? ((transform?.load ? await transform.load(data as any, 'set') : data) as any)
                           : undefined;
