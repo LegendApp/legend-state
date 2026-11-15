@@ -1075,7 +1075,7 @@ describe('Primitives', () => {
             readonly s: number | null = null;
         }
         const obs = observable<{ val: OpaqueObject<BigNumber> | null }>({
-            val: ObservableHint.opaque(new BigNumber())
+            val: ObservableHint.opaque(new BigNumber()),
         });
 
         const val /* infered: ObservablePrimitive<OpaqueObject<BigNumber> | null> */ = obs.val;
@@ -3447,10 +3447,10 @@ describe('Primitive boolean', () => {
         expect(obs.get().value).toEqual(0);
     });
     test('observable primitive should handle null', () => {
-        const obs = observable<boolean | null>(true)
-        obs.set(null)
-        expect(obs.get()).toBeNull()
-    })
+        const obs = observable<boolean | null>(true);
+        obs.set(null);
+        expect(obs.get()).toBeNull();
+    });
 });
 
 describe('Observe', () => {
@@ -4212,4 +4212,139 @@ describe('Object membership with undefined values', () => {
         expect(Object.keys(obs.peek())).toEqual(['x']);
         expect(handler).not.toHaveBeenCalled();
     });
+});
+
+describe('Missing paths (#676)', () => {
+    test.each([false, 0, '', null, undefined, -2])('reads below %p return undefined', (value) => {
+        const obs$ = observable<Record<string, any>>({ parent: value });
+        expect(obs$.parent.child.get()).toBeUndefined();
+        expect(obs$.parent.child.peek()).toBeUndefined();
+        expect(obs$.parent.child.grandchild.get()).toBeUndefined();
+        expect(obs$.parent.peek()).toBe(value);
+    });
+
+    test.each([false, 0, '', null, undefined, -2])('deletes below %p preserve the parent', (value) => {
+        const obs$ = observable<Record<string, any>>({ parent: value });
+        const listener = jest.fn();
+        const dispose = obs$.onChange(listener);
+        obs$.parent.child.delete();
+        obs$.parent.child.grandchild.delete();
+        expect(obs$.peek()).toEqual({ parent: value });
+        expect(listener).not.toHaveBeenCalled();
+        dispose();
+    });
+
+    test('deleting a missing nested path does not create ancestors', () => {
+        const obs$ = observable<Record<string, any>>({});
+        const listener = jest.fn();
+        const dispose = obs$.onChange(listener);
+        obs$.x.y.delete();
+        expect(obs$.peek()).toEqual({});
+        expect(listener).not.toHaveBeenCalled();
+        dispose();
+    });
+
+    test('deleting below an absent array property does not add it', () => {
+        const obs$ = observable<Record<string, any>>({ rows: [1, 2] });
+        obs$.rows.missing.child.delete();
+        expect(Object.keys(obs$.rows.peek())).toEqual(['0', '1']);
+        expect(obs$.rows.peek()).toEqual([1, 2]);
+    });
+
+    test('deleting below an absent Map entry does not add it', () => {
+        const obs$ = observable(new Map<string, Record<string, any>>());
+        obs$.get('missing').child.delete();
+        expect(obs$.peek().size).toBe(0);
+    });
+
+    test('deletes existing undefined properties and root values', () => {
+        const obs$ = observable<Record<string, any>>({ present: undefined });
+        const listener = jest.fn();
+        const dispose = obs$.onChange(listener);
+        obs$.present.delete();
+        expect(Object.hasOwn(obs$.peek(), 'present')).toBe(false);
+        expect(listener).toHaveBeenCalledTimes(1);
+        obs$.delete();
+        expect(obs$.peek()).toBeUndefined();
+        dispose();
+    });
+
+    test('a missing child remains reactive when its parent becomes an object', () => {
+        const obs$ = observable<Record<string, any>>({ parent: false });
+        const values: any[] = [];
+        const dispose = observe(() => values.push(obs$.parent.child.get()));
+        obs$.parent.set({ child: 'ready' });
+        expect(values).toEqual([undefined, 'ready']);
+        obs$.parent.set(false);
+        expect(values[values.length - 1]).toBeUndefined();
+        obs$.parent.set(null);
+        obs$.set({ parent: { child: 'again' } });
+        expect(values[values.length - 1]).toBe('again');
+        dispose();
+    });
+
+    test.each([false, 0, '', null, undefined, -2])('root deletion preserves undefined semantics for %p', (value) => {
+        const obs$ = observable<any>(value);
+        obs$.delete();
+        expect(obs$.peek()).toBeUndefined();
+    });
+
+    test('an empty string child exposes its actual length', () => {
+        const obs$ = observable<Record<string, any>>({ empty: '' });
+        expect(obs$.empty.length.get()).toBe(0);
+    });
+});
+
+describe('Primitive replacement traversal', () => {
+    test.each(['delete', 'null', 'undefined', 'object', 'array'])(
+        'string replacement with %s does not allocate character nodes',
+        (operation) => {
+            const obs$ = observable<any>({ text: 'a'.repeat(10000) });
+            const node = getNode(obs$.text)!;
+            if (operation === 'delete') obs$.text.delete();
+            else
+                obs$.text.set(
+                    operation === 'null' ? null : operation === 'object' ? {} : operation === 'array' ? [] : undefined,
+                );
+            expect(node.children?.size || 0).toBe(0);
+        },
+    );
+
+    test.each([null, undefined])('clearing a scalar to %p preserves ancestor activation', (value) => {
+        const obs$ = observable<any>({ text: 'abc', rows: [{ value: 1 }] });
+        obs$.get();
+        const node = getNode(obs$)!;
+        expect(node.recursivelyAutoActivated).toBe(true);
+        obs$.text.set(value);
+        expect(node.recursivelyAutoActivated).toBe(true);
+    });
+});
+
+test('string container replacement preserves tracked character previous values', () => {
+    const obs$ = observable<any>({ value: 'abc' });
+    const listener = jest.fn();
+    const dispose = obs$.value[0].onChange(listener);
+    obs$.value.set({ 0: 'a' });
+    expect(listener).not.toHaveBeenCalled();
+    obs$.value[0].set('b');
+    expect(listener).toHaveBeenCalledTimes(1);
+    expect(listener.mock.calls[0][0].getPrevious()).toBe('a');
+    dispose();
+});
+
+test.each(['object', 'array'])('replacing an %s with a truthy scalar skips container traversal', (kind) => {
+    let enumerations = 0;
+    const previous = kind === 'array' ? [1, 2, 3] : { a: 1, b: 2, c: 3 };
+    const proxy = new Proxy(previous, {
+        ownKeys(target) {
+            enumerations++;
+            return Reflect.ownKeys(target);
+        },
+    });
+    const obs$ = observable<any>(proxy);
+    obs$.get();
+    enumerations = 0;
+    obs$.set('x'.repeat(10000));
+    expect(enumerations).toBe(0);
+    expect(obs$.peek()).toHaveLength(10000);
 });

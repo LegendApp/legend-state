@@ -34,7 +34,6 @@ import {
     isPrimitive,
     isPromise,
     isSet,
-    isTemporal,
 } from './is';
 import { linked } from './linked';
 import type {
@@ -165,7 +164,7 @@ function updateNodes(parent: NodeInfo, obj: Record<any, any> | Array<any> | unde
     const isPrevSet = isSet(prevValue);
 
     const keys = getKeys(obj, isArr, isCurMap, isCurSet);
-    const keysPrev = getKeys(prevValue, isArr, isPrevMap, isPrevSet);
+    const keysPrev = isPrimitive(prevValue) ? [] : getKeys(prevValue, isArr, isPrevMap, isPrevSet);
     const length = (keys || obj)?.length || 0;
     const lengthPrev = (keysPrev || prevValue)?.length || 0;
 
@@ -726,13 +725,7 @@ function setKey(node: NodeInfo, key: string, newValue?: any, level?: number, isR
             parentHasKey,
         } = setNodeValue(childNode, newValue);
 
-        const isPrim =
-            isPrimitive(prevValue) ||
-            prevValue instanceof Date ||
-            isTemporal(prevValue) ||
-            isPrimitive(savedValue) ||
-            savedValue instanceof Date ||
-            isTemporal(savedValue);
+        const isPrim = isPrimitive(savedValue) || (!savedValue && isPrimitive(prevValue));
 
         if (!isPrim) {
             let parent = childNode;
@@ -811,7 +804,7 @@ function deleteFn(node: NodeInfo, key?: string) {
     const value = getNodeValue(node);
     if (isArray(value)) {
         collectionSetter(node, value, 'splice', key!, 1);
-    } else {
+    } else if (isRoot || (value && (typeof value === 'object' || isFunction(value)))) {
         setKey(node, isRoot ? '_' : key!, symbolDelete, /*level*/ -1, isRoot);
     }
 }
@@ -905,7 +898,7 @@ function updateNodesAndNotify(
             isPrim = isPrimitive(newValue);
         }
 
-        let hasADiff = forceNotify || isPrim;
+        let hasADiff = forceNotify || isPrim || isPrimitive(prevValue);
         let whenOptimizedOnlyIf = false;
         let valueAsArr: any[] | undefined;
         let valueAsMap: Map<any, any> | undefined;
@@ -918,7 +911,9 @@ function updateNodesAndNotify(
             ) {
                 __devUpdateNodes.clear();
             }
-            hasADiff = hasADiff || updateNodes(childNode, newValue, prevValue);
+            const childrenChanged =
+                !forceNotify && (!isPrim || !newValue) && updateNodes(childNode, newValue, prevValue);
+            hasADiff = hasADiff || childrenChanged;
 
             // Check if value is an array, Map, or Set so we can optimize the notification
             if (isArray(newValue)) {

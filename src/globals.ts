@@ -178,7 +178,8 @@ export function getNodeValue(node: NodeInfo): any {
         n = n.parent;
     }
     let child = node.root._;
-    for (let i = count - 1; child && i >= 0; i--) {
+    for (let i = count - 1; i >= 0; i--) {
+        if (child === null || child === undefined) return undefined;
         const key = arrNodeKeys[i] as any;
         child = isMap(child) ? child.get(key) : child[key];
     }
