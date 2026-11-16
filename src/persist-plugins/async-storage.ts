@@ -66,7 +66,7 @@ export class ObservablePersistAsyncStorage implements ObservablePersistPlugin {
     }
     // Gets
     public getTable(table: string, init: object) {
-        return this.data[table] ?? init ?? {};
+        return this.data[table] ?? init;
     }
     public getMetadata(table: string): PersistMetadata {
         return this.getTable(table + MetadataSuffix, {});
