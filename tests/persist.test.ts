@@ -289,6 +289,55 @@ describe('Pending', () => {
         expect(pending).toEqual({});
         expect(didSetWrongValue).toEqual(false);
     });
+    test('wider pending change replaces deeper pending changes, including after a restart', async () => {
+        const persistName = getPersistName();
+        const create = () =>
+            observable(
+                synced({
+                    initial: { g: { a: 0, b: { c: 0 } }, other: 0 } as Record<string, any>,
+                    set: () => {
+                        throw new Error('offline');
+                    },
+                    persist: { plugin: ObservablePersistLocalStorage, name: persistName, retrySync: true },
+                    onError: () => {},
+                }),
+            );
+        const obs$ = create();
+        const state$ = syncState(obs$);
+        obs$.get();
+        await when(state$.isPersistLoaded);
+
+        for (let i = 0; i < 50; i++) obs$['k' + i].set(i);
+        await promiseTimeout(0);
+        obs$.g.a.set(1);
+        await promiseTimeout(0);
+        obs$.g.b.c.set(1);
+        await promiseTimeout(0);
+        expect(Object.keys(state$.getPendingChanges()!).sort()).toEqual(
+            ['g/a', 'g/b/c', ...Array.from({ length: 50 }, (_, i) => 'k' + i)].sort(),
+        );
+
+        obs$.g.b.set({ c: 2 });
+        await promiseTimeout(0);
+        expect(Object.keys(state$.getPendingChanges()!)).not.toContain('g/b/c');
+        expect(state$.getPendingChanges()!['g/b'].v).toEqual({ c: 2 });
+
+        // Reload persisted pending changes into a new observable, then write the parent
+        const obs2$ = create();
+        const state2$ = syncState(obs2$);
+        obs2$.get();
+        await when(state2$.isPersistLoaded);
+        expect(Object.keys(state2$.getPendingChanges()!)).toContain('g/a');
+        obs2$.g.set({ a: 3, b: { c: 3 } });
+        await promiseTimeout(0);
+        const keys = Object.keys(state2$.getPendingChanges()!);
+        expect(keys.filter((key) => key.startsWith('g'))).toEqual(['g']);
+        expect(keys.length).toEqual(51);
+
+        obs2$.set({ g: 4 });
+        await promiseTimeout(0);
+        expect(Object.keys(state2$.getPendingChanges()!)).toEqual(['']);
+    });
     test('pending clears after newer save resolves while older save is in-flight', async () => {
         const persistName = getPersistName();
         const allowFirst$ = observable(false);

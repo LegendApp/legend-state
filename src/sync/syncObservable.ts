@@ -819,6 +819,31 @@ async function prepChangeRemote(
     }
 }
 
+// A superset of the '/'-joined proper prefixes of each pending key, so recordPendingChange can skip
+// scanning every key for descendants. Every pending key must be added through definePendingEntry.
+// Deleted keys leave stale prefixes, which only cost a scan; a scan rebuilds the index, and it is
+// dropped once it outgrows its limit.
+const pendingPrefixes = new WeakMap<PendingChanges, { prefixes: Set<string>; limit: number }>();
+function addPendingPrefixes(prefixes: Set<string>, key: string) {
+    if (key) prefixes.add('');
+    for (let i = key.indexOf('/'); i >= 0; i = key.indexOf('/', i + 1)) prefixes.add(key.slice(0, i));
+}
+function indexPendingPrefixes(pending: PendingChanges) {
+    const prefixes = new Set<string>();
+    for (const key in pending) addPendingPrefixes(prefixes, key);
+    const index = { prefixes, limit: 2 * prefixes.size + 64 };
+    pendingPrefixes.set(pending, index);
+    return index;
+}
+function definePendingEntry(pending: PendingChanges, key: string, entry: PendingChanges[string]) {
+    Object.defineProperty(pending, key, { value: entry, enumerable: true, configurable: true, writable: true });
+    const index = pendingPrefixes.get(pending);
+    if (index) {
+        addPendingPrefixes(index.prefixes, key);
+        if (index.prefixes.size > index.limit) pendingPrefixes.delete(pending);
+    }
+}
+
 function recordPendingChange(queuedChange: QueuedChange, change: PendingChange, transport?: PendingTransport) {
     const { localState, syncOptions, isApplyingPending } = queuedChange;
     const { path, pathTypes, prevAtPath, valueAtPath } = change;
@@ -887,14 +912,7 @@ function recordPendingChange(queuedChange: QueuedChange, change: PendingChange, 
             t: pathTypes,
             h: isApplyingPending ? undefined : emptyPendingHistory,
         };
-        if (!existing) {
-            Object.defineProperty(localState.pendingChanges, pathStr, {
-                value: entry,
-                enumerable: true,
-                configurable: true,
-                writable: true,
-            });
-        }
+        if (!existing) definePendingEntry(localState.pendingChanges, pathStr, entry);
         let historyKeys: Set<string> | undefined;
         if (existing && !isApplyingPending && !transport) {
             historyKeys = addPendingHistory(
@@ -909,49 +927,53 @@ function recordPendingChange(queuedChange: QueuedChange, change: PendingChange, 
         // If an existing pending change is deeper than this change, just delete it
         // in favor of this wider change
         const pathPrefix = pathStr ? pathStr + '/' : '';
-        for (const key in localState.pendingChanges) {
-            if (key !== pathStr && (!pathStr || key.startsWith(pathPrefix))) {
-                const childPath = localState.pendingChanges[key].k;
-                if (childPath && path.some((part, index) => childPath[index] !== part)) continue;
-                if (transport) {
-                    const captured = transport.get(key);
-                    const child = localState.pendingChanges[key];
-                    if (!captured || child !== captured.entry) continue;
-                    const value = snapshotPendingLocal(child.v, captured.value);
-                    if (
-                        !Object.is(value, captured.value) ||
-                        (child.v && typeof child.v === 'object' && value === undefined)
-                    )
-                        continue;
-                }
-                if (!isApplyingPending) {
-                    const child = localState.pendingChanges[key];
-                    const relativePath = child.k?.slice(path.length) || key.split('/').slice(path.length);
-                    const node = getNode(queuedChange.value$);
-                    const relative =
-                        child.t.length === relativePath.length + path.length
-                            ? pendingHistoryPath(prevAtPath, prevAtPath, relativePath, node, syncOptions.fieldId)
-                            : undefined;
-                    if (!relative || !child.h) entry.h = undefined;
-                    else {
-                        historyKeys = addPendingHistory(
-                            entry,
-                            child.p,
-                            relative.previous,
-                            relative.path,
-                            node,
-                            syncOptions.fieldId,
-                            historyKeys,
-                        );
-                        for (const path of child.h)
-                            historyKeys = markPendingHistory(entry, [...relative.path, ...path], historyKeys);
+        const index = pendingPrefixes.get(localState.pendingChanges) || indexPendingPrefixes(localState.pendingChanges);
+        if (index.prefixes.has(pathStr)) {
+            for (const key in localState.pendingChanges) {
+                if (key !== pathStr && (!pathStr || key.startsWith(pathPrefix))) {
+                    const childPath = localState.pendingChanges[key].k;
+                    if (childPath && path.some((part, index) => childPath[index] !== part)) continue;
+                    if (transport) {
+                        const captured = transport.get(key);
+                        const child = localState.pendingChanges[key];
+                        if (!captured || child !== captured.entry) continue;
+                        const value = snapshotPendingLocal(child.v, captured.value);
+                        if (
+                            !Object.is(value, captured.value) ||
+                            (child.v && typeof child.v === 'object' && value === undefined)
+                        )
+                            continue;
+                    }
+                    if (!isApplyingPending) {
+                        const child = localState.pendingChanges[key];
+                        const relativePath = child.k?.slice(path.length) || key.split('/').slice(path.length);
+                        const node = getNode(queuedChange.value$);
+                        const relative =
+                            child.t.length === relativePath.length + path.length
+                                ? pendingHistoryPath(prevAtPath, prevAtPath, relativePath, node, syncOptions.fieldId)
+                                : undefined;
+                        if (!relative || !child.h) entry.h = undefined;
+                        else {
+                            historyKeys = addPendingHistory(
+                                entry,
+                                child.p,
+                                relative.previous,
+                                relative.path,
+                                node,
+                                syncOptions.fieldId,
+                                historyKeys,
+                            );
+                            for (const path of child.h)
+                                historyKeys = markPendingHistory(entry, [...relative.path, ...path], historyKeys);
+                        }
+                    }
+                    delete localState.pendingChanges[key];
+                    if (localState.pendingClears?.[key]) {
+                        delete localState.pendingClears[key];
                     }
                 }
-                delete localState.pendingChanges[key];
-                if (localState.pendingClears?.[key]) {
-                    delete localState.pendingClears[key];
-                }
             }
+            indexPendingPrefixes(localState.pendingChanges);
         }
         // Pending value is the untransformed value because it gets loaded without transformment
         // and forwarded through to onObsChange where it gets transformed before save
@@ -4032,12 +4054,7 @@ export function syncObservable<T>(
                                                             h: undefined,
                                                         };
                                                         if (entry.k) restoredEntry.k = entry.k.slice(0, path.length);
-                                                        Object.defineProperty(pending, pathStr, {
-                                                            value: restoredEntry,
-                                                            enumerable: true,
-                                                            configurable: true,
-                                                            writable: true,
-                                                        });
+                                                        definePendingEntry(pending, pathStr, restoredEntry);
                                                     },
                                                 );
                                             }
@@ -4053,12 +4070,7 @@ export function syncObservable<T>(
                                     }
                                     for (const key of Object.keys(pending!)) {
                                         if (!Object.prototype.hasOwnProperty.call(originalPending!, key)) {
-                                            Object.defineProperty(originalPending, key, {
-                                                value: pending![key],
-                                                enumerable: true,
-                                                configurable: true,
-                                                writable: true,
-                                            });
+                                            definePendingEntry(originalPending!, key, pending![key]);
                                         }
                                     }
                                 }
