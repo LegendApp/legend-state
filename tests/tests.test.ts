@@ -4370,3 +4370,32 @@ test.each(['object', 'array'])('replacing an %s with a truthy scalar skips conta
     expect(enumerations).toBe(0);
     expect(obs$.peek()).toHaveLength(10000);
 });
+
+describe('Sparse array nodes', () => {
+    test('splicing an array with one observed row does not create nodes for the other rows', () => {
+        const rows$ = observable(Array.from({ length: 100 }, (_, i) => ({ id: i, value: i })));
+        const values: number[] = [];
+        rows$[99].value.onChange(({ value }) => values.push(value));
+
+        rows$.splice(0, 1);
+
+        expect(getNode(rows$).children!.size).toBe(1);
+        expect(rows$[98].value.peek()).toBe(99);
+        rows$[98].value.set(-1);
+        expect(values.at(-1)).toBe(-1);
+        expect(rows$[0].value.get()).toBe(1);
+    });
+    test('unshifting moves observed rows and creates no others', () => {
+        const rows$ = observable([
+            { id: 'a', value: 1 },
+            { id: 'b', value: 2 },
+        ]);
+        const handler = expectChangeHandler(rows$[1].value);
+
+        rows$.unshift({ id: 'z', value: 0 });
+
+        expect([...getNode(rows$).children!.keys()]).toEqual(['2']);
+        rows$[2].value.set(3);
+        expect(handler).toHaveBeenCalledWith(3, 2, [{ path: [], pathTypes: [], valueAtPath: 3, prevAtPath: 2 }]);
+    });
+});

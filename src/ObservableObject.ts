@@ -282,6 +282,18 @@ function updateNodes(parent: NodeInfo, obj: Record<any, any> | Array<any> | unde
                     const obs = value;
                     value = () => obs;
                 }
+
+                // Once the diff is known, a plain value with no node here and no node moving here has
+                // nothing to update, so don't create one
+                if (
+                    isArrDiff &&
+                    !existingChild &&
+                    !isFunction(value) &&
+                    (id === undefined || !prevChildrenById?.has(id))
+                ) {
+                    continue;
+                }
+
                 let child = getChildNode(parent, key, value);
 
                 if (!child.lazy && (isFunction(value) || isObservable(value))) {
