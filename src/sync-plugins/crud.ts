@@ -70,6 +70,10 @@ export type CrudOnErrorFn = (error: Error, params: CrudErrorParams) => void;
 
 export interface SyncedCrudPropsBase<TRemote extends object, TLocal = TRemote>
     extends Omit<SyncedOptions<TRemote, TLocal>, 'get' | 'set' | 'initial' | 'subscribe' | 'waitForSet' | 'onError'> {
+    /**
+     * Creates an item on the server. The client generates the id (e.g. with `generateId`), so the
+     * server must persist and return that same id. Items are not rekeyed if a different id is returned.
+     */
     create?(input: TRemote, params: SyncedSetParams<TRemote>): Promise<CrudResult<TRemote> | null | undefined | void>;
     update?(
         input: Partial<TRemote>,
@@ -118,6 +122,14 @@ function warnMissingId(value: any) {
     if (process.env.NODE_ENV === 'development') {
         console.warn('[legend-state] syncedCrud received an item without an id', value);
     }
+}
+
+function warnCreateIdMismatch(node: any, fieldId: string, localId: any, savedId: any) {
+    const path: string[] = [];
+    for (let n = node; n?.key !== undefined; n = n.parent) path.unshift(n.key);
+    console.warn(
+        `[legend-state] syncedCrud create at "${path.join('.') || '(root)'}" returned ${fieldId} ${JSON.stringify(savedId)} for an item created locally with ${fieldId} ${JSON.stringify(localId)}. The client generates ids (e.g. with generateId) and the server must persist and return that same id. The item is not rekeyed.`,
+    );
 }
 
 function ensureId(obj: any, fieldId: string, generateId: () => string | number, node: any) {
@@ -997,6 +1009,12 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                       let saved: Partial<TLocal> | undefined = data
                           ? ((transform?.load ? await transform.load(data as any, 'set') : data) as any)
                           : undefined;
+                      if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
+                          const savedId = isCreate && saved ? (saved as any)[fieldId] : undefined;
+                          if (!isNullOrUndefined(savedId) && savedId !== itemKey) {
+                              warnCreateIdMismatch(node, fieldId, itemKey, savedId);
+                          }
+                      }
                       if (saved && onSaved) {
                           const currentValue = getCurrentValueAtKey(itemKey);
                           if (isNullOrUndefined(currentValue)) {
