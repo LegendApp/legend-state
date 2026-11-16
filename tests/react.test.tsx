@@ -2925,10 +2925,11 @@ describe('React tracking diagnostics', () => {
 });
 
 describe('enableReactTracking React versions (#312)', () => {
-    const ReactModule = jest.requireActual('react');
+    const ReactModule = require('react');
     const legacyKey = '__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED';
     const react19Key = '__CLIENT_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE';
     const legacyInternals = ReactModule[legacyKey];
+    const legacyDispatcher = legacyInternals.ReactCurrentDispatcher;
 
     // Swap the React module's internals for another version's shape while enableReactTracking runs
     function withInternals(shape: '18' | '19' | 'none', fn: (warn: jest.SpyInstance) => void) {
@@ -2938,10 +2939,14 @@ describe('enableReactTracking React versions (#312)', () => {
         if (shape !== '18') {
             delete ReactModule[legacyKey];
         }
+        if (shape === 'none') {
+            // Bun snapshots the `import * as React` namespace, so the deleted key can stay visible there
+            delete legacyInternals.ReactCurrentDispatcher;
+        }
         if (shape === '19') {
             ReactModule[react19Key] = {
                 get H() {
-                    return legacyInternals.ReactCurrentDispatcher.current;
+                    return legacyDispatcher.current;
                 },
             };
         }
@@ -2950,6 +2955,7 @@ describe('enableReactTracking React versions (#312)', () => {
             fn(warn);
         } finally {
             ReactModule[legacyKey] = legacyInternals;
+            legacyInternals.ReactCurrentDispatcher = legacyDispatcher;
             delete ReactModule[react19Key];
             process.env.NODE_ENV = originalEnv;
             configureLegendState({ observableFunctions: { get: originalGet } });
