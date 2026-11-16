@@ -34,6 +34,7 @@ import {
     mergeIntoObservable,
     observable,
     setAtPath,
+    isObserved,
     shouldIgnoreUnobserved,
     syncState,
     trackSelector,
@@ -106,6 +107,7 @@ interface LocalState {
 
 interface GetRequest {
     confirmed?: Set<string | number>;
+    onSettled?: () => void;
 }
 
 interface PreppedChangeLocal {
@@ -3564,7 +3566,7 @@ export function syncObservable<T>(
     const syncState$ = syncState(obs$);
     const syncStateValue = getNodeValue(getNode(syncState$)) as ObservableSyncState;
     const localState: LocalState = {};
-    let sync: (options?: ObservableSyncStateOptions) => Promise<void>;
+    let sync: (options?: ObservableSyncStateOptions, explicit?: boolean) => Promise<void>;
     const resetPendingState = () => {
         localState.pendingChanges = {};
         localState.pendingClears = undefined;
@@ -3666,9 +3668,15 @@ export function syncObservable<T>(
     if (get || subscribe) {
         // we create the closure outside the new sync definition to avoid recreating the function on each call
         const callSync = () => sync();
-        sync = async (options?: ObservableSyncStateOptions) => {
+        sync = async (options?: ObservableSyncStateOptions, explicit?: boolean) => {
+            // An explicit sync() of an unobserved node still runs the get, and resolves once it finishes
+            const waitForGet = explicit && isSynced && !isObserved(node);
             // If this node is not being observed or sync is not enabled then don't sync
-            if (isSynced && (!getNodeValue(getNode(syncState$)).isSyncEnabled || shouldIgnoreUnobserved(node, sync))) {
+            if (
+                isSynced &&
+                (!getNodeValue(getNode(syncState$)).isSyncEnabled ||
+                    (!waitForGet && shouldIgnoreUnobserved(node, sync)))
+            ) {
                 if (unsubscribe) {
                     isSubscribed = false;
                     unsubscribe();
@@ -3678,7 +3686,7 @@ export function syncObservable<T>(
             }
             if (!onAllPersistLoaded(false)) {
                 await when(onAllPersistLoaded);
-                return sync(options);
+                return sync(options, explicit);
             }
             const metadata = metadatas.get(obs$);
             if (metadata && options?.resetLastSync) {
@@ -4302,6 +4310,9 @@ export function syncObservable<T>(
                     if (!beforeGetParams.cancel) {
                         const getEpoch = localState.resetEpoch;
                         const request: GetRequest = {};
+                        if (waitForGet) {
+                            getSettled = new Promise<void>((resolve) => (request.onSettled = resolve));
+                        }
                         (localState.getRequests ||= new Set()).add(request);
                         syncState$.assign({
                             numPendingGets: (syncStateValue.numPendingGets! || 0) + 1,
@@ -4320,6 +4331,7 @@ export function syncObservable<T>(
                                 settled = true;
                                 localState.getRequests?.delete(request);
                                 request.confirmed = undefined;
+                                request.onSettled?.();
                                 if (localState.resetEpoch !== getEpoch) return;
                                 syncState$.numPendingGets.set((v) => v! - 1);
                                 syncState$.isGetting.set(syncStateValue.numPendingGets! > 0);
@@ -4380,6 +4392,7 @@ export function syncObservable<T>(
                 }
             };
 
+            let getSettled: Promise<void> | undefined;
             if (waitFor) {
                 whenReady(waitFor, () => trackSelector(runGet, callSync));
             } else {
@@ -4394,9 +4407,13 @@ export function syncObservable<T>(
 
                 isApplyingPendingAfterSync = false;
             }
+
+            if (getSettled) {
+                await getSettled;
+            }
         };
 
-        syncStateValue.sync = sync;
+        syncStateValue.sync = (options?: ObservableSyncStateOptions) => sync(options, /*explicit*/ true);
     }
 
     syncStateValue.reset = async () => {
@@ -4408,6 +4425,7 @@ export function syncObservable<T>(
             Object.assign(metadata, { lastSync: undefined, pending: undefined } as PersistMetadata);
         }
         resetPendingState();
+        for (const request of localState.getRequests || []) request.onSettled?.();
         localState.getRequests?.clear();
         localState.resetEpoch = (localState.resetEpoch || 0) + 1;
         const newState: Partial<ObservableSyncState> = {

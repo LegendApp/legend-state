@@ -533,3 +533,91 @@ describe('sync retry operation identity', () => {
         }
     });
 });
+
+describe('sync() of an unobserved observable (#334)', () => {
+    test('waits for the get', async () => {
+        let numGets = 0;
+        const obs$ = observable(
+            synced({
+                get: async () => {
+                    await promiseTimeout(5);
+                    return ++numGets;
+                },
+            }),
+        );
+        obs$.get();
+        const state$ = syncState(obs$);
+        await when(state$.isLoaded);
+        expect(obs$.peek()).toEqual(1);
+
+        await state$.sync();
+
+        expect(numGets).toEqual(2);
+        expect(obs$.peek()).toEqual(2);
+        expect(state$.isGetting.peek()).toEqual(false);
+    });
+    test('resolves when the get fails', async () => {
+        let numGets = 0;
+        const errors: Error[] = [];
+        const obs$ = observable(
+            synced({
+                get: async () => {
+                    await promiseTimeout(0);
+                    if (++numGets > 1) throw new Error('get failed');
+                    return numGets;
+                },
+                onError: (error) => errors.push(error),
+            }),
+        );
+        obs$.get();
+        const state$ = syncState(obs$);
+        await when(state$.isLoaded);
+
+        await state$.sync();
+
+        expect(numGets).toEqual(2);
+        expect(errors.map((e) => e.message)).toEqual(['get failed']);
+        expect(obs$.peek()).toEqual(1);
+    });
+    test('resolves when reset() runs during the get', async () => {
+        let numGets = 0;
+        const resolves: ((value: number) => void)[] = [];
+        const obs$ = observable(
+            synced({
+                get: () => {
+                    numGets++;
+                    return numGets === 1 ? 1 : new Promise<number>((resolve) => resolves.push(resolve));
+                },
+            }),
+        );
+        obs$.get();
+        const state$ = syncState(obs$);
+        await when(state$.isLoaded);
+
+        let done = false;
+        const promise = state$.sync().then(() => (done = true));
+        await promiseTimeout(0);
+        expect(numGets).toEqual(2);
+        await state$.reset();
+        await promise;
+        expect(done).toEqual(true);
+    });
+    test('a dependency change stays lazy until the next get', async () => {
+        const id$ = observable(1);
+        let numGets = 0;
+        const obs$ = observable(
+            synced({
+                get: () => {
+                    numGets++;
+                    return id$.get();
+                },
+            }),
+        );
+        expect(obs$.get()).toEqual(1);
+        id$.set(2);
+        await promiseTimeout(0);
+        expect(numGets).toEqual(1);
+        expect(obs$.get()).toEqual(2);
+        expect(numGets).toEqual(2);
+    });
+});

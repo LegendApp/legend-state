@@ -13,6 +13,7 @@
 ### Fixes
 
 - CRUD: a server-assigned value (like `createdAt`) returned from a create is no longer dropped when the local value was an ISO string. ([#613](https://github.com/LegendApp/legend-state/issues/613))
+- Sync: `await syncState(obs$).sync()` on an observable with no listeners now runs the get and resolves once it finishes. It previously skipped the get until the next `get()`. With infinite retry it stays pending until the get succeeds, and with a `waitFor` that is not ready yet it resolves before the get runs. ([#334](https://github.com/LegendApp/legend-state/issues/334))
 
 ## 3.0.0-next.0
 
