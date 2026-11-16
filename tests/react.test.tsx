@@ -2988,3 +2988,109 @@ describe('production subscription reconnection (#671)', () => {
         }
     });
 });
+
+describe('useObserve lifecycle (#205)', () => {
+    test('reacts once per change in StrictMode', async () => {
+        const obs$ = observable(0);
+        const seen: number[] = [];
+        function Test() {
+            useObserve(
+                () => obs$.get(),
+                (e) => {
+                    seen.push(e.value!);
+                },
+            );
+            return <div />;
+        }
+        const { unmount } = render(
+            <StrictMode>
+                <Test />
+            </StrictMode>,
+        );
+        seen.length = 0;
+        act(() => obs$.set(1));
+        act(() => obs$.set(2));
+        expect(seen).toEqual([1, 2]);
+        unmount();
+        // The dev StrictMode workaround disposes in a microtask
+        await promiseTimeout(0);
+        expect(getNode(obs$).numListenersRecursive).toBe(0);
+    });
+
+    test('run form runs once per change in StrictMode', () => {
+        const obs$ = observable(0);
+        const seen: number[] = [];
+        function Test() {
+            useObserve(() => {
+                seen.push(obs$.get());
+            });
+            return <div />;
+        }
+        render(
+            <StrictMode>
+                <Test />
+            </StrictMode>,
+        );
+        seen.length = 0;
+        act(() => obs$.set(1));
+        act(() => obs$.set(2));
+        expect(seen).toEqual([1, 2]);
+    });
+
+    test('the returned dispose stops an observer recreated on mount', () => {
+        const obs$ = observable(0);
+        const seen: number[] = [];
+        let stop: (() => void) | undefined;
+        function Test() {
+            stop = useObserve(
+                () => obs$.get(),
+                (e) => {
+                    seen.push(e.value!);
+                },
+            );
+            // A change before the passive mount effect makes mount recreate the observer
+            React.useLayoutEffect(() => obs$.set(1), []);
+            return <div />;
+        }
+        const { unmount } = render(<Test />);
+        expect(seen).toEqual([0, 1]);
+        act(() => stop!());
+        act(() => obs$.set(2));
+        expect(seen).toEqual([0, 1]);
+        expect(getNode(obs$).numListenersRecursive).toBe(0);
+        unmount();
+    });
+
+    test('reconnects after effect cleanup and replays the missed value', () => {
+        const previousEnv = process.env.NODE_ENV;
+        process.env.NODE_ENV = 'production';
+        const obs$ = observable(0);
+        const seen: number[] = [];
+        function Test() {
+            useObserve(
+                () => obs$.get(),
+                (e) => {
+                    seen.push(e.value!);
+                },
+            );
+            React.useEffect(() => () => obs$.set(1), []);
+            return <div />;
+        }
+        try {
+            // StrictMode replays effect cleanup and setup like an Activity hide/show
+            const { unmount } = render(
+                <StrictMode>
+                    <Test />
+                </StrictMode>,
+            );
+            expect(seen[seen.length - 1]).toBe(1);
+            seen.length = 0;
+            act(() => obs$.set(2));
+            expect(seen).toEqual([2]);
+            unmount();
+            expect(getNode(obs$).numListenersRecursive).toBe(0);
+        } finally {
+            process.env.NODE_ENV = previousEnv;
+        }
+    });
+});

@@ -10,7 +10,7 @@ import {
 } from '@legendapp/state';
 import { useRef } from 'react';
 import { runInRender } from './react-globals';
-import { useUnmountOnce } from './useUnmount';
+import { useMountOnce } from './useMount';
 import { useObservable } from './useObservable';
 
 export interface UseObserveOptions extends ObserveOptions {
@@ -70,6 +70,10 @@ export function useObserve<T>(
         selector?: Selector<T> | ((e: ObserveEvent<T>) => T | void) | ObservableParam<T>;
         reaction?: (e: ObserveEventCallback<T>) => any;
         dispose?: () => void;
+        stop?: () => void;
+        stopped?: boolean;
+        mounted?: boolean;
+        missed?: boolean;
     }>({});
 
     ref.current.selector = selector;
@@ -80,23 +84,58 @@ export function useObserve<T>(
         runInRender(() => depsObs$.set(deps! as any[]));
     }
 
-    if (!ref.current.dispose) {
-        ref.current.dispose = runInRender(() =>
-            observe<T>(
-                ((e: ObserveEventCallback<T>) => {
-                    depsObs$?.get();
-                    const selector = ref.current?.selector;
-                    return computeSelector(selector, undefined, e);
-                }) as any,
-                (e: ObserveEventCallback<T>) => ref.current.reaction?.(e),
-                options as UseObserveOptions,
-            ),
+    const create = () => {
+        const current = ref.current;
+        let isInitial = true;
+        current.missed = false;
+        current.dispose = observe<T>(
+            ((e: ObserveEventCallback<T>) => {
+                // Changes before mount are replayed on mount. Skipping the selector also drops all tracking,
+                // so an observer from a render that never commits stops listening instead of leaking.
+                if (!isInitial && !current.mounted) {
+                    current.missed = true;
+                    return;
+                }
+                depsObs$?.get();
+                return computeSelector(current.selector, undefined, e);
+            }) as any,
+            (e: ObserveEventCallback<T>) => {
+                if (isInitial || current.mounted) {
+                    current.reaction?.(e);
+                }
+            },
+            options as UseObserveOptions,
         );
+        isInitial = false;
+    };
+
+    if (!ref.current.dispose && !ref.current.stopped) {
+        runInRender(create);
     }
 
-    useUnmountOnce(() => {
-        ref.current?.dispose?.();
+    useMountOnce(() => {
+        const current = ref.current;
+        current.mounted = true;
+        // Recreate if effect cleanup disposed it (such as Activity hide/show) or a change arrived before mount
+        if (current.missed) {
+            current.dispose?.();
+            current.dispose = undefined;
+        }
+        if (!current.dispose && !current.stopped) {
+            create();
+        }
+        return () => {
+            current.mounted = false;
+            current.dispose?.();
+            current.dispose = undefined;
+        };
     });
 
-    return ref.current.dispose;
+    // Stable across recreations, and stays stopped through later remounts
+    return (ref.current.stop ??= () => {
+        const current = ref.current;
+        current.stopped = true;
+        current.dispose?.();
+        current.dispose = undefined;
+    });
 }
