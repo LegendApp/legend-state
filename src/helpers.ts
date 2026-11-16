@@ -1,6 +1,6 @@
 import { ObservableHint } from './ObservableHint';
 import { getProxy } from './ObservableObject';
-import { beginBatch, endBatch, endBatchAndThrow } from './batching';
+import { beginBalancedBatch, endBatch, endBatchAndThrow } from './batching';
 import { getChildNode, getNode, isObservable, setNodeValue, symbolDelete, symbolOpaque, symbolPlain } from './globals';
 import {
     hasOwnProperty,
@@ -131,7 +131,7 @@ export function mergeIntoObservable<T extends ObservableParam<any>>(target: T, .
             console.error('[legend-state] should only use mergeIntoObservable with observables');
         }
     }
-    beginBatch();
+    beginBalancedBatch();
     try {
         for (let i = 0; i < sources.length; i++) {
             _mergeIntoObservable(target, sources[i], 0);

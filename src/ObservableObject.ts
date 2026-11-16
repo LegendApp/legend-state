@@ -1,6 +1,6 @@
 import { checkPlain } from './checkPlain';
 import {
-    beginBatch,
+    beginBalancedBatch,
     createPreviousHandler,
     endBatch,
     endBatchAndThrow,
@@ -782,7 +782,7 @@ function setKey(node: NodeInfo, key: string, newValue?: any, level?: number, isR
 function assign(node: NodeInfo, value: any) {
     const proxy = getProxy(node);
 
-    beginBatch();
+    beginBalancedBatch();
     try {
         if (isPrimitive(node.root._)) {
             node.root._ = {};
@@ -912,7 +912,7 @@ function updateNodesAndNotify(
 ) {
     if (!childNode) childNode = node;
     // Make sure we don't call too many listeners for every property set
-    beginBatch();
+    beginBalancedBatch();
     try {
         if (isPrim === undefined) {
             isPrim = isPrimitive(newValue);

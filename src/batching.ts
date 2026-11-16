@@ -487,7 +487,7 @@ export function runBatch() {
 }
 
 export function batch(fn: () => void) {
-    beginBatch();
+    beginBalancedBatch();
     try {
         fn();
     } catch (error) {
@@ -500,6 +500,10 @@ export function beginBatch() {
     if (!timeout) {
         timeout = setTimeout(onActionTimeout, 0);
     }
+}
+/** For callers that always reach endBatch, so they skip the missing-endBatch recovery timer */
+export function beginBalancedBatch() {
+    numInBatch++;
 }
 export function endBatch(force?: boolean) {
     numInBatch--;

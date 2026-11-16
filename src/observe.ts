@@ -1,4 +1,4 @@
-import { beginBatch, endBatch, endBatchAndThrow } from './batching';
+import { beginBalancedBatch, endBatch, endBatchAndThrow } from './batching';
 import { isEvent } from './globals';
 import { isFunction } from './is';
 import type { ObserveEvent, ObserveEventCallback, ObserveOptions, Selector } from './observableInterfaces';
@@ -39,7 +39,7 @@ export function observe<T>(
         isRunning = true;
 
         // Run in a batch so changes don't happen until we're done tracking here
-        beginBatch();
+        beginBalancedBatch();
         try {
             try {
                 // Run the function/selector
