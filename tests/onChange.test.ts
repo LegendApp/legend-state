@@ -84,3 +84,56 @@ describe('onChange disposal', () => {
         dispose();
     });
 });
+
+describe('onChange paths through ancestors without listeners', () => {
+    test('root and middle listeners get full paths and types across maps and arrays', () => {
+        const state$ = observable({ a: new Map([['m', { arr: [{ b: { c: 1 } }] }]]) });
+        const rootChanges: any[] = [];
+        const middleChanges: any[] = [];
+        const immediateChanges: any[] = [];
+        state$.onChange(({ changes }) => rootChanges.push(...changes));
+        state$.a.get('m').arr.onChange(({ changes }) => middleChanges.push(...changes));
+        state$.onChange(({ changes }) => immediateChanges.push(...changes), { immediate: true });
+
+        state$.a.get('m').arr[0].b.c.set(2);
+
+        const expected = {
+            path: ['a', 'm', 'arr', '0', 'b', 'c'],
+            pathTypes: ['map', 'object', 'array', 'object', 'object', 'object'],
+            valueAtPath: 2,
+            prevAtPath: 1,
+        };
+        expect(rootChanges).toEqual([expected]);
+        expect(immediateChanges).toEqual([expected]);
+        expect(middleChanges).toEqual([
+            { path: ['0', 'b', 'c'], pathTypes: ['object', 'object', 'object'], valueAtPath: 2, prevAtPath: 1 },
+        ]);
+    });
+    test('a shallow listener above skipped levels ignores deep writes', () => {
+        const state$ = observable({ a: { b: { c: 1 } }, d: 1 });
+        let shallow = 0;
+        let deep = 0;
+        state$.onChange(() => shallow++, { trackingType: true });
+        state$.onChange(() => deep++);
+
+        state$.a.b.c.set(2);
+        expect(shallow).toBe(0);
+        expect(deep).toBe(1);
+
+        state$.a.set({ b: { c: 3 } });
+        expect(shallow).toBe(0);
+        expect(deep).toBe(2);
+    });
+    test('a listener below a link target gets the linked path', () => {
+        const source$ = observable({ x: { y: { z: 1 } } });
+        const alias$ = observable({ target: () => source$.x });
+        const changes: any[] = [];
+        alias$.target.get();
+        alias$.onChange(({ changes: c }) => changes.push(...c));
+
+        source$.x.y.z.set(2);
+
+        expect(alias$.target.y.z.peek()).toBe(2);
+        expect(changes.map((c) => c.path)).toEqual([['target', 'y', 'z']]);
+    });
+});

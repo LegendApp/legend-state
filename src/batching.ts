@@ -1,5 +1,6 @@
 import { clone, getChildNode, getNodeValue, getPathType, globalState, optimized, setNodeValue } from './globals';
 import { applyChanges } from './helpers';
+import { isMap } from './is';
 import type { Change, ListenerFn, ListenerParams, NodeInfo, TypeAtPath } from './observableInterfaces';
 
 interface BatchItem {
@@ -196,58 +197,89 @@ function computeChangesAtNode(
     pathTypes: TypeAtPath[],
     valueAtPath: any,
     prevAtPath: any,
-    immediate: boolean,
     level: number,
     whenOptimizedOnlyIf?: boolean,
     prevArrayLength?: number,
     fromParentUpdate?: boolean,
     previousPath?: string[],
 ) {
-    // If there are listeners at this node compute the changes that need to be run
-    if (immediate ? node.listenersImmediate : node.listeners) {
-        const change: Change = {
-            path,
-            pathTypes,
-            valueAtPath,
-            prevAtPath,
-        };
-        if (prevArrayLength !== undefined && path.length > 0) {
-            change.prevArrayLength = prevArrayLength;
-        }
-        if (previousPath && path.length > 0) previousChangePaths.set(change, previousPath.slice(-path.length));
-
-        const changeInBatch = changesInBatch.get(node);
-        // If the node itself has been changed then we can ignore all the child changes
-        if (changeInBatch && path.length > 0) {
-            const { changes } = changeInBatch;
-            if (!isArraySubset(changes[0].path, change.path)) {
-                if (fromParentUpdate) {
-                    if (changeInBatch.hasDirect) (changeInBatch.derived ||= []).push(change);
-                } else if (!changeInBatch.hasDirect) {
-                    // Everything recorded before the first direct change was derived from a parent update
-                    changeInBatch.hasDirect = true;
-                    changeInBatch.derived = changes.slice();
-                }
-                changes.push(change);
-                // This fixes shallow listeners because an earlier change may have come from setting a child
-                changeInBatch.level = Math.min(changeInBatch.level, level);
-                changeInBatch.whenOptimizedOnlyIf ||= whenOptimizedOnlyIf;
-            }
-        } else {
-            changesInBatch.set(node, {
-                level,
-                value,
-                isFromSync,
-                isFromPersist,
-                whenOptimizedOnlyIf,
-                changes: [change],
-                // A group of only derived changes is superseded by this change
-                prevChanges: changeInBatch?.hasDirect ? changeInBatch : changeInBatch?.prevChanges,
-                hasDirect: !fromParentUpdate,
-                derived: undefined,
-            });
-        }
+    const change: Change = {
+        path,
+        pathTypes,
+        valueAtPath,
+        prevAtPath,
+    };
+    if (prevArrayLength !== undefined && path.length > 0) {
+        change.prevArrayLength = prevArrayLength;
     }
+    if (previousPath && path.length > 0) previousChangePaths.set(change, previousPath.slice(-path.length));
+
+    const changeInBatch = changesInBatch.get(node);
+    // If the node itself has been changed then we can ignore all the child changes
+    if (changeInBatch && path.length > 0) {
+        const { changes } = changeInBatch;
+        if (!isArraySubset(changes[0].path, change.path)) {
+            if (fromParentUpdate) {
+                if (changeInBatch.hasDirect) (changeInBatch.derived ||= []).push(change);
+            } else if (!changeInBatch.hasDirect) {
+                // Everything recorded before the first direct change was derived from a parent update
+                changeInBatch.hasDirect = true;
+                changeInBatch.derived = changes.slice();
+            }
+            changes.push(change);
+            // This fixes shallow listeners because an earlier change may have come from setting a child
+            changeInBatch.level = Math.min(changeInBatch.level, level);
+            changeInBatch.whenOptimizedOnlyIf ||= whenOptimizedOnlyIf;
+        }
+    } else {
+        changesInBatch.set(node, {
+            level,
+            value,
+            isFromSync,
+            isFromPersist,
+            whenOptimizedOnlyIf,
+            changes: [change],
+            // A group of only derived changes is superseded by this change
+            prevChanges: changeInBatch?.hasDirect ? changeInBatch : changeInBatch?.prevChanges,
+            hasDirect: !fromParentUpdate,
+            derived: undefined,
+        });
+    }
+}
+
+// Builds the path, path types and value at `node` for the `numSkipped` nodes walked from `from` up to it.
+// The skipped nodes did nothing, so their values are the same as when the walk passed them.
+function getSkippedPath(
+    node: NodeInfo,
+    from: NodeInfo,
+    numSkipped: number,
+    path: string[],
+    pathTypes: TypeAtPath[],
+    fromValue: any,
+): [string[], TypeAtPath[], any] {
+    const length = path.length;
+    const nextPath: string[] = new Array(numSkipped + length);
+    const nextPathTypes: TypeAtPath[] = new Array(numSkipped + length);
+    for (let i = 0; i < length; i++) {
+        nextPath[numSkipped + i] = path[i];
+        nextPathTypes[numSkipped + i] = pathTypes[i];
+    }
+    let n = from;
+    for (let i = numSkipped - 1; i >= 0; i--) {
+        nextPath[i] = n.key!;
+        n = n.parent!;
+    }
+    nextPathTypes[numSkipped - 1] = getPathType(fromValue);
+    const value = getNodeValue(node);
+    let childValue = value;
+    for (let i = 0; i < numSkipped - 1; i++) {
+        if (childValue !== null && childValue !== undefined) {
+            const key = nextPath[i] as any;
+            childValue = isMap(childValue) ? childValue.get(key) : childValue[key];
+        }
+        nextPathTypes[i] = getPathType(childValue);
+    }
+    return [nextPath, nextPathTypes, value];
 }
 
 function computeChangesRecursive(
@@ -268,81 +300,76 @@ function computeChangesRecursive(
     previousPath?: string[],
     previousKeys?: Map<NodeInfo, string>,
 ) {
-    if (node.numListenersRecursive > 0) {
-        // Do the compute at this node
-        computeChangesAtNode(
-            changesInBatch,
-            node,
-            loading,
-            remote,
-            value,
-            path,
-            pathTypes,
-            valueAtPath,
-            prevAtPath,
-            immediate,
-            level,
-            whenOptimizedOnlyIf,
-            prevArrayLength,
-            fromParentUpdate,
-            previousPath,
-        );
-        if (node.linkedFromNodes) {
-            for (const linkedFromNode of node.linkedFromNodes) {
-                // Keep parent reads coherent before callbacks run, without replaying the source change.
-                if (linkedFromNode.linkedToNode === node && typeof value !== 'function') {
-                    setNodeValue(linkedFromNode, value);
+    // Walk up through the parents, only counting nodes with nothing to notify. The path to them
+    // is built once at the next node with listeners or incoming links.
+    let numSkipped = 0;
+    let skippedFrom = node;
+    for (;;) {
+        if (node.numListenersRecursive > 0) {
+            const hasListeners = immediate ? node.listenersImmediate : node.listeners;
+            const linkedFromNodes = node.linkedFromNodes;
+            if (hasListeners || linkedFromNodes) {
+                if (numSkipped > 0) {
+                    [path, pathTypes, value] = getSkippedPath(node, skippedFrom, numSkipped, path, pathTypes, value);
+                    level += numSkipped;
+                    numSkipped = 0;
                 }
-                const childNode = getNodeAtPath(linkedFromNode, path);
-                computeChangesRecursive(
-                    changesInBatch,
-                    childNode,
-                    loading,
-                    remote,
-                    valueAtPath,
-                    [],
-                    [],
-                    valueAtPath,
-                    prevAtPath,
-                    immediate,
-                    0,
-                    whenOptimizedOnlyIf,
-                    path.length > 0 ? prevArrayLength : undefined,
-                    fromParentUpdate,
-                    previousPath || previousKeys
-                        ? getNodePath(linkedFromNode, previousKeys).concat(
-                              path.length > 0 ? (previousPath ? previousPath.slice(-path.length) : path) : [],
-                          )
-                        : undefined,
-                    previousKeys,
-                );
+                if (hasListeners) {
+                    computeChangesAtNode(
+                        changesInBatch,
+                        node,
+                        loading,
+                        remote,
+                        value,
+                        path,
+                        pathTypes,
+                        valueAtPath,
+                        prevAtPath,
+                        level,
+                        whenOptimizedOnlyIf,
+                        prevArrayLength,
+                        fromParentUpdate,
+                        previousPath,
+                    );
+                }
+                if (linkedFromNodes) {
+                    for (const linkedFromNode of linkedFromNodes) {
+                        // Keep parent reads coherent before callbacks run, without replaying the source change.
+                        if (linkedFromNode.linkedToNode === node && typeof value !== 'function') {
+                            setNodeValue(linkedFromNode, value);
+                        }
+                        const childNode = getNodeAtPath(linkedFromNode, path);
+                        computeChangesRecursive(
+                            changesInBatch,
+                            childNode,
+                            loading,
+                            remote,
+                            valueAtPath,
+                            [],
+                            [],
+                            valueAtPath,
+                            prevAtPath,
+                            immediate,
+                            0,
+                            whenOptimizedOnlyIf,
+                            path.length > 0 ? prevArrayLength : undefined,
+                            fromParentUpdate,
+                            previousPath || previousKeys
+                                ? getNodePath(linkedFromNode, previousKeys).concat(
+                                      path.length > 0 ? (previousPath ? previousPath.slice(-path.length) : path) : [],
+                                  )
+                                : undefined,
+                            previousKeys,
+                        );
+                    }
+                }
             }
         }
-    }
-    // If not root notify up through parents
-    if (node.parent) {
         const parent = node.parent;
-        if (parent) {
-            const parentValue = getNodeValue(parent);
-            computeChangesRecursive(
-                changesInBatch,
-                parent,
-                loading,
-                remote,
-                parentValue,
-                [node.key].concat(path),
-                [getPathType(value)].concat(pathTypes),
-                valueAtPath,
-                prevAtPath,
-                immediate,
-                level + 1,
-                whenOptimizedOnlyIf,
-                prevArrayLength,
-                fromParentUpdate,
-                previousPath,
-                previousKeys,
-            );
-        }
+        if (!parent) return;
+        if (numSkipped === 0) skippedFrom = node;
+        numSkipped++;
+        node = parent;
     }
 }
 
