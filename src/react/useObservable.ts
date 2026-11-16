@@ -14,6 +14,13 @@ const { deactivateNode } = internal;
  * @see https://www.legendapp.com/dev/state/react/#useObservable
  */
 export function useObservable<T>(): Observable<T | undefined>;
+export function useObservable<T extends (...args: never[]) => unknown>(
+    value: T &
+        (unknown extends Awaited<ReturnType<T>> ? never : unknown) &
+        (Extract<Awaited<ReturnType<T>>, null | undefined> extends never ? never : unknown) &
+        (Parameters<T> extends [] | [string] ? unknown : never),
+    deps?: DependencyList,
+): Observable<T>;
 export function useObservable<T>(
     value: Promise<RecursiveValueOrFunction<T>> | (() => RecursiveValueOrFunction<T>) | RecursiveValueOrFunction<T>,
     deps?: DependencyList,
