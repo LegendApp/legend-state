@@ -405,24 +405,29 @@ function mergeChanges(changes: PendingChange[]) {
 }
 
 function mergeQueuedChanges(allChanges: QueuedChange[]) {
-    const changesByOptionsRemote = new Map<SyncedOptions, Change[]>();
-    const changesByOptionsLocal = new Map<SyncedOptions, Change[]>();
-    const outRemote: Map<SyncedOptions, QueuedChange> = new Map();
-    const outLocal: Map<SyncedOptions, QueuedChange> = new Map();
+    // Group by direction and options, keeping the last queued change of each group, then merge each group once
+    const groupsRemote = new Map<SyncedOptions, { queued: QueuedChange; changes: PendingChange[] }>();
+    const groupsLocal = new Map<SyncedOptions, { queued: QueuedChange; changes: PendingChange[] }>();
 
     for (let i = 0; i < allChanges.length; i++) {
         const value = allChanges[i];
-        const { changes, inRemoteChange, syncOptions } = value;
-        const targetMap = inRemoteChange ? outRemote : outLocal;
-        const changesMap = inRemoteChange ? changesByOptionsRemote : changesByOptionsLocal;
-        const existing = changesMap.get(syncOptions);
-        const newChanges = existing ? [...existing, ...changes] : changes;
-        const merged = mergeChanges(newChanges);
-        changesMap.set(syncOptions, merged);
-        value.changes = merged;
-        targetMap.set(syncOptions, value);
+        const groups = value.inRemoteChange ? groupsRemote : groupsLocal;
+        const group = groups.get(value.syncOptions);
+        if (group) {
+            group.queued = value;
+            for (let j = 0; j < value.changes.length; j++) group.changes.push(value.changes[j]);
+        } else {
+            groups.set(value.syncOptions, { queued: value, changes: value.changes.slice() });
+        }
     }
-    return Array.from(outRemote.values()).concat(Array.from(outLocal.values()));
+    const out: QueuedChange[] = [];
+    for (const groups of [groupsRemote, groupsLocal]) {
+        groups.forEach(({ queued, changes }) => {
+            queued.changes = mergeChanges(changes);
+            out.push(queued);
+        });
+    }
+    return out;
 }
 
 function reportSetError(

@@ -11299,3 +11299,34 @@ describe('superseded changes in one batch (#677)', () => {
         expect(obs$.get()).toEqual({ a: 1, b: 1 });
     });
 });
+
+describe('queued change merging', () => {
+    test('writes queued in one tick reach set once, merged, with reverted writes dropped', async () => {
+        const calls: { path: string[]; valueAtPath: unknown }[][] = [];
+        const state$ = observable(
+            synced({
+                initial: { a: 0, b: 0, c: { d: 0 } } as Record<string, any>,
+                set: ({ changes }) => {
+                    calls.push(changes.map(({ path, valueAtPath }) => ({ path, valueAtPath })));
+                },
+            }),
+        );
+        state$.get();
+        await promiseTimeout(0);
+
+        state$.a.set(1);
+        state$.b.set(1);
+        state$.b.set(0);
+        state$.c.set({ d: 1 });
+        state$.c.d.set(2);
+        state$.a.set(3);
+        await promiseTimeout(0);
+
+        expect(calls).toEqual([
+            [
+                { path: ['c'], valueAtPath: { d: 2 } },
+                { path: ['a'], valueAtPath: 3 },
+            ],
+        ]);
+    });
+});
