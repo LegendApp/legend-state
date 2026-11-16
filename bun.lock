@@ -60,9 +60,11 @@
       },
       "peerDependencies": {
         "expo-sqlite": "^15.0.0",
+        "react": ">=16.8",
       },
       "optionalPeers": [
         "expo-sqlite",
+        "react",
       ],
     },
   },
