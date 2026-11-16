@@ -285,10 +285,12 @@ export function getChildNode(node: NodeInfo, key: string, asFunction?: Function)
 
     // Create the child node if it doesn't already exist
     if (!child) {
+        // Same fields in the same order as root nodes in createObservable, so V8 gives them one shape
         child = {
             root: node.root,
             parent: node,
             key,
+            proxy: undefined,
             lazy: true,
             numListenersRecursive: 0,
         };

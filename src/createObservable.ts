@@ -20,8 +20,12 @@ export function createObservable<T>(
         _: value,
     };
 
+    // Same fields in the same order as child nodes, so V8 gives them one shape
     let node: NodeInfo = {
         root,
+        parent: undefined,
+        key: undefined,
+        proxy: undefined,
         lazy: true,
         numListenersRecursive: 0,
     };
