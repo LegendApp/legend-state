@@ -8,11 +8,15 @@ export function configureLegendState({
     observableProperties,
     jsonReplacer,
     jsonReviver,
+    warnOnDateStrings,
 }: {
     observableFunctions?: Record<string, (node: NodeInfo, ...args: any[]) => any>;
     observableProperties?: Record<string, { get: (node: NodeInfo) => any; set: (node: NodeInfo, value: any) => any }>;
     jsonReplacer?: (this: any, key: string, value: any) => any;
     jsonReviver?: (this: any, key: string, value: any) => any;
+    /** Set false to silence the development warning for ISO date strings that are no longer revived to Dates */
+    // TODO(3.0-stable): remove with the ISO date string warning
+    warnOnDateStrings?: boolean;
 }) {
     if (observableFunctions) {
         for (const key in observableFunctions) {
@@ -43,5 +47,8 @@ export function configureLegendState({
     }
     if (jsonReviver) {
         globalState.reviver = jsonReviver;
+    }
+    if (warnOnDateStrings !== undefined) {
+        globalState.warnOnDateStrings = warnOnDateStrings;
     }
 }

@@ -1341,7 +1341,7 @@ describe('global config', () => {
         expect(localStorage.getItem(persistName)).toEqual('{"test":true}');
         // Ensure pending to check retrySync worked
         expect(localStorage.getItem(persistName + '__m')).toEqual(
-            '{"pending":{"":{"p":{"test":false},"t":[],"h":[],"v":{"test":true},"c":true}}}',
+            '{"pending":{"":{"p":{"test":false},"t":[],"h":[],"v":{"test":true},"c":true}},"__LSFormat":1}',
         );
     });
 });

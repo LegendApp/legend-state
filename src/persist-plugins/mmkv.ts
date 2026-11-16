@@ -1,12 +1,10 @@
 import type { Change } from '@legendapp/state';
-import { internal, setAtPath } from '@legendapp/state';
+import { setAtPath } from '@legendapp/state';
 import type { ObservablePersistPlugin, PersistMetadata, PersistOptions } from '@legendapp/state/sync';
 import * as mmkv from 'react-native-mmkv';
+import { MetadataSuffix, PersistJSONFormat } from '../persistFormat';
 
 const symbolDefault = Symbol();
-const MetadataSuffix = '__m';
-
-const { safeParse, safeStringify } = internal;
 
 // Type definitions for MMKV v3 and older
 // v3 and older use storage.delete() while v4+ uses storage.remove()
@@ -52,6 +50,7 @@ export class ObservablePersistMMKV implements ObservablePersistPlugin {
         ],
     ]);
     private configuration: Configuration;
+    private format = new PersistJSONFormat();
 
     constructor(configuration: Configuration) {
         this.configuration = configuration;
@@ -62,7 +61,9 @@ export class ObservablePersistMMKV implements ObservablePersistPlugin {
         if (this.data[table] === undefined) {
             try {
                 const value = storage.getString(table);
-                this.data[table] = value ? safeParse(value) : init;
+                this.data[table] = value
+                    ? this.format.parse(table, value, () => storage.getString(table + MetadataSuffix))
+                    : init;
             } catch {
                 console.error('[legend-state] MMKV failed to parse', table);
             }
@@ -89,6 +90,7 @@ export class ObservablePersistMMKV implements ObservablePersistPlugin {
     public deleteTable(table: string, config: PersistOptions): void {
         const storage = this.getStorage(config);
         delete this.data[table];
+        this.format.delete(table);
         deleteFromMMKV(storage, table);
     }
     public deleteMetadata(table: string, config: PersistOptions) {
@@ -114,17 +116,35 @@ export class ObservablePersistMMKV implements ObservablePersistPlugin {
         this.save(table, config);
     }
     private save(table: string, config: PersistOptions) {
+        if (this.format.needsUpgrade(table)) {
+            // Rewrite the table and then its metadata in the current format. Metadata is only marked with the
+            // format version if the data write succeeded.
+            const dataTable = this.format.table(table);
+            this.getTable(dataTable, undefined as any, config);
+            this.getTable(dataTable + MetadataSuffix, {}, config);
+            if (table !== dataTable && this.data[dataTable] === undefined) {
+                this.write(dataTable + MetadataSuffix, config);
+            } else if (this.write(dataTable, config)) {
+                this.write(dataTable + MetadataSuffix, config);
+            }
+        } else {
+            this.write(table, config);
+        }
+    }
+    private write(table: string, config: PersistOptions) {
         const storage = this.getStorage(config);
         const v = this.data[table];
         if (v !== undefined) {
             try {
-                storage.set(table, v ? safeStringify(v) : JSON.stringify(v));
+                storage.set(table, v ? this.format.stringify(table, v) : JSON.stringify(v));
             } catch (err) {
                 console.error(err);
+                return false;
             }
         } else {
             deleteFromMMKV(storage, table);
         }
+        return true;
     }
 }
 

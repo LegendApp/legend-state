@@ -2588,11 +2588,11 @@ function equalPendingSnapshot(local: any, remote: any, reuse: boolean, depth = 0
 
 function cloneTransportValue(value: any): any {
     const json = internal.safeStringify(value);
-    // Escaped tags/dates and custom revivers retain the full JSON interpretation.
+    // Escaped or tagged values and custom revivers retain the full JSON interpretation.
     return json &&
         !globalState.reviver &&
         !('__LSType' in Object.prototype || '__LSType' in Array.prototype) &&
-        !/\\|__LSType|\d{4}-\d{2}-\d{2}T/.test(json)
+        !/\\|__LSType/.test(json)
         ? JSON.parse(json)
         : internal.safeParse(json);
 }

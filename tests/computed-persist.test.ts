@@ -409,7 +409,7 @@ describe('lastSync with new computed', () => {
 
         await promiseTimeout(1);
         expect(localStorage.getItem('nodes-lastSync')).toEqual(JSON.stringify({ key0: { key: 'key0' } }));
-        expect(localStorage.getItem('nodes-lastSync__m')).toEqual(JSON.stringify({ lastSync: 1000 }));
+        expect(localStorage.getItem('nodes-lastSync__m')).toEqual(JSON.stringify({ lastSync: 1000, __LSFormat: 1 }));
     });
     test('lastSync from subscribe', async () => {
         const value = observable(
@@ -434,7 +434,7 @@ describe('lastSync with new computed', () => {
         await promiseTimeout(10);
         expect(value.get()).toEqual('test2');
         await promiseTimeout(10);
-        expect(localStorage.getItem('lastSync2__m')).toEqual(JSON.stringify({ lastSync: 1000 }));
+        expect(localStorage.getItem('lastSync2__m')).toEqual(JSON.stringify({ lastSync: 1000, __LSFormat: 1 }));
     });
 });
 

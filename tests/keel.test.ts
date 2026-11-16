@@ -641,6 +641,7 @@ describe('error handling', () => {
                     id2: { p: null, t: ['object'], h: [], v: { id: 'id2', test: 'hi', other: 3, another: 4 }, c: true },
                     'id1/test': { p: 'hi', t: ['object', 'object'], h: [], v: 'hello', c: true },
                 },
+                __LSFormat: 1,
             }),
         );
 
@@ -669,6 +670,7 @@ describe('error handling', () => {
                 pending: {
                     id2: { p: null, t: ['object'], h: [], v: { id: 'id2', test: 'hi', other: 3, another: 4 }, c: true },
                 },
+                __LSFormat: 1,
             }),
         );
     });
@@ -721,6 +723,7 @@ describe('error handling', () => {
                     id2: { p: null, t: ['object'], h: [], v: { id: 'id2', test: 'hi', other: 3, another: 4 }, c: true },
                     'id1/test': { p: 'hi', t: ['object', 'object'], h: [], v: 'hello', c: true },
                 },
+                __LSFormat: 1,
             }),
         );
 
@@ -749,6 +752,7 @@ describe('error handling', () => {
                 pending: {
                     'id1/test': { p: 'hi', t: ['object', 'object'], h: [], v: 'hello', c: true },
                 },
+                __LSFormat: 1,
             }),
         );
     });
@@ -856,6 +860,7 @@ describe('error handling', () => {
                 pending: {
                     id2: { p: null, t: ['object'], h: [], v: { id: 'id2', test: 'hi', other: 3, another: 4 }, c: true },
                 },
+                __LSFormat: 1,
             }),
         );
     });
@@ -908,6 +913,7 @@ describe('error handling', () => {
                     id2: { p: null, t: ['object'], h: [], v: { id: 'id2', test: 'hi', other: 3, another: 4 }, c: true },
                     'id1/test': { p: 'hi', t: ['object', 'object'], h: [], v: 'hello', c: true },
                 },
+                __LSFormat: 1,
             }),
         );
 
@@ -936,6 +942,7 @@ describe('error handling', () => {
                 pending: {
                     'id1/test': { p: 'hi', t: ['object', 'object'], h: [], v: 'hello', c: true },
                 },
+                __LSFormat: 1,
             }),
         );
     });

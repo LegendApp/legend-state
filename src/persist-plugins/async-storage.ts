@@ -1,5 +1,5 @@
 import type { Change } from '@legendapp/state';
-import { applyChanges, internal, isArray } from '@legendapp/state';
+import { applyChanges, isArray } from '@legendapp/state';
 import type {
     ObservablePersistAsyncStoragePluginOptions,
     ObservablePersistPlugin,
@@ -7,16 +7,14 @@ import type {
     PersistMetadata,
 } from '@legendapp/state/sync';
 import type { AsyncStorageStatic } from '@react-native-async-storage/async-storage';
-
-const MetadataSuffix = '__m';
+import { MetadataSuffix, PersistJSONFormat } from '../persistFormat';
 
 let AsyncStorage: AsyncStorageStatic;
-
-const { safeParse, safeStringify } = internal;
 
 export class ObservablePersistAsyncStorage implements ObservablePersistPlugin {
     private data: Record<string, any> = {};
     private configuration: ObservablePersistAsyncStoragePluginOptions;
+    private format = new PersistJSONFormat();
 
     constructor(configuration: ObservablePersistAsyncStoragePluginOptions) {
         this.configuration = configuration;
@@ -40,11 +38,7 @@ export class ObservablePersistAsyncStorage implements ObservablePersistPlugin {
                     tables = [...preload, ...(metadataTables.filter(Boolean) as string[])];
                 }
                 if (tables) {
-                    const values = await AsyncStorage.multiGet(tables);
-
-                    values.forEach(([table, value]) => {
-                        this.data[table] = value ? safeParse(value) : undefined;
-                    });
+                    this.parseValues(await AsyncStorage.multiGet(tables));
                 }
             } catch (e) {
                 console.error('[legend-state] ObservablePersistAsyncStorage failed to initialize', e);
@@ -58,9 +52,7 @@ export class ObservablePersistAsyncStorage implements ObservablePersistPlugin {
             return AsyncStorage.multiGet([table, table + MetadataSuffix])
                 .then((values) => {
                     try {
-                        values.forEach(([table, value]) => {
-                            this.data[table] = value ? safeParse(value) : undefined;
-                        });
+                        this.parseValues(values);
                     } catch (err) {
                         console.error('[legend-state] ObservablePersistLocalAsyncStorage failed to parse', table, err);
                     }
@@ -92,21 +84,42 @@ export class ObservablePersistAsyncStorage implements ObservablePersistPlugin {
         return this.setValue(table + MetadataSuffix, metadata);
     }
     public async deleteTable(table: string) {
+        this.format.delete(table);
         return AsyncStorage.removeItem(table);
     }
     public deleteMetadata(table: string) {
         return this.deleteTable(table + MetadataSuffix);
     }
     // Private
+    private parseValues(values: readonly (readonly [string, string | null])[]) {
+        const raw = new Map(values);
+        values.forEach(([table, value]) => {
+            this.data[table] = value
+                ? this.format.parse(table, value, () => raw.get(table + MetadataSuffix))
+                : undefined;
+        });
+    }
     private async setValue(table: string, value: any) {
         this.data[table] = value;
         await this.save(table);
     }
     private async save(table: string) {
+        if (this.format.needsUpgrade(table)) {
+            // Rewrite the table and then its metadata in the current format. Data is written first so that
+            // metadata is only marked with the format version if the data write succeeded.
+            const dataTable = this.format.table(table);
+            this.data[dataTable + MetadataSuffix] ??= {};
+            if (table === dataTable || this.data[dataTable] !== undefined) await this.write(dataTable);
+            await this.write(dataTable + MetadataSuffix);
+        } else {
+            return this.write(table);
+        }
+    }
+    private write(table: string) {
         const v = this.data[table];
 
         if (v !== undefined && v !== null) {
-            return AsyncStorage.setItem(table, safeStringify(v));
+            return AsyncStorage.setItem(table, this.format.stringify(table, v));
         } else {
             return AsyncStorage.removeItem(table);
         }

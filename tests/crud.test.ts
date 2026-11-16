@@ -2156,14 +2156,14 @@ describe('lastSync', () => {
                 id2: { id: 'id2', test: 'hi2', updatedAt: 2 },
             }),
         );
-        expect(localStorage.getItem(persistName + '__m')!).toEqual(JSON.stringify({ lastSync: 1 }));
+        expect(localStorage.getItem(persistName + '__m')!).toEqual(JSON.stringify({ lastSync: 1, __LSFormat: 1 }));
 
         syncState(obs$).sync();
         expect(numLists).toEqual(2);
 
         await promiseTimeout(10);
 
-        expect(localStorage.getItem(persistName + '__m')!).toEqual(JSON.stringify({ lastSync: 2 }));
+        expect(localStorage.getItem(persistName + '__m')!).toEqual(JSON.stringify({ lastSync: 2, __LSFormat: 1 }));
     });
 });
 describe('update partial', () => {
@@ -4897,6 +4897,7 @@ describe('Misc', () => {
                         c: true,
                     },
                 },
+                __LSFormat: 1,
             }),
         );
 
@@ -5094,6 +5095,7 @@ describe('Misc', () => {
                         c: true,
                     },
                 },
+                __LSFormat: 1,
             }),
         );
 
@@ -5173,6 +5175,7 @@ describe('Misc', () => {
                         c: true,
                     },
                 },
+                __LSFormat: 1,
             }),
         );
 
