@@ -1028,7 +1028,7 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                           : undefined;
                       if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
                           const savedId = isCreate && saved ? (saved as any)[fieldId] : undefined;
-                          if (!isNullOrUndefined(savedId) && savedId !== itemKey) {
+                          if (!isNullOrUndefined(savedId) && String(savedId) !== String(itemKey)) {
                               warnCreateIdMismatch(node, fieldId, itemKey, savedId);
                           }
                       }

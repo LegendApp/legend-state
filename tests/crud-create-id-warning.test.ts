@@ -97,6 +97,42 @@ describe('syncedCrud create id contract warning', () => {
         expect(obs$.local1.text.get()).toBe('saved');
     });
 
+    test('does not warn when create returns the same id as a number or string', async () => {
+        const obs$ = observable(
+            syncedCrud({
+                list: () => [] as { id: string | number; text: string }[],
+                create: async (input: { id: string | number; text: string }) => ({
+                    ...input,
+                    id: typeof input.id === 'string' ? Number(input.id) : String(input.id),
+                    text: 'saved',
+                }),
+            }),
+        );
+        obs$.get();
+        (obs$ as any)['5'].set({ id: '5', text: 'hi' });
+        (obs$ as any)['6'].set({ id: 6, text: 'hi' });
+        await promiseTimeout(10);
+
+        expect(getIdWarnings(warn).length).toBe(0);
+        expect((obs$ as any)['5'].text.get()).toBe('saved');
+    });
+
+    test('warns when create returns a different numeric id', async () => {
+        const obs$ = observable(
+            syncedCrud({
+                list: () => [] as { id: string; text: string }[],
+                create: async (input: { id: string; text: string }) => ({ ...input, id: 6 as any }),
+            }),
+        );
+        obs$.get();
+        (obs$ as any)['5'].set({ id: '5', text: 'hi' });
+        await promiseTimeout(10);
+
+        const warnings = getIdWarnings(warn);
+        expect(warnings.length).toBe(1);
+        expect(warnings[0][0]).toContain('returned id 6');
+    });
+
     test('does not warn when create returns nothing or omits the id', async () => {
         const obs$ = observable(
             syncedCrud({
