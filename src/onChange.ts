@@ -159,7 +159,7 @@ function createCb(linkedFromNode: NodeInfo, path: string[], callback: ListenerFn
     // Create a callback for a path that calls it with the current value at the path
     let prevAtPath = deconstructObjectWithPath(path, [], getNodeValue(linkedFromNode));
 
-    return function ({ value: valueA, isFromPersist, isFromSync }: ListenerParams<any>) {
+    return function ({ value: valueA, isFromPersist, isFromSync, getPrevious }: ListenerParams<any>) {
         const valueAtPath = deconstructObjectWithPath(path, [], valueA);
         if (valueAtPath !== prevAtPath) {
             callback({
@@ -174,7 +174,7 @@ function createCb(linkedFromNode: NodeInfo, path: string[], callback: ListenerFn
                         valueAtPath,
                     },
                 ],
-                getPrevious: () => prevAtPath,
+                getPrevious: () => deconstructObjectWithPath(path, [], getPrevious()),
             });
         }
         prevAtPath = valueAtPath;

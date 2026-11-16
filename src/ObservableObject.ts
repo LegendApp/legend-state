@@ -1,5 +1,13 @@
 import { checkPlain } from './checkPlain';
-import { beginBatch, createPreviousHandler, endBatch, endBatchAndThrow, isArraySubset, notify } from './batching';
+import {
+    beginBatch,
+    createPreviousHandler,
+    endBatch,
+    endBatchAndThrow,
+    isArraySubset,
+    notify,
+    savePreviousKey,
+} from './batching';
 import { createObservable } from './createObservable';
 import {
     equals,
@@ -100,7 +108,8 @@ if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
 function collectionSetter(node: NodeInfo, target: any[], prop: keyof Array<any>, ...args: any[]) {
     if (prop === 'push' && args.length === 1) {
         // Fast path for push to just append to the end
-        setKey(node, target.length + '', args[0]);
+        const previousLength = target.length;
+        setKey(node, previousLength + '', args[0], undefined, false, previousLength);
     } else {
         const prevValue = target.slice();
 
@@ -297,6 +306,7 @@ function updateNodes(parent: NodeInfo, obj: Record<any, any> | Array<any> | unde
                         if (isArrDiff) {
                             child = prevChild;
                             parent.children!.delete(child.key);
+                            savePreviousKey(child);
                             child.key = key;
                             moved!.push([key, child]);
                         }
@@ -328,7 +338,7 @@ function updateNodes(parent: NodeInfo, obj: Record<any, any> | Array<any> | unde
                     // But do not notify child if the parent is an array with changing length -
                     // the array's listener will cover it
                     if (child.listeners || child.listenersImmediate) {
-                        notify(child, value, prev, 0, !isArrDiff);
+                        notify(child, value, prev, 0, !isArrDiff, undefined, true);
                     }
                 }
             }
@@ -381,7 +391,7 @@ function handleDeletedChild(child: NodeInfo, p: any) {
     }
 
     if (child.listeners || child.listenersImmediate) {
-        notify(child, undefined, p, 0);
+        notify(child, undefined, p, 0, undefined, undefined, true);
     }
 }
 
@@ -696,7 +706,7 @@ function toggle(node: NodeInfo) {
     }
 }
 
-function setKey(node: NodeInfo, key: string, newValue?: any, level?: number, isRoot = false) {
+function setKey(node: NodeInfo, key: string, newValue?: any, level?: number, isRoot = false, prevArrayLength?: number) {
     if (process.env.NODE_ENV === 'development') {
         if (typeof HTMLElement !== 'undefined' && newValue instanceof HTMLElement) {
             console.warn(`[legend-state] Set an HTMLElement into state. You probably don't want to do that.`);
@@ -716,6 +726,13 @@ function setKey(node: NodeInfo, key: string, newValue?: any, level?: number, isR
     if (isObservable(newValue)) {
         setToObservable(childNode, newValue);
     } else {
+        if (prevArrayLength === undefined && !isRoot && typeof key === 'string') {
+            const firstCode = key.charCodeAt(0);
+            if (firstCode >= 48 && firstCode <= 57) {
+                const value = getNodeValue(node);
+                if (isArray(value) && +key >= value.length) prevArrayLength = value.length;
+            }
+        }
         // Set the raw value on the parent object
         const {
             newValue: savedValue,
@@ -724,6 +741,7 @@ function setKey(node: NodeInfo, key: string, newValue?: any, level?: number, isR
             parentHadKey,
             parentHasKey,
         } = setNodeValue(childNode, newValue);
+        if (prevArrayLength !== undefined && parentValue.length === prevArrayLength) prevArrayLength = undefined;
 
         const isPrim = isPrimitive(savedValue) || (!savedValue && isPrimitive(prevValue));
 
@@ -753,6 +771,7 @@ function setKey(node: NodeInfo, key: string, newValue?: any, level?: number, isR
                 level,
                 forceNotify,
                 parentHadKey !== parentHasKey,
+                prevArrayLength,
             );
         }
 
@@ -889,6 +908,7 @@ function updateNodesAndNotify(
     level?: number,
     forceNotify?: boolean,
     parentKeyChanged?: boolean,
+    prevArrayLength?: number,
 ) {
     if (!childNode) childNode = node;
     // Make sure we don't call too many listeners for every property set
@@ -958,6 +978,7 @@ function updateNodesAndNotify(
                 prevValue,
                 (level ?? prevValue === undefined) ? -1 : hasADiff ? 0 : 1,
                 whenOptimizedOnlyIf,
+                prevArrayLength,
             );
         }
     } catch (error) {

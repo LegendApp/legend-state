@@ -442,7 +442,7 @@ describe('Computed inside observable', () => {
         expect(obs.selectedItem.get()).toEqual({
             text: 'hello',
         });
-        expect(handlerItem).toHaveBeenCalledTimes(3);
+        expect(handlerItem).toHaveBeenCalledTimes(2);
         expect(handlerItem).toHaveBeenCalledWith({ text: 'hi!' }, { text: 'hi' }, [
             {
                 path: ['text'],
@@ -464,7 +464,7 @@ describe('Computed inside observable', () => {
         });
 
         expect(handlerSelected).toHaveBeenCalledTimes(1);
-        expect(handlerItem).toHaveBeenCalledTimes(4);
+        expect(handlerItem).toHaveBeenCalledTimes(3);
         expect(handlerItem).toHaveBeenCalledWith({ text: 'hello!' }, { text: 'hello' }, [
             {
                 path: ['text'],

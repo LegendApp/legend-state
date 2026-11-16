@@ -289,8 +289,13 @@ export function initializePathType(pathType: TypeAtPath): any {
     }
 }
 export function applyChange<T extends object>(value: T, change: Change, applyPrevious?: boolean): T {
-    const { path, valueAtPath, prevAtPath, pathTypes } = change;
-    return setAtPath(value, path as string[], pathTypes, applyPrevious ? prevAtPath : valueAtPath);
+    const { path, valueAtPath, prevAtPath, pathTypes, prevArrayLength } = change;
+    value = setAtPath(value, path as string[], pathTypes, applyPrevious ? prevAtPath : valueAtPath);
+    if (applyPrevious && prevArrayLength !== undefined && path.length > 0) {
+        const parent = getValueAtPath(value, path.slice(0, -1));
+        if (isArray(parent)) parent.length = prevArrayLength;
+    }
+    return value;
 }
 export function applyChanges<T extends object>(value: T, changes: Change[], applyPrevious?: boolean): T {
     for (let i = 0; i < changes.length; i++) {

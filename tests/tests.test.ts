@@ -1204,7 +1204,7 @@ describe('Array', () => {
         expect(handler).toHaveBeenCalledWith(
             [1],
             [],
-            [{ path: ['0'], pathTypes: ['object'], valueAtPath: 1, prevAtPath: undefined }],
+            [{ path: ['0'], pathTypes: ['object'], valueAtPath: 1, prevAtPath: undefined, prevArrayLength: 0 }],
         );
     });
     test('Array functions', () => {
@@ -1224,7 +1224,13 @@ describe('Array', () => {
         obs.test.push('hello');
         expect(obs.test.get()).toEqual(['hi', 'hello']);
         expect(handler).toHaveBeenCalledWith({ test: ['hi', 'hello'] }, { test: ['hi'] }, [
-            { path: ['test', '1'], pathTypes: ['array', 'object'], valueAtPath: 'hello', prevAtPath: undefined },
+            {
+                path: ['test', '1'],
+                pathTypes: ['array', 'object'],
+                valueAtPath: 'hello',
+                prevAtPath: undefined,
+                prevArrayLength: 1,
+            },
         ]);
         expect(handler).toHaveBeenCalledTimes(1);
     });
@@ -1385,15 +1391,21 @@ describe('Array', () => {
         expect(handler).toHaveBeenCalledWith(
             [{ id: 0 }, { id: 1 }],
             [{ id: 0 }],
-            [{ path: ['1'], pathTypes: ['object'], valueAtPath: { id: 1 }, prevAtPath: undefined }],
+            [{ path: ['1'], pathTypes: ['object'], valueAtPath: { id: 1 }, prevAtPath: undefined, prevArrayLength: 1 }],
         );
         expect(handlerOptimized).toHaveBeenCalledWith(
             [{ id: 0 }, { id: 1 }],
             [{ id: 0 }],
-            [{ path: ['1'], pathTypes: ['object'], valueAtPath: { id: 1 }, prevAtPath: undefined }],
+            [{ path: ['1'], pathTypes: ['object'], valueAtPath: { id: 1 }, prevAtPath: undefined, prevArrayLength: 1 }],
         );
-        expect(handler2).toHaveBeenCalledWith({ test: [{ id: 0 }, { id: 1 }] }, { test: [{ id: 0 }, undefined] }, [
-            { path: ['test', '1'], pathTypes: ['array', 'object'], prevAtPath: undefined, valueAtPath: { id: 1 } },
+        expect(handler2).toHaveBeenCalledWith({ test: [{ id: 0 }, { id: 1 }] }, { test: [{ id: 0 }] }, [
+            {
+                path: ['test', '1'],
+                pathTypes: ['array', 'object'],
+                prevAtPath: undefined,
+                valueAtPath: { id: 1 },
+                prevArrayLength: 1,
+            },
         ]);
     });
     test('Array swap with objects', () => {
@@ -1954,6 +1966,7 @@ describe('Array', () => {
                     pathTypes: ['object'],
                     valueAtPath: 2,
                     prevAtPath: undefined,
+                    prevArrayLength: 2,
                 },
             ],
         );
@@ -2187,7 +2200,15 @@ describe('Array optimized listener', () => {
         expect(handlerOptimized).toHaveBeenCalledWith(
             [{ val: 0 }],
             [],
-            [{ path: ['0'], pathTypes: ['object'], valueAtPath: { val: 0 }, prevAtPath: undefined }],
+            [
+                {
+                    path: ['0'],
+                    pathTypes: ['object'],
+                    valueAtPath: { val: 0 },
+                    prevAtPath: undefined,
+                    prevArrayLength: 0,
+                },
+            ],
         );
     });
 });
@@ -2384,6 +2405,7 @@ describe('Deep changes keep listeners', () => {
                     pathTypes: ['object'],
                     valueAtPath: { _id: 3 },
                     prevAtPath: undefined,
+                    prevArrayLength: 3,
                 },
             ],
         );

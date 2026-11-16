@@ -33,6 +33,8 @@ export interface Change {
     pathTypes: TypeAtPath[];
     valueAtPath: any;
     prevAtPath: any;
+    /** Length of the parent array before an indexed write grew it. */
+    prevArrayLength?: number;
 }
 export interface ChangeWithPathStr extends Change {
     pathStr: string;
