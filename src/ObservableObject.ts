@@ -1530,7 +1530,7 @@ function recursivelyAutoActivateInner(obj: Record<string, any>, pathStack: strin
                     }
                 }
 
-                if (typeof value === 'object') {
+                if (type === 'object') {
                     pathStack.push(key);
                     recursivelyAutoActivateInner(value, pathStack, getNodeAtPath); // Recursively traverse
                     pathStack.pop();
