@@ -1,6 +1,6 @@
 import { computeSelector } from './helpers';
 import type { ObserveOptions, ListenerParams, ObserveEvent, Selector, GetOptions } from './observableInterfaces';
-import { setupTracking } from './setupTracking';
+import { setupTracking, type TrackingSubscriptions } from './setupTracking';
 import { beginTracking, endTracking, tracking } from './tracking';
 
 export function trackSelector<T>(
@@ -10,9 +10,10 @@ export function trackSelector<T>(
     observeEvent?: ObserveEvent<T>,
     observeOptions?: ObserveOptions,
     createResubscribe?: boolean,
-    disposePrevious?: () => void,
+    previous?: { dispose?: () => void; subscriptions?: TrackingSubscriptions },
 ) {
     let dispose: undefined | (() => void);
+    let subscriptions: TrackingSubscriptions | undefined;
     let resubscribe: (() => () => void) | undefined;
     let updateFn = update;
 
@@ -36,25 +37,37 @@ export function trackSelector<T>(
         tracker.traceUpdates = undefined;
     }
 
-    // Keep previous listeners if tracking throws, then replace them without overlapping subscriptions.
-    disposePrevious?.();
+    // Keep previous listeners if tracking throws. Untraced listeners can be reused by an untraced run.
+    if (observeEvent?.cancel || updateFn !== update || !previous?.subscriptions) {
+        previous?.dispose?.();
+        previous = undefined;
+    }
 
     if (!observeEvent?.cancel) {
         // Do tracing if it was requested
 
         // useSyncExternalStore doesn't subscribe until after the component mount.
         // We want to subscribe immediately so we don't miss any updates
-        dispose = setupTracking(nodes, updateFn, false, observeOptions?.immediate);
+        ({ dispose, subscriptions } = setupTracking(
+            nodes,
+            updateFn,
+            false,
+            observeOptions?.immediate,
+            previous?.subscriptions,
+        ));
         if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
             resubscribe = createResubscribe
                 ? () => {
                       dispose?.();
-                      dispose = setupTracking(nodes, updateFn);
+                      dispose = setupTracking(nodes, updateFn).dispose;
                       return dispose;
                   }
                 : undefined;
         }
     }
 
-    return { nodes, value, dispose, resubscribe };
+    // Traced listeners wrap the update, so they are never reused
+    if (updateFn !== update) subscriptions = undefined;
+
+    return { nodes, value, dispose, subscriptions, resubscribe };
 }

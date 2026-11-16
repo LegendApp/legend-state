@@ -21,7 +21,7 @@ export function observe<T>(
     } else {
         options = reactionOrOptions;
     }
-    let dispose: (() => void) | undefined;
+    let tracked: ReturnType<typeof trackSelector<T>> | undefined;
     let isRunning = false;
     const e: ObserveEventCallback<T> = { num: 0 } as ObserveEventCallback<T>;
     // Wrap it in a function so it doesn't pass all the arguments to run()
@@ -45,16 +45,15 @@ export function observe<T>(
                 // Run the function/selector
                 delete e.value;
 
-                const tracked = trackSelector(
+                tracked = trackSelector(
                     selectorOrRun as Selector<T>,
                     update,
                     undefined,
                     e,
                     options,
                     undefined,
-                    dispose,
+                    tracked,
                 );
-                dispose = tracked.dispose;
 
                 e.value = tracked.value;
                 e.nodes = tracked.nodes;
@@ -97,6 +96,6 @@ export function observe<T>(
         e.onCleanup = undefined;
         e.onCleanupReaction?.();
         e.onCleanupReaction = undefined;
-        dispose?.();
+        tracked?.dispose?.();
     };
 }

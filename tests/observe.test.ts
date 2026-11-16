@@ -1,4 +1,5 @@
 import { endBatch } from '../src/batching';
+import { getNode } from '../src/globals';
 import { observable } from '../src/observable';
 import { observe } from '../src/observe';
 
@@ -95,4 +96,48 @@ test('a failed dependency switch retains previous listeners until tracking succe
     b$.set(2);
     expect(runs).toBe(afterFailure + 2);
     dispose();
+});
+
+describe('observe re-tracking', () => {
+    test('keeps listeners for unchanged dependencies and swaps changed ones', () => {
+        const state$ = observable({ flag: false, a: 1, b: 2, c: 3 });
+        let runs = 0;
+        const dispose = observe(() => {
+            runs++;
+            state$.c.get();
+            if (state$.flag.get()) state$.a.get();
+            else state$.b.get();
+        });
+        const listenerC = [...getNode(state$.c).listeners!][0];
+
+        state$.flag.set(true);
+        expect([...getNode(state$.c).listeners!][0]).toBe(listenerC);
+        expect(getNode(state$.a).listeners?.size).toBe(1);
+        expect(getNode(state$.b).listeners?.size ?? 0).toBe(0);
+        expect(getNode(state$).numListenersRecursive).toBe(3);
+
+        state$.b.set(20);
+        expect(runs).toBe(2);
+        state$.a.set(10);
+        state$.c.set(30);
+        expect(runs).toBe(4);
+
+        dispose();
+        expect(getNode(state$).numListenersRecursive).toBe(0);
+    });
+    test('resubscribes a dependency that became linked to another observable', () => {
+        const other$ = observable(5);
+        const state$ = observable<{ trigger: number; value: any }>({ trigger: 0, value: 1 });
+        const seen: unknown[] = [];
+        const dispose = observe(() => {
+            state$.trigger.get();
+            seen.push(state$.value.get());
+        });
+
+        state$.value.set(other$);
+        state$.trigger.set(1);
+        other$.set(6);
+        expect(seen.at(-1)).toBe(6);
+        dispose();
+    });
 });
