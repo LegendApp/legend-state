@@ -1102,7 +1102,7 @@ function checkLazy(node: NodeInfo, value: any, activateRecursive: boolean) {
     const lazy = node.lazy;
     if (lazy) {
         const lazyFn = node.lazyFn!;
-        delete node.lazy;
+        node.lazy = false;
         if (isFunction(lazyFn)) {
             if (lazyFn.length === 1) {
                 // This is a lookup function, so return a record object
@@ -1518,7 +1518,7 @@ function recursivelyAutoActivateInner(obj: Record<string, any>, pathStack: strin
                 if (isObservable(value)) {
                     const childNode = getNodeAtPath();
                     extractFunctionOrComputed(childNode, key, value);
-                    delete childNode.lazy;
+                    childNode.lazy = false;
                 } else {
                     const linkedOptions: LinkedOptions = isFunction(value) && value.prototype?.[symbolLinked];
                     if (linkedOptions) {
