@@ -101,6 +101,7 @@ interface LocalState {
     getRequests?: Set<GetRequest>;
     isApplyingPending?: boolean;
     timeoutSaveMetadata?: any;
+    warnedArray?: boolean;
 }
 
 interface GetRequest {
@@ -1020,6 +1021,42 @@ function markPendingHistory(
     cached.keys = keys;
     cached.keysLength = entry.h.length;
     return keys;
+}
+
+// Dev only: arrays are tracked by index, so remote arrays can misplace pending edits inside them.
+function warnPendingArrayOverwrite(
+    localState: LocalState,
+    remote: any,
+    key: string,
+    entry: PendingChanges[string],
+    allowRootArray: boolean,
+) {
+    const path = entry.k || key.split('/');
+    // The recorded path types show whether the edit is inside an array, so most entries return here.
+    const arrayIndex = entry.t.indexOf('array');
+    const end =
+        !allowRootArray && isArray(remote) ? 0 : arrayIndex >= 0 && arrayIndex < path.length - 1 ? arrayIndex + 1 : -1;
+    if (end < 0) return;
+    let value = remote;
+    try {
+        // Read own data properties only so accessors on remote values are not invoked.
+        for (let i = 0; i < end; i++) {
+            value = isMap(value)
+                ? Map.prototype.get.call(value, path[i])
+                : value && typeof value === 'object'
+                  ? Object.getOwnPropertyDescriptor(value, path[i])?.value
+                  : undefined;
+        }
+    } catch {
+        return;
+    }
+    if (isArray(value)) {
+        // Warn once per synced observable
+        localState.warnedArray = true;
+        console.warn(
+            `[legend-state] Synced data at path "${path.slice(0, end).join('.') || '(root)'}" is an array and a remote value replaced it while local edits inside it ("${path.join('.')}") were pending. Arrays are not supported for per-item sync because items are tracked by index; use an object or Map keyed by id instead.`,
+        );
+    }
 }
 
 function pendingPathKey(value: any, key: string): string | number | undefined {
@@ -3706,6 +3743,19 @@ export function syncObservable<T>(
                                     if ((!key && entry.t.length) || (key && (!value || typeof value !== 'object'))) {
                                         unresolvedPending = true;
                                         return;
+                                    }
+                                    if (
+                                        (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') &&
+                                        key &&
+                                        !localState.warnedArray
+                                    ) {
+                                        warnPendingArrayOverwrite(
+                                            localState,
+                                            remoteValue,
+                                            key,
+                                            entry,
+                                            !!syncOptions.fieldId,
+                                        );
                                     }
                                     if (!entry.h) {
                                         const resolved = key ? readPendingEntry(currentValue, key, entry) : undefined;

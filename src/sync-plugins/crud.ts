@@ -459,6 +459,7 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
 
     const asMap = asType === 'Map';
     const asArray = asType === 'array';
+    let warnedArray = false;
 
     const resultsToOutType = (results: any[]) => {
         if (asType === 'value') {
@@ -571,6 +572,14 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                           // Note: We don't want this function to be async so we return these functions
                           // as Promise only if getFn returned a promise
                           const processData = (data: TRemote | null) => {
+                              if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
+                                  if (!warnedArray && isArray(data) && data[0] && typeof data[0] === 'object') {
+                                      warnedArray = true;
+                                      console.warn(
+                                          '[legend-state] syncedCrud get returned an array of items, but get syncs a single item. Arrays are not supported for per-item sync; use list (as an object or Map keyed by id) instead.',
+                                      );
+                                  }
+                              }
                               clearPendingCreateForValue(data);
                               let transformed = data as unknown as TLocal | Promise<TLocal>;
                               if (data) {
@@ -939,6 +948,14 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                       if (isNullOrUndefined(currentValue)) {
                           acknowledge(changes);
                           return;
+                      }
+                      if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
+                          if (!warnedArray && isArray(saved)) {
+                              warnedArray = true;
+                              console.warn(
+                                  '[legend-state] syncedCrud create or update returned an array, but it should return the saved row (e.g. data[0] instead of data). Arrays are not supported for per-item sync.',
+                              );
+                          }
                       }
                       // Remove keys modified locally since this save started.
                       Object.keys(saved).forEach((key) => {
