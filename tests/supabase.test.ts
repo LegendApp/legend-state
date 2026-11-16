@@ -114,4 +114,37 @@ describe('syncedSupabase', () => {
             2: { id: '2', text: 'two' },
         });
     });
+
+    test('realtime update applies to a local row without updated_at', async () => {
+        const realtime = createRealtimeClient();
+        type Row = Item & { created_at?: string; updated_at?: string };
+        const obs$ = observable<Record<string, Row>>(
+            syncedSupabase({
+                supabase: realtime.client as any,
+                collection: 'items' as any,
+                actions: ['read'],
+                realtime: true,
+                fieldCreatedAt: 'created_at',
+                fieldUpdatedAt: 'updated_at',
+                list: async () =>
+                    ({ data: [{ id: '1', text: 'one', created_at: '2024-01-01T00:00:00.000Z' }], error: null }) as any,
+            }),
+        );
+
+        obs$.get();
+        await promiseTimeout(1);
+
+        realtime.emit({
+            eventType: 'UPDATE',
+            new: {
+                id: '1',
+                text: 'updated',
+                created_at: '2024-01-01T00:00:00.000Z',
+                updated_at: '2024-02-01T00:00:00.000Z',
+            },
+        });
+        await promiseTimeout(1);
+
+        expect(obs$['1'].text.get()).toEqual('updated');
+    });
 });

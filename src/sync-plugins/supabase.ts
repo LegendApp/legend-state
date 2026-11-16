@@ -438,8 +438,7 @@ export function syncedSupabase<
                                   const curDateStr =
                                       cur &&
                                       ((fieldUpdatedAt && cur[fieldUpdatedAt]) ||
-                                          fieldCreatedAt ||
-                                          cur[fieldCreatedAt as any]);
+                                          (fieldCreatedAt && cur[fieldCreatedAt]));
                                   const valueDateStr =
                                       (fieldUpdatedAt && value[fieldUpdatedAt]) ||
                                       (fieldCreatedAt && value[fieldCreatedAt]);
