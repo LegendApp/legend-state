@@ -1,3 +1,9 @@
+## Unreleased
+
+### Breaking / Behavior changes
+
+- Supabase: the minimum supported `@supabase/supabase-js` is now `^2.56.0`, because 2.56 changed the client and query builder generics. It is declared as an optional peer dependency.
+
 ## 3.0.0-next.0
 
 This is the first 3.0 release on the `next` tag, which previously pointed to 2.2.x.

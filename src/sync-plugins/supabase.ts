@@ -26,6 +26,9 @@ import type { FunctionsResponse } from '@supabase/functions-js';
 import type { PostgrestFilterBuilder, PostgrestQueryBuilder } from '@supabase/postgrest-js';
 import type { PostgrestError, PostgrestSingleResponse, SupabaseClient } from '@supabase/supabase-js';
 
+// These types use the SupabaseClient and postgrest builder generics of supabase-js 2.56 and later,
+// which added ClientOptions (the PostgREST version) to them
+
 // Unused types but maybe useful in the future so keeping them for now
 type DatabaseOf<Client extends SupabaseClient> = Client extends SupabaseClient<infer TDB> ? TDB : never;
 
@@ -36,15 +39,11 @@ type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends (
 type IsUnionOfStrings<T> = [T] extends [string] ? ([T] extends [UnionToIntersection<T>] ? false : true) : false;
 
 export type SupabaseSchemaOf<Client extends SupabaseClient> =
-    Client extends SupabaseClient<
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        infer _,
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        infer __,
-        infer Schema
-    >
-        ? Schema
-        : never;
+    Client extends SupabaseClient<any, any, any, infer Schema> ? Schema : never;
+
+type SupabaseClientOptionsOf<Client extends SupabaseClient> =
+    Client extends SupabaseClient<any, any, any, any, infer ClientOptions> ? ClientOptions : never;
+
 export type SupabaseTableOf<
     Client extends SupabaseClient,
     SchemaName extends SchemaNameOf<Client>,
@@ -64,6 +63,38 @@ export type SupabaseRowOf<
     Collection extends SupabaseCollectionOf<Client, SchemaName>,
     SchemaName extends SchemaNameOf<Client>,
 > = SupabaseTableOf<Client, SchemaName>[Collection]['Row'] & SupabaseViewOf<Client, SchemaName>[Collection]['Row'];
+
+type SupabaseRelationOf<
+    Client extends SupabaseClient,
+    Collection extends SupabaseCollectionOf<Client, SchemaName>,
+    SchemaName extends SchemaNameOf<Client>,
+> = SupabaseTableOf<Client, SchemaName>[Collection] & SupabaseViewOf<Client, SchemaName>[Collection];
+
+type SupabaseQueryBuilderOf<
+    Client extends SupabaseClient,
+    Collection extends SupabaseCollectionOf<Client, SchemaName>,
+    SchemaName extends SchemaNameOf<Client>,
+> = PostgrestQueryBuilder<
+    SupabaseClientOptionsOf<Client>,
+    SupabaseSchemaOf<Client>,
+    SupabaseRelationOf<Client, Collection, SchemaName>,
+    Collection
+>;
+
+type SupabaseFilterBuilderOf<
+    Client extends SupabaseClient,
+    Collection extends SupabaseCollectionOf<Client, SchemaName>,
+    SchemaName extends SchemaNameOf<Client>,
+    TResult = SupabaseRowOf<Client, Collection, SchemaName>[],
+> = PostgrestFilterBuilder<
+    SupabaseClientOptionsOf<Client>,
+    SupabaseSchemaOf<Client>,
+    SupabaseRowOf<Client, Collection, SchemaName>,
+    TResult,
+    Collection,
+    SupabaseRelationOf<Client, Collection, SchemaName>['Relationships'],
+    'GET'
+>;
 
 export type SyncedSupabaseConfig<TRemote extends { id: string | number }, TLocal> = Omit<
     SyncedCrudPropsBase<TRemote, TLocal>,
@@ -93,10 +124,12 @@ interface SyncedSupabaseProps<
     collection: Collection;
     schema?: SchemaName;
     select?: never;
+    // The builder's result is the table row rather than TRemote, so that a filter placed before select
+    // does not fix TRemote before it can be inferred from select
     filter?: (
-        select: PostgrestFilterBuilder<SupabaseSchemaOf<Client>, TRemote, TRemote[], Collection, []>,
+        select: SupabaseFilterBuilderOf<Client, Collection, SchemaName>,
         params: SyncedGetParams<TRemote>,
-    ) => PostgrestFilterBuilder<SupabaseSchemaOf<Client>, TRemote, TRemote[], Collection, []>;
+    ) => SupabaseFilterBuilderOf<Client, Collection, SchemaName>;
     actions?: ('create' | 'read' | 'update' | 'delete')[];
     realtime?: boolean | { schema?: string; filter?: string };
     stringifyDates?: boolean;
@@ -123,12 +156,8 @@ interface SyncedSupabasePropsWithSelect<
     TLocal = TRemote,
 > extends Omit<SyncedSupabaseProps<Client, Collection, SchemaName, TOption, TRemote, TLocal>, 'select'> {
     select: (
-        query: PostgrestQueryBuilder<
-            SupabaseSchemaOf<Client>,
-            SupabaseTableOf<Client, SchemaName>[Collection] & SupabaseViewOf<Client, SchemaName>[Collection],
-            Collection
-        >,
-    ) => PostgrestFilterBuilder<SupabaseSchemaOf<Client>, TRemote, TRemote[], Collection, []>;
+        query: SupabaseQueryBuilderOf<Client, Collection, SchemaName>,
+    ) => SupabaseFilterBuilderOf<Client, Collection, SchemaName, TRemote[]>;
 }
 
 let channelNum = 1;
@@ -197,7 +226,8 @@ export function syncedSupabase<
     Collection extends SupabaseCollectionOf<Client, SchemaName> & string,
     SchemaName extends SchemaNameOf<Client> = 'public',
     AsOption extends CrudAsOption = 'object',
-    TRemote = SupabaseRowOf<Client, Collection, SchemaName>,
+    // Constrained so that a select with an invalid column (a SelectQueryError result) fails to compile
+    TRemote extends Record<string, unknown> = SupabaseRowOf<Client, Collection, SchemaName>,
     TLocal = TRemote,
 >(
     props: SyncedSupabasePropsWithSelect<Client, Collection, SchemaName, AsOption, TRemote, TLocal>,
