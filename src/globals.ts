@@ -95,7 +95,7 @@ function warnUnrevivedDates(value: any, path: string, field = '') {
         if (ISO8601.test(value) && !warnedDateFields.has(field)) {
             warnedDateFields.add(field);
             console.warn(
-                `[legend-state] The ISO date string at "${path}" is kept as a string. Legend-State no longer converts ISO strings to Dates; use transformStringifyDates or CRUD date fields to opt in. Silence with configureLegendState({ warnOnDateStrings: false }).`,
+                `[legend-state] The ISO date string at "${path}" is kept as a string. Legend-State no longer converts ISO strings to Dates; use transformStringifyDates or a transform to opt in. Silence with configureLegendState({ warnOnDateStrings: false }).`,
             );
         }
     } else if (value && typeof value === 'object') {
