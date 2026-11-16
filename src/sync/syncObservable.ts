@@ -3317,8 +3317,8 @@ async function loadPersistedLocal<T>(
         node.root.isLoadingLocal = true;
         internal.globalState.isLoadingLocal = true;
 
-        // We want to merge the local data on top of any initial state the object is created with
-        if (value === null && (!prevValue || (prevValue as any)[symbolLinked])) {
+        // Falsy roots replace defaults; object and array data merge into the initial state.
+        if (value !== undefined && !value) {
             value$.set(value);
         } else {
             mergeIntoObservable(value$, value);
