@@ -603,8 +603,10 @@ async function prepChangeLocal(queuedChange: QueuedChange): Promise<PreppedChang
             // already processed. If a later change modifies a parent of an earlier change (which happens on delete()
             // it should be ignored as it's superseded by the parent modification.
             if (changesPaths.size > 0) {
-                for (let u = 0; u < path.length; u++) {
-                    if (changesPaths.has((u === path.length - 1 ? path : path.slice(0, u + 1)).join('/'))) {
+                // Check every prefix of the path, including the empty root path, so that a later change
+                // to the root (path []) also supersedes earlier changes to its children
+                for (let u = 0; u <= path.length; u++) {
+                    if (changesPaths.has(path.slice(0, u).join('/'))) {
                         found = true;
                         break;
                     }
@@ -701,8 +703,10 @@ async function prepChangeRemote(
             // already processed. If a later change modifies a parent of an earlier change (which happens on delete()
             // it should be ignored as it's superseded by the parent modification.
             if (changesPaths.size > 0) {
-                for (let u = 0; u < path.length; u++) {
-                    if (changesPaths.has((u === path.length - 1 ? path : path.slice(0, u + 1)).join('/'))) {
+                // Check every prefix of the path, including the empty root path, so that a later change
+                // to the root (path []) also supersedes earlier changes to its children
+                for (let u = 0; u <= path.length; u++) {
+                    if (changesPaths.has(path.slice(0, u).join('/'))) {
                         found = true;
                         break;
                     }

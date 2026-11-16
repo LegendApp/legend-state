@@ -11273,3 +11273,29 @@ test('an equal root ACK restores extensibility before the next array edit', asyn
     expect(() => obs.rows.push(2)).not.toThrow();
     expect(obs.peek().rows).toEqual([1, 2]);
 });
+
+describe('superseded changes in one batch (#677)', () => {
+    test('a root set after a child set does not send the stale child', async () => {
+        const sets: any[] = [];
+        const obs$ = observable(
+            synced({
+                initial: { a: 1, b: 1 },
+                set: ({ value, changes }) => {
+                    sets.push({
+                        value: JSON.parse(JSON.stringify(value)),
+                        paths: changes.map((c) => c.path.join('/')),
+                    });
+                },
+            }),
+        );
+        obs$.get();
+        await promiseTimeout(0);
+
+        obs$.b.set(2);
+        obs$.set({ a: 1, b: 1 });
+        await promiseTimeout(10);
+
+        expect(sets).toEqual([{ value: { a: 1, b: 1 }, paths: [''] }]);
+        expect(obs$.get()).toEqual({ a: 1, b: 1 });
+    });
+});

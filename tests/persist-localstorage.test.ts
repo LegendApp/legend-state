@@ -246,6 +246,39 @@ describe('Persist local localStorage', () => {
         // Should have saved to local storage
         expect(localValue2).toBe(`{}`);
     });
+    test('Root set supersedes an earlier child set in the same batch', async () => {
+        const persistName = getPersistName();
+        const obs = observable({ a: 1, b: 1 });
+
+        syncObservable(
+            obs,
+            mySynced({
+                persist: { name: persistName },
+            }),
+        );
+
+        obs.b.set(2);
+        obs.set({ a: 1, b: 1 });
+
+        expect(obs.get()).toEqual({ a: 1, b: 1 });
+
+        await promiseTimeout(0);
+
+        // The earlier child change should not be saved on top of the newer root change
+        expect(localStorage.getItem(persistName)).toBe('{"a":1,"b":1}');
+        // Nor should it be re-applied to the observable in memory
+        expect(obs.get()).toEqual({ a: 1, b: 1 });
+
+        const obs2 = observable({});
+        syncObservable(
+            obs2,
+            mySynced({
+                persist: { name: persistName },
+            }),
+        );
+
+        expect(obs2.get()).toEqual({ a: 1, b: 1 });
+    });
 });
 
 describe('Persist primitives', () => {
