@@ -2924,6 +2924,60 @@ describe('React tracking diagnostics', () => {
     });
 });
 
+describe('enableReactTracking React versions (#312)', () => {
+    const ReactModule = jest.requireActual('react');
+    const legacyKey = '__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED';
+    const react19Key = '__CLIENT_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE';
+    const legacyInternals = ReactModule[legacyKey];
+
+    // Swap the React module's internals for another version's shape while enableReactTracking runs
+    function withInternals(shape: '18' | '19' | 'none', fn: (warn: jest.SpyInstance) => void) {
+        const originalEnv = process.env.NODE_ENV;
+        const originalGet = internal.observableFns.get('get')!;
+        const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+        if (shape !== '18') {
+            delete ReactModule[legacyKey];
+        }
+        if (shape === '19') {
+            ReactModule[react19Key] = {
+                get H() {
+                    return legacyInternals.ReactCurrentDispatcher.current;
+                },
+            };
+        }
+        try {
+            process.env.NODE_ENV = 'development';
+            fn(warn);
+        } finally {
+            ReactModule[legacyKey] = legacyInternals;
+            delete ReactModule[react19Key];
+            process.env.NODE_ENV = originalEnv;
+            configureLegendState({ observableFunctions: { get: originalGet } });
+            warn.mockRestore();
+        }
+    }
+
+    test.each(['18', '19'] as const)('warns about get() in render with React %s internals', (shape) => {
+        withInternals(shape, (warn) => {
+            enableReactTracking({ warnMissingUse: true });
+            const value$ = observable('hello');
+            value$.get();
+            expect(warn).not.toHaveBeenCalled();
+            const Item = () => <div>{value$.get()}</div>;
+            const { unmount } = render(createElement(Item));
+            expect(warn).toHaveBeenCalledWith(expect.stringContaining('`useValue`'));
+            unmount();
+        });
+    });
+
+    test('warns in development when React internals are missing', () => {
+        withInternals('none', (warn) => {
+            enableReactTracking({ warnMissingUse: true });
+            expect(warn).toHaveBeenCalledWith(expect.stringContaining('could not find the React dispatcher'));
+        });
+    });
+});
+
 describe('production subscription reconnection (#671)', () => {
     test('ordinary mount reads once and removes all listeners on unmount', () => {
         const state$ = observable({ value: 0 });

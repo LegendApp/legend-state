@@ -1,9 +1,22 @@
 import { type GetOptions, internal, isObject, tracking, type NodeInfo, type TrackingType } from '@legendapp/state';
 import { configureLegendState } from '@legendapp/state/config/configureLegendState';
 import { UseSelectorOptions, useSelector } from '@legendapp/state/react';
+import * as React from 'react';
 import { createContext, useContext } from 'react';
-// @ts-expect-error Internals
-import { __SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED as ReactInternals } from 'react';
+
+// React 19 renamed its internals and the dispatcher to `H`; React 16.8-18 use ReactCurrentDispatcher.current.
+// Node ESM may expose only some CommonJS exports by name, so fall back to the default export.
+function getDispatcherGetter(): (() => unknown) | undefined {
+    const reactInternal = (name: string) => (React as any)[name] ?? (React as any).default?.[name];
+    const internals19 = reactInternal('__CLIENT_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE');
+    if (internals19) {
+        return () => internals19.H;
+    }
+    const internals18 = reactInternal('__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED');
+    if (internals18?.ReactCurrentDispatcher) {
+        return () => internals18.ReactCurrentDispatcher.current;
+    }
+}
 
 interface ReactTrackingOptions {
     auto?: boolean; // Make all get() calls act as useSelector() hooks
@@ -15,6 +28,13 @@ export function enableReactTracking({ auto, warnUnobserved, warnMissingUse }: Re
     const { get } = internal;
 
     if (auto || (process.env.NODE_ENV === 'development' && (warnUnobserved || warnMissingUse))) {
+        const getDispatcher = getDispatcherGetter();
+        if (process.env.NODE_ENV === 'development' && !getDispatcher) {
+            console.warn(
+                '[legend-state] enableReactTracking could not find the React dispatcher in this React version, so it will have no effect.',
+            );
+        }
+
         const ReactRenderContext = createContext(0);
 
         const isInRender = () => {
@@ -23,8 +43,7 @@ export function enableReactTracking({ auto, warnUnobserved, warnMissingUse }: Re
                 // If there's no dispatcher we're definitely not in React
                 // This is an optimization to not need to run useContext. If in a future React version
                 // this works differently we can change it or just remove it.
-                const dispatcher = ReactInternals.ReactCurrentDispatcher.current;
-                if (dispatcher) {
+                if (getDispatcher?.()) {
                     // If there's a dispatcher then we may be inside of a hook.
                     // Attempt a useContext hook, which will throw an error if outside of render.
                     useContext(ReactRenderContext);
