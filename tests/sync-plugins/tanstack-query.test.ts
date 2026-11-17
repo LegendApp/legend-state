@@ -488,11 +488,13 @@ describe('syncedQuery with QueryClient', () => {
             if (value) ready.push(obs$.peek());
         });
         shouldFail = false;
-        await state$.sync();
+        const syncing = state$.sync();
+        await promiseTimeout(0);
         client.setQueryData(key, 'intermediate cache');
         await promiseTimeout(5);
         expect(state$.isLoaded.peek()).toBe(false);
         resolveFetch('fresh');
+        await syncing;
         await when(state$.isLoaded);
         await promiseTimeout(5);
         expect(ready).toEqual(['fresh']);

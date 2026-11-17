@@ -534,7 +534,45 @@ describe('sync retry operation identity', () => {
     });
 });
 
-describe('sync() of an unobserved observable (#334)', () => {
+describe('explicit sync() waits for the get (#334)', () => {
+    test('waits for the get when observed', async () => {
+        let numGets = 0;
+        const obs$ = observable(
+            synced({
+                get: async () => {
+                    await promiseTimeout(5);
+                    return ++numGets;
+                },
+            }),
+        );
+        const dispose = observe(() => obs$.get());
+        const state$ = syncState(obs$);
+        await when(state$.isLoaded);
+        expect(obs$.peek()).toEqual(1);
+
+        await state$.sync();
+
+        expect(numGets).toEqual(2);
+        expect(obs$.peek()).toEqual(2);
+        expect(state$.isGetting.peek()).toEqual(false);
+        dispose();
+    });
+    test('waits for the first get', async () => {
+        const obs$ = observable(
+            synced({
+                get: async () => {
+                    await promiseTimeout(5);
+                    return 'remote';
+                },
+            }),
+        );
+        const state$ = syncState(obs$);
+
+        await state$.sync();
+
+        expect(obs$.peek()).toEqual('remote');
+        expect(state$.isLoaded.peek()).toEqual(true);
+    });
     test('waits for the get', async () => {
         let numGets = 0;
         const obs$ = observable(

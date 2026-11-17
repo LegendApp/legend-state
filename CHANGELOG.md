@@ -5,6 +5,7 @@
 - Supabase: the minimum supported `@supabase/supabase-js` is now `^2.56.0`, because 2.56 changed the client and query builder generics. It is declared as an optional peer dependency.
 - ISO date strings are no longer converted to `Date` objects. `clone()`, `getPrevious()`, CRUD inputs and saved results, and persisted data keep strings as strings and `Date`s as `Date`s. To get `Date`s from strings, opt in with `transformStringifyDates` or a transform. Persist plugins that store JSON (localStorage, sessionStorage, MMKV, AsyncStorage, expo-sqlite) now tag `Date`s and record a format version in each table's metadata. Data saved by earlier versions still loads with the old conversion and is rewritten in the new format on its next save. IndexedDB is unchanged. Custom `jsonReviver`s keep working, and now also receive ISO strings. A custom `jsonReplacer` is no longer called for `Date` values, since they are tagged first. Data rewritten in the new format reads `Date`s back as tagged objects in earlier versions, so downgrading after a save is not supported. Custom persist plugins that call `internal.safeParse` no longer get ISO date revival. In development, a warning is logged once per field name where a string would previously have become a `Date`; silence it with `configureLegendState({ warnOnDateStrings: false })`. ([#613](https://github.com/LegendApp/legend-state/issues/613), [#649](https://github.com/LegendApp/legend-state/pull/649))
 - AsyncStorage persistence: an empty or missing table now loads as `undefined` instead of `{}`, matching localStorage, MMKV and expo-sqlite. Code that relied on an empty AsyncStorage table loading as `{}` should pass an initial value. ([#416](https://github.com/LegendApp/legend-state/issues/416))
+- Sync: `await syncState(obs$).sync()` now resolves once the get it starts finishes, fails, or is abandoned by `reset()`, whether or not the observable has listeners. It previously resolved before the get finished, and on an observable with no listeners it skipped the get until the next `get()`. With infinite retry it stays pending until the get succeeds, and with a `waitFor` that is not ready yet it resolves before the get runs. ([#334](https://github.com/LegendApp/legend-state/issues/334))
 
 ### Performance
 
@@ -13,7 +14,6 @@
 ### Fixes
 
 - CRUD: a server-assigned value (like `createdAt`) returned from a create is no longer dropped when the local value was an ISO string. ([#613](https://github.com/LegendApp/legend-state/issues/613))
-- Sync: `await syncState(obs$).sync()` on an observable with no listeners now runs the get and resolves once it finishes. It previously skipped the get until the next `get()`. With infinite retry it stays pending until the get succeeds, and with a `waitFor` that is not ready yet it resolves before the get runs. ([#334](https://github.com/LegendApp/legend-state/issues/334))
 
 ## 3.0.0-next.0
 

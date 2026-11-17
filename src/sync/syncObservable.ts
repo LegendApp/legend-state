@@ -34,7 +34,6 @@ import {
     mergeIntoObservable,
     observable,
     setAtPath,
-    isObserved,
     shouldIgnoreUnobserved,
     syncState,
     trackSelector,
@@ -3696,13 +3695,11 @@ export function syncObservable<T>(
         // we create the closure outside the new sync definition to avoid recreating the function on each call
         const callSync = () => sync();
         sync = async (options?: ObservableSyncStateOptions, explicit?: boolean) => {
-            // An explicit sync() of an unobserved node still runs the get, and resolves once it finishes
-            const waitForGet = explicit && isSynced && !isObserved(node);
+            // An explicit sync() runs the get even when unobserved, and resolves once it finishes
             // If this node is not being observed or sync is not enabled then don't sync
             if (
                 isSynced &&
-                (!getNodeValue(getNode(syncState$)).isSyncEnabled ||
-                    (!waitForGet && shouldIgnoreUnobserved(node, sync)))
+                (!getNodeValue(getNode(syncState$)).isSyncEnabled || (!explicit && shouldIgnoreUnobserved(node, sync)))
             ) {
                 if (unsubscribe) {
                     isSubscribed = false;
@@ -4327,7 +4324,7 @@ export function syncObservable<T>(
                     if (!beforeGetParams.cancel) {
                         const getEpoch = localState.resetEpoch;
                         const request: GetRequest = {};
-                        if (waitForGet) {
+                        if (explicit) {
                             getSettled = new Promise<void>((resolve) => (request.onSettled = resolve));
                         }
                         (localState.getRequests ||= new Set()).add(request);

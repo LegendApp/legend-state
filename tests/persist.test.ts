@@ -1489,7 +1489,7 @@ describe('reset sync state', () => {
         expect(lastLastSync).toEqual(10);
         expect(numGets).toEqual(2);
 
-        state$.reset();
+        await state$.reset();
 
         expect(localStorage.getItem(persistName)).toEqual(null);
         expect(obs$.get()).toEqual(initial);

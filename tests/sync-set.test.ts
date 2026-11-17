@@ -2837,9 +2837,11 @@ describe('remote load completion', () => {
         obs.get();
         const state = syncState(obs);
         await settle();
-        await state.sync();
+        const syncing = state.sync();
+        await settle();
         expect(requests).toHaveLength(2);
         requests[1]({ value: 2 });
+        await syncing;
         await when(state.isLoaded);
         requests[0]({ value: 1 });
         await settle();
@@ -2960,9 +2962,12 @@ describe('remote load completion', () => {
             obs.get();
             const state = syncState(obs);
             await settle();
-            await state.sync();
+            let didSync = false;
+            const syncing = state.sync().then(() => (didSync = true));
+            await settle();
             requests[1].resolve({ value: 2 });
             await settle();
+            expect(didSync).toBe(false);
             expect(state.isLoaded.peek()).toBe(false);
             expect(state.numPendingRemoteLoads.peek()).toBe(1);
             if (rejected) requests[0].reject(Error('ignored old get'));
@@ -2972,7 +2977,9 @@ describe('remote load completion', () => {
             expect(state.numPendingRemoteLoads.peek()).toBe(1);
             expect(state.isGetting.peek()).toBe(true);
             expect(errors).toEqual([]);
+            expect(didSync).toBe(false);
             finish({ value: 2 });
+            await syncing;
             await when(state.isLoaded);
             expect(obs.peek()).toEqual({ value: 2 });
             expect(state.numPendingGets.peek()).toBe(0);

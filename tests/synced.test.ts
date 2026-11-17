@@ -404,14 +404,15 @@ describe('sync errors', () => {
         );
         const dispose = observe(() => obs$.get());
         const state$ = syncState(obs$);
-        await state$.sync();
+        const syncing = state$.sync();
+        await promiseTimeout(0);
         expect(state$.numPendingGets.peek()).toBe(2);
         pending[0].reject(new Error('get failed'));
         await promiseTimeout(0);
         expect(state$.numPendingGets.peek()).toBe(1);
         expect(state$.isGetting.peek()).toBe(true);
         pending[1].resolve('recovered');
-        await promiseTimeout(0);
+        await syncing;
         expect(state$.numPendingGets.peek()).toBe(0);
         expect(state$.isGetting.peek()).toBe(false);
         expect(state$.isLoaded.peek()).toBe(true);
