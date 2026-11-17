@@ -8669,6 +8669,13 @@ describe('ordered pending preparation', () => {
             let held = false;
             const requests: any[] = [];
             let server: any = data(0, 0);
+            const until = async (ready: () => boolean, label: string) => {
+                for (let i = 0; i < 1000; i++) {
+                    if (ready()) return;
+                    await promiseTimeout(1);
+                }
+                throw new Error('Unreached boundary: ' + label);
+            };
             const obs = observable(
                 synced<any>({
                     initial: data(0, 0),
@@ -8692,27 +8699,27 @@ describe('ordered pending preparation', () => {
             obs.set(data(1, 1));
             await settle();
             obs.b.set(data(1, 2).b);
-            await new Promise((resolve) => setTimeout(resolve, 20));
+            await until(() => held, 'merged transform held');
             expect(typeof release).toBe('function');
             if (object) obs.b.value.set(3);
             else obs.b.set(3);
-            await new Promise((resolve) => setTimeout(resolve, 20));
+            await until(() => requests.length === 1, 'newer descendant sent');
             release();
-            await settle();
-            await settle();
+            await until(() => requests.length === 2, 'held root sent');
             const root = requests.find((r) => !r.p.changes[0].path.length);
             const child = requests.find((r) => r.p.changes[0].path.length);
+            expect(requests[0]).toBe(child);
             expect(b(root.p.changes[0].valueAtPath)).toBe(2);
             server = applyChanges(server, root.p.changes);
             root.p.update({ value: undefined, changes: root.p.changes });
             root.resolve();
-            await settle();
+            await until(() => syncState(obs).numPendingSets.peek() === 1, 'root settled');
             expect(b(obs.peek())).toBe(3);
             expect(syncState(obs).getPendingChanges()).toHaveProperty(object ? 'b/value' : 'b');
             server = applyChanges(server, child.p.changes);
             child.p.update({ value: undefined, changes: child.p.changes });
             child.resolve();
-            await settle();
+            await until(() => syncState(obs).numPendingSets.peek() === 0, 'child settled');
             expect(server).toEqual(data(1, 3));
             expect(obs.peek()).toEqual(server);
             expect(syncState(obs).getPendingChanges()).toEqual({});
