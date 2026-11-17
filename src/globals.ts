@@ -116,7 +116,12 @@ export function safeStringify(value: any) {
 export function safeParse(value: any, legacyDates?: boolean) {
     if (!value) return value;
     const parsed = JSON.parse(value, legacyDates ? legacyReviver : reviver);
-    if (warnUnrevivedDates && !legacyDates && globalState.warnOnDateStrings !== false && /"\d{4}-\d{2}-\d{2}T/.test(value)) {
+    if (
+        warnUnrevivedDates &&
+        !legacyDates &&
+        globalState.warnOnDateStrings !== false &&
+        /"\d{4}-\d{2}-\d{2}T/.test(value)
+    ) {
         warnUnrevivedDates(parsed, '');
     }
     return parsed;
