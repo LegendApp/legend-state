@@ -2925,6 +2925,7 @@ describe('React tracking diagnostics', () => {
 });
 
 describe('enableReactTracking React versions (#312)', () => {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
     const ReactModule = require('react');
     const legacyKey = '__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED';
     const react19Key = '__CLIENT_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE';
