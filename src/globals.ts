@@ -86,21 +86,24 @@ function legacyReviver(key: string, value: any) {
 }
 
 // TODO(3.0-stable): remove this warning about ISO strings no longer being revived to Dates
-// Read once: process.env is slow in Node, and production bundles fold this to false
-const isDevOrTest = process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test';
-// Warn once per field name so that keyed rows don't warn once each
-const warnedDateFields = new Set<string>();
-function warnUnrevivedDates(value: any, path: string, field = '') {
-    if (typeof value === 'string') {
-        if (ISO8601.test(value) && !warnedDateFields.has(field)) {
-            warnedDateFields.add(field);
-            console.warn(
-                `[legend-state] The ISO date string at "${path}" is kept as a string. Legend-State no longer converts ISO strings to Dates; use transformStringifyDates or a transform to opt in. Silence with configureLegendState({ warnOnDateStrings: false }).`,
-            );
+// Defined only in development and test so production bundles drop it, and read from a variable
+// because process.env is slow in Node
+let warnUnrevivedDates: ((value: any, path: string, field?: string) => void) | undefined;
+if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
+    // Warn once per field name so that keyed rows don't warn once each
+    const warnedDateFields = new Set<string>();
+    warnUnrevivedDates = (value, path, field = '') => {
+        if (typeof value === 'string') {
+            if (ISO8601.test(value) && !warnedDateFields.has(field)) {
+                warnedDateFields.add(field);
+                console.warn(
+                    `[legend-state] The ISO date string at "${path}" is kept as a string. Legend-State no longer converts ISO strings to Dates; use transformStringifyDates or a transform to opt in. Silence with configureLegendState({ warnOnDateStrings: false }).`,
+                );
+            }
+        } else if (value && typeof value === 'object') {
+            for (const key in value) warnUnrevivedDates!(value[key], path ? path + '.' + key : key, key);
         }
-    } else if (value && typeof value === 'object') {
-        for (const key in value) warnUnrevivedDates(value[key], path ? path + '.' + key : key, key);
-    }
+    };
 }
 
 export function safeStringify(value: any) {
@@ -113,7 +116,7 @@ export function safeStringify(value: any) {
 export function safeParse(value: any, legacyDates?: boolean) {
     if (!value) return value;
     const parsed = JSON.parse(value, legacyDates ? legacyReviver : reviver);
-    if (isDevOrTest && !legacyDates && globalState.warnOnDateStrings !== false && /"\d{4}-\d{2}-\d{2}T/.test(value)) {
+    if (warnUnrevivedDates && !legacyDates && globalState.warnOnDateStrings !== false && /"\d{4}-\d{2}-\d{2}T/.test(value)) {
         warnUnrevivedDates(parsed, '');
     }
     return parsed;
@@ -172,7 +175,7 @@ export function clone<T>(value: T) {
     if (globalState.replacer || globalState.reviver) return safeParse(safeStringify(value));
     const cloned = cloneValue(value);
     if (hasNoJSON(cloned)) return undefined;
-    if (isDevOrTest && globalState.warnOnDateStrings !== false) {
+    if (warnUnrevivedDates && globalState.warnOnDateStrings !== false) {
         warnUnrevivedDates(cloned, '');
     }
     return cloned;
