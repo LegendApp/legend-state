@@ -1215,6 +1215,7 @@ function activateNodeFunction(node: NodeInfo, lazyFn: Function) {
     let isFirst = true;
     const activateFn = lazyFn;
     let activatedValue;
+    let readInitial: (() => any) | undefined;
     let disposes: (() => void)[] = [];
     let refreshFn: () => void;
     function markDirty() {
@@ -1254,6 +1255,9 @@ function activateNodeFunction(node: NodeInfo, lazyFn: Function) {
             const activated = !isObs ? (value?.[symbolLinked] as any) : undefined;
             if (activated) {
                 node.activationState = activated;
+                if (!readInitial && !activated.synced && isFunction(activated.initial)) {
+                    readInitial = memoizeLinkedInitial(activated.initial);
+                }
                 value = undefined;
             }
             ignoreThisUpdate = false;
@@ -1270,20 +1274,20 @@ function activateNodeFunction(node: NodeInfo, lazyFn: Function) {
                     ignoreThisUpdate = true;
                 }
 
-                const result = activateNodeFn(node, value);
+                const result = activateNodeFn(node, value, readInitial);
                 update = result.update;
                 let newValue = result.value;
                 if (!didSetToObs && isObservable(newValue)) {
                     newValue = setToObservable(node, newValue);
                 }
-                value = newValue ?? activated?.initial;
+                value = readInitial ? newValue : (newValue ?? activated?.initial);
             } else if (node.activationState) {
                 const activated = node.activationState! as LinkedOptions;
                 if (node.state?.peek()?.sync) {
                     node.state.sync();
                     ignoreThisUpdate = true;
                 } else {
-                    value = activated.get?.() ?? activated.initial;
+                    value = activated.get?.() ?? (readInitial ? readInitial() : activated.initial);
                 }
             }
 
@@ -1308,11 +1312,13 @@ function activateNodeFunction(node: NodeInfo, lazyFn: Function) {
                                 // Extract the promise to make it set the value/error when it comes in
                                 extractPromise(node, value, update);
                             }
-                            // Set this to undefined only if it's replacing the activation function,
-                            // so we don't overwrite it if it already has real data from either local
-                            // cache or a previous run
-                            if (isFunction(getNodeValue(node))) {
-                                setNodeValue(node, initial ?? undefined);
+                            // Keep a cached or previously loaded value while the get is pending.
+                            const currentValue = getNodeValue(node);
+                            if (
+                                isFunction(currentValue) ||
+                                (currentValue === undefined && readInitial && !node.state!.isLoaded.peek())
+                            ) {
+                                setNodeValue(node, readInitial ? readInitial() : (initial ?? undefined));
                             }
                         } else if (node.activated) {
                             // Extract the promise to make it set the value/error when it comes in
@@ -1361,7 +1367,19 @@ function activateNodeFunction(node: NodeInfo, lazyFn: Function) {
     return activatedValue;
 }
 
-function activateNodeBase(node: NodeInfo, value: any) {
+function memoizeLinkedInitial(initial: () => any) {
+    let initialized = false;
+    let value: any;
+    return () => {
+        if (!initialized) {
+            initialized = true;
+            value = initial();
+        }
+        return value;
+    };
+}
+
+function activateNodeBase(node: NodeInfo, value: any, readInitial?: () => any) {
     if (!node.state) {
         node.state = createObservable<ObservableState>(
             {
@@ -1378,7 +1396,7 @@ function activateNodeBase(node: NodeInfo, value: any) {
         value = getFn?.();
 
         if (value == undefined || value === null) {
-            value = initial;
+            value = readInitial ? readInitial() : initial;
         }
 
         if (setFn) {
