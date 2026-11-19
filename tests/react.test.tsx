@@ -2922,6 +2922,61 @@ describe('React tracking diagnostics', () => {
             warn.mockRestore();
         }
     });
+    test.each([false, true])('does not warn for reads inside useValue (observed=%s) (#510)', (observed) => {
+        const originalEnv = process.env.NODE_ENV;
+        const originalGet = internal.observableFns.get('get')!;
+        const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+        try {
+            process.env.NODE_ENV = 'development';
+            enableReactTracking({ warnMissingUse: true });
+            const value$ = observable({ text: 'hello', count: 1 });
+            const Item = () => {
+                const text = useValue(value$.text);
+                const count = useValue(() => value$.count.get() * 2);
+                return (
+                    <div>
+                        {text} {count}
+                    </div>
+                );
+            };
+            const { container, unmount } = render(createElement(observed ? observer(Item) : Item));
+            expect(container.textContent).toEqual('hello 2');
+            act(() => value$.count.set(2));
+            expect(container.textContent).toEqual('hello 4');
+            expect(warn).not.toHaveBeenCalled();
+            unmount();
+        } finally {
+            process.env.NODE_ENV = originalEnv;
+            configureLegendState({ observableFunctions: { get: originalGet } });
+            warn.mockRestore();
+        }
+    });
+    test('still warns for a get() in an observer render after a useValue (#510)', () => {
+        const originalEnv = process.env.NODE_ENV;
+        const originalGet = internal.observableFns.get('get')!;
+        const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+        try {
+            process.env.NODE_ENV = 'development';
+            enableReactTracking({ warnMissingUse: true });
+            const value$ = observable({ text: 'hello', count: 1 });
+            const Item = observer(() => {
+                const count = useValue(() => value$.count.get());
+                return (
+                    <div>
+                        {value$.text.get()} {count}
+                    </div>
+                );
+            });
+            const { unmount } = render(createElement(Item));
+            expect(warn).toHaveBeenCalledTimes(1);
+            expect(warn).toHaveBeenCalledWith(expect.stringContaining('in an observer component'));
+            unmount();
+        } finally {
+            process.env.NODE_ENV = originalEnv;
+            configureLegendState({ observableFunctions: { get: originalGet } });
+            warn.mockRestore();
+        }
+    });
 });
 
 describe('enableReactTracking React versions (#312)', () => {
@@ -2973,6 +3028,24 @@ describe('enableReactTracking React versions (#312)', () => {
             const Item = () => <div>{value$.get()}</div>;
             const { unmount } = render(createElement(Item));
             expect(warn).toHaveBeenCalledWith(expect.stringContaining('`useValue`'));
+            unmount();
+        });
+    });
+
+    test.each(['18', '19'] as const)('does not warn for useValue reads with React %s internals (#510)', (shape) => {
+        withInternals(shape, (warn) => {
+            enableReactTracking({ warnMissingUse: true });
+            const value$ = observable('hello');
+            const Item = () => <div>{useValue(() => value$.get())}</div>;
+            const ObserverItem = observer(() => <div>{useValue(value$)}</div>);
+            const { container, unmount } = render(
+                <>
+                    <Item />
+                    <ObserverItem />
+                </>,
+            );
+            expect(container.textContent).toEqual('hellohello');
+            expect(warn).not.toHaveBeenCalled();
             unmount();
         });
     });

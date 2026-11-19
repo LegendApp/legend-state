@@ -1,6 +1,6 @@
 import { type GetOptions, internal, isObject, tracking, type NodeInfo, type TrackingType } from '@legendapp/state';
 import { configureLegendState } from '@legendapp/state/config/configureLegendState';
-import { UseSelectorOptions, useSelector } from '@legendapp/state/react';
+import { UseSelectorOptions, reactGlobals, useSelector } from '@legendapp/state/react';
 import * as React from 'react';
 import { createContext, useContext } from 'react';
 
@@ -70,7 +70,8 @@ export function enableReactTracking({ auto, warnUnobserved, warnMissingUse }: Re
             observableFunctions: {
                 get: (node: NodeInfo, options?: TrackingType | (GetOptions & UseSelectorOptions)) => {
                     if (process.env.NODE_ENV === 'development' && warnMissingUse) {
-                        if (isInRender()) {
+                        // A get() inside a useValue selector is tracked by that hook, so it is the recommended pattern
+                        if (isInRender() && (!isObserved() || reactGlobals.inObserver)) {
                             if (isObserved()) {
                                 console.warn(
                                     '[legend-state] Detected a `get()` call in an observer component. It is recommended to use the `useValue` hook instead to be compatible with React Compiler: https://legendapp.com/open-source/state/v3/react/react-api/#usevalue',
