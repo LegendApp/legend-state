@@ -1,4 +1,5 @@
 import { observable } from '../src/observable';
+import { syncedCrud } from '../src/sync-plugins/crud';
 import { syncedSupabase } from '../src/sync-plugins/supabase';
 import { symbolDelete } from '../src/globals';
 import { promiseTimeout } from './testglobals';
@@ -9,7 +10,7 @@ const rows = [
 ];
 
 describe('issue 515', () => {
-    test.failing('changesSince all (set mode) removes soft deleted rows instead of Symbol(delete)', 1000, async () => {
+    test('changesSince all (set mode) removes soft deleted rows instead of Symbol(delete)', async () => {
         // repro #515
         const obs$ = observable<any>(
             syncedSupabase({
@@ -30,5 +31,25 @@ describe('issue 515', () => {
         const value = obs$.get();
         expect(Object.values(value)).not.toContain(symbolDelete);
         expect(Object.keys(value)).toEqual(['b']);
+    });
+
+    test('subscribe update in set mode removes soft deleted rows', async () => {
+        let update: any;
+        const obs$ = observable<any>(
+            syncedCrud({
+                list: async () => [],
+                subscribe: (params: any) => {
+                    update = params.update;
+                },
+                fieldDeleted: 'deleted',
+            } as any),
+        );
+
+        obs$.get();
+        await promiseTimeout(0);
+        update({ value: rows, mode: 'set' });
+        await promiseTimeout(0);
+
+        expect(Object.keys(obs$.get())).toEqual(['b']);
     });
 });

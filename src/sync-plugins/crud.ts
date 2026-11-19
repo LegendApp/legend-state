@@ -461,7 +461,7 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
     const asArray = asType === 'array';
     let warnedArray = false;
 
-    const resultsToOutType = (results: any[]) => {
+    const resultsToOutType = (results: any[], replace?: boolean) => {
         if (asType === 'value') {
             return results[0];
         }
@@ -477,6 +477,7 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                     result[symbolDelete]
                         ? internal.symbolDelete
                         : result;
+                if (result === symbolDelete && replace) continue;
                 if (asArray) {
                     (out as any[]).push(result);
                 } else if (asMap) {
@@ -540,7 +541,7 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                                       return value ? undefined : null;
                                   }
                               } else {
-                                  return resultsToOutType(transformed);
+                                  return resultsToOutType(transformed, !getParams.mode || getParams.mode === 'set');
                               }
                           };
 
@@ -1243,7 +1244,10 @@ export function syncedCrud<TRemote extends object, TLocal = TRemote, TAsOption e
                       const rowsTransformed = transform?.load ? await transformRows(rows) : rows;
                       clearPendingCreatesForValues(rows);
 
-                      paramsForUpdate.value = resultsToOutType(rowsTransformed);
+                      paramsForUpdate.value = resultsToOutType(
+                          rowsTransformed,
+                          (paramsForUpdate.mode || modeParam) === 'set',
+                      );
                       params.update(paramsForUpdate);
                   },
               })
