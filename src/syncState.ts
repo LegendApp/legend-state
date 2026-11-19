@@ -25,9 +25,11 @@ export function syncState(obs: ObservableParam) {
                     // sync() may be called before peek/get so check to see if it should activate
                     obs.peek();
 
-                    // If it's now activating, it should return a promise that resolves when it's loaded
-                    if (node.state?.isGetting.peek()) {
-                        return when(node.state.isLoaded) as any;
+                    // If it's now activating, it should return a promise that resolves when its get
+                    // loads or fails
+                    const state$ = node.state!;
+                    if (state$.isGetting.peek()) {
+                        return when(() => state$.isLoaded.get() || state$.error.get()) as any;
                     }
 
                     return Promise.resolve();

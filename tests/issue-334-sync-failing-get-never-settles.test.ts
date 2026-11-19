@@ -4,28 +4,28 @@ import { synced } from '../sync';
 import { promiseTimeout } from './testglobals';
 
 describe('issue 334', () => {
-    test.failing('sync() resolves when the get fails on an unobserved observable', 1000, async () => {
+    test('sync() resolves when the get fails on an unobserved observable', async () => {
         // repro #334
         let numGets = 0;
+        const error = new Error('get failed');
         const obs$ = observable(
             synced({
                 get: async () => {
                     await promiseTimeout(5);
                     numGets++;
-                    throw new Error('get failed');
+                    throw error;
                 },
                 onError: () => {},
             }),
         );
 
-        const settled = await Promise.race([
-            syncState(obs$)
-                .sync()
-                .then(() => true),
-            promiseTimeout(50, false),
-        ]);
+        const state$ = syncState(obs$);
+        const settled = await Promise.race([state$.sync().then(() => true), promiseTimeout(50, false)]);
 
-        expect(numGets).toEqual(1);
         expect(settled).toBe(true);
+        expect(numGets).toEqual(1);
+        expect(state$.error.peek()).toBe(error);
+        expect(state$.isLoaded.peek()).toBe(false);
+        expect(state$.isGetting.peek()).toBe(false);
     });
 });
