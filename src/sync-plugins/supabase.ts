@@ -210,15 +210,26 @@ function wrapSupabaseFn(fn: (...args: any) => PromiseLike<any>, source: CrudErro
 
 function handleSupabaseError(
     error: PostgrestError,
-    onError: (error: Error, params: SyncedErrorParams) => void,
+    onError: (error: Error, params: SyncedErrorParams, noThrow?: boolean) => void,
     params: CrudErrorParams,
 ) {
     if (error.message?.includes('Failed to fetch')) {
         // Just throw to retry, don't need to report it to user
         throw error;
-    } else {
-        (onError as CrudOnErrorFn)(new Error(error.message), params);
     }
+    const reason = new Error(error.message);
+    const { revert } = params;
+    let reverted = false;
+    if (revert) {
+        params.revert = () => {
+            revert();
+            reverted = true;
+        };
+    }
+    // Without a revert onError throws to retry. A reverted write is finished, so it is not retried
+    // and its pending changes are acknowledged.
+    (onError as (error: Error, params: CrudErrorParams, noThrow?: boolean) => void)(reason, params, !!revert);
+    if (!reverted) throw reason;
 }
 
 export function syncedSupabase<

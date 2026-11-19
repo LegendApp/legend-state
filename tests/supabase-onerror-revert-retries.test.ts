@@ -1,4 +1,6 @@
-import { observable } from '@legendapp/state';
+import { observable } from '../src/observable';
+import { syncState } from '../src/syncState';
+import { when } from '../src/when';
 import { createClient } from '@supabase/supabase-js';
 import { syncedSupabase } from '../src/sync-plugins/supabase';
 import { promiseTimeout } from './testglobals';
@@ -25,7 +27,7 @@ function createRejectingClient() {
 }
 
 describe('supabase onError revert retries', () => {
-    test.failing('revert() in onError cancels the retries for that update', 1000, async () => {
+    test('revert() in onError cancels the retries for that update', async () => {
         // repro supabase onError revert retries
         const { supabase, log } = createRejectingClient();
         let numErrors = 0;
@@ -46,7 +48,8 @@ describe('supabase onError revert retries', () => {
         );
 
         obs$.get();
-        await promiseTimeout(20);
+        const state$ = syncState(obs$);
+        await when(state$.isLoaded);
 
         obs$.id1.name.set('local edit');
         await promiseTimeout(200);
@@ -56,5 +59,7 @@ describe('supabase onError revert retries', () => {
         // ...so the rejected write should be attempted once instead of retried.
         expect(numErrors).toEqual(1);
         expect(log).toEqual(['PATCH rejected']);
+        expect(state$.getPendingChanges()).toEqual({});
+        expect(state$.numPendingSets.peek()).toBe(0);
     });
 });
