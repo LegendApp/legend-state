@@ -1162,6 +1162,10 @@ export function deactivateNode(node: NodeInfo) {
     node.activatedObserveDispose?.();
     node.linkedToNodeDispose?.();
     node.activatedObserveDispose = node.linkedToNodeDispose = node.linkedToNode = undefined;
+    if (node.dirtyFn) {
+        node.dirtyFn = undefined;
+        globalState.dirtyNodes.delete(node);
+    }
 }
 export function reactivateNode(node: NodeInfo, lazyFn: Function) {
     deactivateNode(node);
@@ -1471,7 +1475,7 @@ function setToObservable(node: NodeInfo, value: any) {
         if (linkedNode) {
             linkedNode.linkedFromNodes ||= new Set();
             linkedNode.linkedFromNodes.add(node);
-            node.linkedToNodeDispose = onChange(
+            const dispose = onChange(
                 linkedNode,
                 () => {
                     value = peekInternal(linkedNode);
@@ -1482,6 +1486,10 @@ function setToObservable(node: NodeInfo, value: any) {
                 { initial: true },
                 new Set([node]),
             );
+            node.linkedToNodeDispose = () => {
+                linkedNode.linkedFromNodes!.delete(node);
+                dispose();
+            };
         }
     }
     return value;

@@ -26,7 +26,7 @@ const make = () => {
 };
 
 describe('issue 424', () => {
-    test.failing('sorted list from Object.values does not stack overflow after deletes', 2000, () => {
+    test('sorted list from Object.values does not stack overflow after deletes', () => {
         // repro #424
         const state$ = make();
         expect(state$.sortedList.get().map((x: any) => x?.id)).toEqual(['ID_2', 'ID_4', 'ID_1', 'ID_3', 'ID_5']);
@@ -37,7 +37,7 @@ describe('issue 424', () => {
         expect(state$.sortedList.get().map((x: any) => x?.id)).toEqual(['ID_5', 'ID_2', 'ID_4']);
     });
 
-    test.failing('memoized derived list drops deleted items', 2000, () => {
+    test('memoized derived list drops deleted items', () => {
         // repro #424
         const state$ = make();
         const derived = () =>
