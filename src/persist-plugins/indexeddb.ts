@@ -422,24 +422,9 @@ export class ObservablePersistIndexedDB implements ObservablePersistPlugin {
                 value.id = key;
             }
 
-            if (config) {
-                if (!this.tableData[table]) {
-                    this.tableData[table] = {};
-                }
-                this.tableData[table][key] = value;
-
-                const didClone = false;
-
-                const prefixID = config.indexedDB?.prefixID;
-                if (prefixID) {
-                    if (didClone) {
-                        value.id = prefixID + '/' + value.id;
-                    } else {
-                        value = Object.assign({}, value, {
-                            id: prefixID + '/' + value.id,
-                        });
-                    }
-                }
+            const prefixID = config?.indexedDB?.prefixID;
+            if (prefixID) {
+                value = Object.assign({}, value, { id: prefixID + '/' + value.id });
             }
 
             return store.put(value);
