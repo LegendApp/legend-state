@@ -2,6 +2,7 @@ import { syncedCrud } from '@legendapp/state/sync-plugins/crud';
 import 'fake-indexeddb/auto';
 import { ObservableHint } from '../src/ObservableHint';
 import { event } from '../src/event';
+import { linked } from '../src/linked';
 import { observable } from '../src/observable';
 import { Change } from '../src/observableInterfaces';
 import type { Observable } from '../src/observableTypes';
@@ -1256,6 +1257,38 @@ describe('persist objects', () => {
         release();
         await when(() => !state$.isSetting.get());
         expect(state$.getPendingChanges()).toEqual({});
+    });
+    test('saving a root set does not activate lazy children it did not touch', async () => {
+        const persistName = getPersistName();
+        let numGets = 0;
+        const lazyChild = () =>
+            linked({
+                get: () => {
+                    numGets++;
+                    return 'loaded';
+                },
+            });
+        const obs$ = observable<Record<string, any>>({ count: 0 });
+        const state$ = syncObservable(obs$, {
+            persist: {
+                plugin: ObservablePersistLocalStorage,
+                name: persistName,
+            },
+        });
+
+        await when(state$.isPersistLoaded);
+        obs$.count.set(1);
+        await promiseTimeout(0);
+        expect(localStorage.getItem(persistName)).toEqual('{"count":1}');
+
+        obs$.set({ count: 2, lazy: lazyChild() });
+        await promiseTimeout(0);
+
+        expect(localStorage.getItem(persistName)).toEqual('{"count":2}');
+        expect(numGets).toEqual(0);
+
+        expect(obs$.lazy.get()).toEqual('loaded');
+        expect(numGets).toEqual(1);
     });
     test('initial values remain an in-code default until the first change', async () => {
         const persistName = getPersistName();

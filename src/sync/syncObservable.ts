@@ -577,14 +577,14 @@ async function prepChangeLocal(queuedChange: QueuedChange): Promise<PreppedChang
         const changesLocal: ChangeWithPathStr[] = [];
         const changesPaths = new Set<string>();
         let promisesTransform: (void | Promise<any>)[] = [];
-        const value = saveLocal ? obs$.peek() : undefined;
         // Nested patches cannot establish a missing or differently typed persisted root collection.
+        // Only the root's type is needed here, so read the raw value: peek() would walk and activate the whole value.
         const shouldSaveWholeValue =
             saveLocal &&
-            localState.persistedRootType !== internal.getPathType(value) &&
+            localState.persistedRootType !== internal.getPathType(getNodeValue(getNode(obs$))) &&
             changes.every((change) => change.path.length > 0);
         const changesToPersist: Change[] = shouldSaveWholeValue
-            ? [{ path: [], pathTypes: [], prevAtPath: queuedChange.getPrevious(), valueAtPath: value }]
+            ? [{ path: [], pathTypes: [], prevAtPath: queuedChange.getPrevious(), valueAtPath: obs$.peek() }]
             : changes;
 
         if (saveRemote && shouldSaveWholeValue) {
