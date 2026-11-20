@@ -20,3 +20,5 @@ export * from './src/react/useSelector';
 export * from './src/react/useUnmount';
 export * from './src/react/useWhen';
 export { configureReactive } from './src/react/configureReactive';
+/** @internal */
+export { reactGlobals } from './src/react/react-globals';
