@@ -130,6 +130,29 @@ describe('Persist IDB', () => {
 
         expect(obs2.get()).toEqual({ test: { id: 'test', text: 'hi' } });
     });
+    test('primitive rows stay unwrapped after root and incremental writes', async () => {
+        const table = getLocalName();
+        const config = { indexedDB: { prefixID: 'p' } };
+        const persist = new ObservablePersistIndexedDB(persistOptions.indexedDB!);
+        await persist.initialize(persistOptions);
+
+        await persist.set(
+            table,
+            [{ path: [], pathTypes: [], prevAtPath: undefined, valueAtPath: { revision: 'v1', count: 1 } }],
+            config,
+        );
+        expect(persist.getTable(table, {}, config)).toEqual({ revision: 'v1', count: 1 });
+
+        await persist.set(table, [{ path: ['count'], pathTypes: ['object'], prevAtPath: 1, valueAtPath: 2 }], config);
+        expect(persist.getTable(table, {}, config)).toEqual({ revision: 'v1', count: 2 });
+        await expectIDB(table, [
+            { id: 'p/count', __legend_primitive: 2 },
+            { id: 'p/revision', __legend_primitive: 'v1' },
+        ]);
+        const reloaded = new ObservablePersistIndexedDB(persistOptions.indexedDB!);
+        await reloaded.initialize(persistOptions);
+        expect(reloaded.getTable(table, {}, config)).toEqual(persist.getTable(table, {}, config));
+    });
     test('Persist IDB save root', async () => {
         const persistName = getLocalName();
         const obs = observable<Record<string, any>>({});
