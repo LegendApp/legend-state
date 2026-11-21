@@ -150,7 +150,7 @@ type ObservableFunctionChildren<T> = {
                 ? T[K]
                 : t extends Observable
                   ? t
-                  : Observable<t> & (() => t)
+                  : Observable<t> & T[K]
           : T[K] & Observable<T[K]>;
 };
 
