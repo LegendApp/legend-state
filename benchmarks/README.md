@@ -6,9 +6,12 @@ Legend-state seeks to be the fastest React state management library.  Achieving 
 - Micro-optimizations: Optimizations related to JavaScript primitives (iteration, Object types, etc.)
 - Array Optimizations: Optimizations related to the efficient rendering of large lists of data.
 
-## Running Benchmarks
 
-We use [hyperfine](https://github.com/sharkdp/hyperfine) for running benchmarks.  You will need this installed in order to run the benchmark script.
+## Benchmark Dependencies
+
+We use [hyperfine](https://github.com/sharkdp/hyperfine) for running benchmarks.
+
+## Running Benchmarks
 
 All benchmarked optimizations will have a directory within the relevant optimization category directory (i.e. `architecture-optimizations`, `micro-optimizations`, `array-optimizations`).  Each optimization directory will have a list of JavaScript files that each implement an approach and then a `bench.sh` that uses `hyperfine` to run the benchmark.
 

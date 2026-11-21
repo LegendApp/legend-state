@@ -1,4 +1,4 @@
-const data = require(process.env.DATA);
+const data = require('../../data/largeNumberArrayData.json');
 
 const noOp = () => {};
 
